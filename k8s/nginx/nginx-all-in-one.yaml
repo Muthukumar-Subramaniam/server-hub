@@ -46,10 +46,6 @@ spec:
         persistentVolumeClaim:
           claimName: nfs-pvc-web-share  
           readOnly: true
-      - name: cifs-volume
-        persistentVolumeClaim:
-          claimName: cifs-pvc-downloads
-          readOnly: true
       containers:
       - name: nginx
         image: nginx:latest
@@ -60,9 +56,6 @@ spec:
         volumeMounts:
         - mountPath: /usr/share/nginx/html
           name: nfs-volume
-          readOnly: true
-        - mountPath: /downloads
-          name: cifs-volume
           readOnly: true
         - mountPath: /etc/nginx/conf.d/nginx-custom.conf
           subPath: nginx-custom.conf

@@ -2,4 +2,4 @@
 - hosts: localhost
   remote_user: root
   roles:
-    - copy_ssh_keys_of_server
+    - install-required-packages

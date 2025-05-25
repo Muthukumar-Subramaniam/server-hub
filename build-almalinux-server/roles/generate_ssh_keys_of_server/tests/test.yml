@@ -2,4 +2,4 @@
 - hosts: localhost
   remote_user: root
   roles:
-    - configure_smb_service_of_server
+    - generate_ssh_keys_of_server

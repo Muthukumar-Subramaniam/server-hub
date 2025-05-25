@@ -1,0 +1,71 @@
+---
+# tasks file for generate_ssh_keys_of_server
+- name: Ensure .ssh directories exist with correct permissions
+  become: true
+  ansible.builtin.file:
+    path: "{{ item.path }}"
+    state: directory
+    mode: '0700'
+    owner: "{{ item.owner }}"
+    group: "{{ item.owner }}"
+  loop:
+    - { path: "/root/.ssh", owner: "root" }
+    - { path: "/home/{{ mgmt_user }}/.ssh", owner: "{{ mgmt_user }}" }
+
+- name: Generate SSH key for root
+  become: true
+  ansible.builtin.openssh_keypair:
+    path: /root/.ssh/id_rsa
+    type: rsa
+    size: 4096
+    owner: root
+    group: root
+    mode: '0600'
+    comment: "root@{{ inventory_hostname }}"
+    force: false
+
+- name: Generate SSH key for {{ mgmt_user }}
+  become: true
+  ansible.builtin.openssh_keypair:
+    path: /home/{{ mgmt_user }}/.ssh/id_rsa
+    type: rsa
+    size: 4096
+    owner: "{{ mgmt_user }}"
+    group: "{{ mgmt_user }}"
+    mode: '0600'
+    comment: "{{ mgmt_user }}@{{ inventory_hostname }}"
+    force: false
+
+- name: Read root public key
+  become: true
+  ansible.builtin.slurp:
+    src: /root/.ssh/id_rsa.pub
+  register: root_pubkey
+
+- name: Read {{ mgmt_user }} public key
+  become: true
+  ansible.builtin.slurp:
+    src: /home/{{ mgmt_user }}/.ssh/id_rsa.pub
+  register: mgmt_user_pubkey
+
+- name: Set authorized_keys for root
+  become: true
+  ansible.builtin.copy:
+    dest: /root/.ssh/authorized_keys
+    content: |
+      {{ root_pubkey['content'] | b64decode }}
+      {{ mgmt_user_pubkey['content'] | b64decode }}
+    owner: root
+    group: root
+    mode: '0600'
+
+- name: Set authorized_keys for {{ mgmt_user }}
+  become: true
+  ansible.builtin.copy:
+    dest: /home/{{ mgmt_user }}/.ssh/authorized_keys
+    content: |
+      {{ root_pubkey['content'] | b64decode }}
+      {{ mgmt_user_pubkey['content'] | b64decode }}
+    owner: "{{ mgmt_user }}"
+    group: "{{ mgmt_user }}"
+    mode: '0600'

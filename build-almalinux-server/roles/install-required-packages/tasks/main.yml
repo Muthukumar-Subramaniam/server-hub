@@ -1,0 +1,34 @@
+---
+# tasks file for install-required-packages
+- name: Install common utilities and server tools
+  become: true
+  dnf:
+    update_cache: true
+    name:
+      - bash-completion
+      - vim
+      - git
+      - bind-utils
+      - bind
+      - wget
+      - net-tools
+      - zip
+      - tftp-server
+      - dhcp-server
+      - syslinux
+      - httpd
+      - mod_ssl
+      - tmux
+      - tftp
+      - rsync
+      - sysstat
+      - tcpdump
+      - traceroute
+      - nc
+      - lsof
+      - nfs-utils
+      - nmap
+      - tuned
+      - tree
+      - yum-utils
+    state: present

@@ -1,23 +1,19 @@
 #!/usr/bin/env ansible-playbook
 - name: Playbook to build server.ms.local
   hosts: server
-  vars:
-    var_cfg_bkp_dir: "/root/cfg-bkp"
   roles:
-    - name: Check and Extract the cfg-bkp
-      role: check_and_extract_server_cfg_bkp
 
     - name: Upgrade Packages
       role: upgrade-server
 
-    - name: Copy SSH keys
-      role: copy_ssh_keys_of_server
+    - name: Install Required Packages
+      role: install-required-packages
+
+    - name: Generate SSH Keys
+      role: generate_ssh_keys_of_server
 
     - name: Configure named DNS service
       role: configure_named_service_of_server
-
-    - name: Mount CIFS shares from windows
-      role: mount-cifs-shares-from-windows
 
     - name: Apply Firewall Rules
       role:  apply-firewall-rules
@@ -30,9 +26,6 @@
 
     - name: Configure NFS service
       role: configure_nfs_service_of_server
-
-    - name: Configure SMB service
-      role: configure_smb_service_of_server
 
     - name: Configure Chronyd ( NTP ) service
       role: configure_chronyd_service_of_server
