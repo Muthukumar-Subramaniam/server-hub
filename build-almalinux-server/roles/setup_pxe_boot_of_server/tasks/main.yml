@@ -1,0 +1,107 @@
+---
+# tasks file for setup_pxe_boot_of_server
+- name: Copy dhcpd configuration from backup to /etc/dhcp/dhcpd.conf
+  become: true
+  ansible.posix.synchronize:
+    src: "{{ var_cfg_bkp_dir }}/pxe-boot-configs/etc-dhcp-dhcpd.conf"
+    dest: /etc/dhcp/dhcpd.conf
+
+- name: Create distro directories under /var/lib/tftpboot
+  become: true
+  file:
+    path: "/var/lib/tftpboot/{{ item }}"
+    state: directory
+  loop:
+    #    - "rhel-9"
+    #    - "rocky-9"
+    #    - "oraclelinux-9"
+    - "almalinux-9"
+    - "ubuntu-24-04"
+    - "opensuse-15"
+
+- name: Copy /usr/share/syslinux to /var/lib/tftpboot
+  become: true
+  ansible.posix.synchronize:
+    src: /usr/share/syslinux/
+    dest: /var/lib/tftpboot/
+
+- name: Copy /boot/efi/EFI/{{ ansible_facts['distribution'] | lower }}/grubx64.efi to /var/lib/tftpboot
+  become: true
+  ansible.posix.synchronize:
+    src: "/boot/efi/EFI/{{ ansible_facts['distribution'] | lower }}/grubx64.efi"
+    dest: /var/lib/tftpboot/grubx64.efi
+  
+- name: Apply Read permission to /var/lib/tftpboot/grubx64.efi      
+  become: true
+  file:
+    path: /var/lib/tftpboot/grubx64.efi
+    mode: 0644
+
+- name: Copy mount-iso.sh from backup to /root
+  become: true
+  ansible.posix.synchronize:
+    src: "{{ var_cfg_bkp_dir }}/mount-iso.sh"
+    dest: "/root/mount-iso.sh"
+
+- name: Copy mount-iso.service from backup to /etc/systemd/system
+  become: true
+  ansible.posix.synchronize:
+    src: "{{ var_cfg_bkp_dir }}/mount-iso.service"
+    dest: "/etc/systemd/system/mount-iso.service"
+
+- name: Reload systemd daemon
+  become: true
+  systemd_service:
+    daemon_reload: true
+
+- name: Enable and start mount-iso.service custom service
+  become: true
+  systemd_service:
+    name: mount-iso.service
+    state: started
+    enabled: true
+
+- name: Copy ISO vmlinuz and image files to /var/lib/tftpboot
+  include_tasks: copy_iso_images.yml
+
+- name: Enable and Start dhcpd and tftp.socket
+  become: true
+  systemd_service:
+    name: "{{ item }}"
+    state: started
+    enabled: true
+  loop:
+    - "dhcpd"
+    - "tftp.socket"
+
+- name: Restart dhcpd and tftp.socket
+  become: true
+  systemd_service:
+    name: "{{ item }}"
+    state: restarted
+  loop:
+    - "dhcpd"
+    - "tftp.socket"
+
+- name: Create command sym-link dnsbinder
+  become: true
+  file:
+    src: /server-hub/named-manage/dnsbinder.sh
+    dest: /usr/bin/dnsbinder
+    state: link
+
+- name: Create command sym-link ksmanager
+  become: true
+  file:
+    src: /server-hub/ks-manage/ksmanager.sh
+    dest: /usr/bin/ksmanager
+    state: link
+
+- name: Create command sym-link almalinux-repo-sync
+  become: true
+  file:
+    src: /server-hub/almalinux-repo-sync.sh
+    dest: /bin/almalinux-repo-sync
+    state: link
+
+################################ EOF ##################################

@@ -1,0 +1,19 @@
+<Directory "/var/www/server.{{ server_domain_name }}">
+    Options Indexes MultiViews FollowSymLinks
+    AllowOverride all
+    Require all granted
+</Directory>
+
+Listen server.{{ server_domain_name }}:80
+Listen server.{{ server_domain_name }}:443 https
+<VirtualHost server.{{ server_domain_name }}:443>
+	ServerName server.{{ server_domain_name }}
+	DocumentRoot /var/www/server.{{ server_domain_name }}
+	SSLEngine on
+ 	SSLCertificateFile /etc/pki/tls/certs/server.{{ server_domain_name }}-apache-selfsigned.crt
+ 	SSLCertificateKeyFile /etc/pki/tls/private/server.{{ server_domain_name }}-apache-selfsigned.key
+</VirtualHost>
+<VirtualHost server.{{ server_domain_name }}:80>
+	ServerName server.{{ server_domain_name }}
+    	DocumentRoot /var/www/server.{{ server_domain_name }}
+</VirtualHost>

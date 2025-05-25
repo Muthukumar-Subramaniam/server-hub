@@ -1,0 +1,89 @@
+---
+# tasks file for configure_smb_service_of_server
+- name: Create /smb-share with necessary ownership and permissions
+  become: true
+  file:
+    path: /smb-share
+    state: directory
+    mode: '2770'
+    owner: "{{ mgmt_user }}"
+    group: "{{ mgmt_user }}"
+
+- name: Check if Samba user {{ mgmt_user }} already exists
+  become: true
+  shell: |
+    if pdbedit -L | grep "{{ mgmt_user }}"
+    then
+      exit 0
+    else
+      exit 1
+    fi
+  register: var_samba_user_check
+  failed_when: false
+  changed_when: false
+  ignore_errors: true
+
+- name: Notify if Samba user {{ mgmt_user }} already exists
+  debug:
+    msg: |-
+      Samba user {{ mgmt_user }} already exists.
+  when: var_samba_user_check.rc == 0
+
+- name: Add Samba user {{ mgmt_user }}
+  become: true
+  shell: |
+    echo -e "MsM@02@04@{{ mgmt_user }}\nMsM@02@04@{{ mgmt_user }}" | smbpasswd -a -s {{ mgmt_user }}
+  when: var_samba_user_check.rc == 1
+
+- name: Remove workgroup = SAMBA from /etc/samba/smb.conf
+  become: true
+  lineinfile:
+    path: /etc/samba/smb.conf
+    state: absent
+    regexp: '^.*workgroup = SAMBA.*$'
+    backup: true
+
+- name: Capture global samba settings for server.ms.local from backup
+  become: true
+  shell: |
+    awk '/global-settings-for-server/{if (p) {exit}; p=1; next} p' "{{ var_cfg_bkp_dir }}/samba/smb.conf"
+  register: var_capture_global_samba_settings
+  changed_when: false
+
+- name: Add extracted global settings to /etc/samba/smb.conf
+  become: true
+  blockinfile:
+    marker: "# {mark} global-settings-for-server"
+    path: /etc/samba/smb.conf
+    insertafter: '^\[global\]$'
+    block: "{{ var_capture_global_samba_settings.stdout }}"
+
+- name: Capture samba share settings of {{ mgmt_user }} from backup
+  become: true
+  shell: |
+    awk '/shares-of-{{ mgmt_user }}/{if (p) {exit}; p=1; next} p' "{{ var_cfg_bkp_dir }}/samba/smb.conf"
+  register: var_capture_samba_share_settings
+  changed_when: false
+
+- name: Append captured samba share settings to /etc/samba/smb.conf
+  become: true
+  blockinfile:
+    marker: "# {mark} shares-of-{{ mgmt_user }}"
+    path: /etc/samba/smb.conf
+    block: "{{ var_capture_samba_share_settings.stdout }}"
+    insertafter: EOF
+
+- name: Enable and Start smb service
+  become: true
+  systemd_service:
+    name: smb
+    state: started
+    enabled: true
+
+- name: Restart smb service
+  become: true
+  systemd_service:
+    name: smb
+    state: restarted
+
+############################# EOF ##############################

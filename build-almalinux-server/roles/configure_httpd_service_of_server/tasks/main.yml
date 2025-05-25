@@ -1,0 +1,111 @@
+---
+# tasks file for configure_httpd_service_of_server
+- name: Create directory /var/www/server.{{ server_domain_name }}
+  become: true
+  file:
+    path: "/var/www/server.{{ server_domain_name }}"
+    state: directory
+    owner: "{{ mgmt_user }}"
+    group: "{{ mgmt_user }}"
+
+- name: Create directories for ISO mount points
+  file:
+    path: "/var/www/server.{{ server_domain_name }}/{{ item }}"
+    state: directory
+  loop:
+    - "almalinux-9"
+    - "ubuntu-24-04"
+    - "opensuse-15"
+
+- name: Create /var/www/server.{{ server_domain_name }}/fancy-index
+  file:
+    path: "/var/www/server.{{ server_domain_name }}/fancy-index"
+    state: directory
+
+- name: Copy fancy-index to /var/www/server.{{ server_domain_name }}/fancy-index
+  ansible.posix.synchronize:
+    src: fancy-index/
+    dest: "/var/www/server.{{ server_domain_name }}/fancy-index/"
+
+- name: Copy .htaccess file to /var/www/server.{{ server_domain_name }}
+  ansible.posix.synchronize:
+    src: "/var/www/server.{{ server_domain_name }}/fancy-index/.htaccess"
+    dest: "/var/www/server.{{ server_domain_name }}/.htaccess"
+
+- name: Comment out Listen in default httpd.conf and ssl.conf files
+  become: true
+  replace:
+    path: "{{ item }}"
+    regexp: '^(Listen.*)'
+    replace: '# \1'
+    backup: true
+  loop:
+    - /etc/httpd/conf/httpd.conf
+    - /etc/httpd/conf.d/ssl.conf
+
+- name: Remove /etc/httpd/conf.d/welcome.conf if exists
+  become: true
+  file:
+    path: /etc/httpd/conf.d/welcome.conf
+    state: absent
+
+- name: Generate private key
+  become: true
+  community.crypto.openssl_privatekey:
+    path: "/etc/pki/tls/private/server.{{ server_domain_name }}-apache-selfsigned.key"
+    size: 2048
+    type: RSA
+    mode: '0600'
+
+- name: Create certificate signing request (CSR) for self-signed certificate
+  become: true
+  community.crypto.openssl_csr_pipe:
+    privatekey_path: "/etc/pki/tls/private/server.{{ server_domain_name }}-apache-selfsigned.key"
+    organization_name: "{{ server_domain_name }}"
+    common_name: "server.{{ server_domain_name }}"  
+    subject_alt_name:
+      - "DNS:server.{{ server_domain_name }}"
+      - "DNS:server"
+  register: ca_csr_content
+
+- name: Generate self-signed certificate
+  become: true
+  community.crypto.x509_certificate:
+    path: "/etc/pki/tls/certs/server.{{ server_domain_name }}-apache-selfsigned.crt"
+    privatekey_path: "/etc/pki/tls/private/server.{{ server_domain_name }}-apache-selfsigned.key"
+    csr_content: "{{ ca_csr_content.csr }}"
+    provider: selfsigned
+    selfsigned_not_after: +3650d  # valid for 10 years
+    mode: '0644'
+
+- name: Create custom httpd configuration for server.{{ server_domain_name }}
+  become: true
+  template:
+    src: custom_httpd_config.j2 
+    dest: "/etc/httpd/conf.d/server.{{ server_domain_name }}.conf"
+
+- name: Copy self-signed SSL certificate to /etc/pki/ca-trust/source/anchors
+  become: true
+  ansible.posix.synchronize:
+    src: "/etc/pki/tls/certs/server.{{ server_domain_name }}-apache-selfsigned.crt"
+    dest: "/etc/pki/ca-trust/source/anchors/server.{{ server_domain_name }}-apache-selfsigned.crt"
+
+- name: Run update-ca-trust
+  become: true
+  command: update-ca-trust
+  changed_when: false
+
+- name: Enable and Start httpd service
+  become: true
+  systemd_service:
+    name: httpd
+    state: started
+    enabled: true
+
+- name: Restart httpd service
+  become: true
+  systemd_service:
+    name: httpd
+    state: restarted
+
+############################# EOF ##############################

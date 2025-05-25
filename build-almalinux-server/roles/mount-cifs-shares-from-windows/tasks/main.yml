@@ -1,0 +1,27 @@
+---
+# tasks file for mount-cifs-shares-from-windows
+- name: Copy smbcredentials file from backup to /root
+  become: true
+  ansible.posix.synchronize:
+    src: "{{ var_cfg_bkp_dir }}/smbcredentials"
+    dest: /root/smbcredentials
+ 
+- name: Mount CIFS share /Scripts_by_muthu from Windows to /scripts_by_muthu
+  become: true
+  ansible.builtin.mount:
+    path: /scripts_by_muthu
+    src: //windows.ms.local/Scripts_by_muthu 
+    fstype: cifs
+    opts: rw,credentials=/root/smbcredentials,uid=muthuks,gid=muthuks  
+    state: mounted
+
+- name: Mount CIFS share /Downloads from Windows to /scripts_by_muthu
+  become: true
+  ansible.builtin.mount:
+    path: /downloads
+    src: //windows.ms.local/Downloads 
+    fstype: cifs
+    opts: rw,credentials=/root/smbcredentials,uid=muthuks,gid=muthuks  
+    state: mounted
+
+######################### EOF #########################

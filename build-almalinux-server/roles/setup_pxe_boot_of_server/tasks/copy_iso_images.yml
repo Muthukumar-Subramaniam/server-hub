@@ -1,0 +1,67 @@
+#- name: Copy PXE boot images of RHEL 9 to /var/lib/tftpboot
+#  become: true
+#  ansible.builtin.synchronize:
+#    mode: push
+#    src: /var/www/server.ms.local/rhel-9/images/pxeboot/
+#    dest: /var/lib/tftpboot/rhel-9/
+#    rsync_opts:
+#      - "--include='vmlinuz'"
+#      - "--include='initrd.img'"
+#      - "--exclude='*'"
+
+#- name: Copy PXE boot images of Rocky 9 to /var/lib/tftpboot
+#  become: true
+#  ansible.builtin.synchronize:
+#    mode: push
+#    src: /var/www/server.ms.local/rocky-9/images/pxeboot/
+#    dest: /var/lib/tftpboot/rocky-9/
+#    rsync_opts:
+#      - "--include='vmlinuz'"
+#      - "--include='initrd.img'"
+#      - "--exclude='*'"
+
+#- name: Copy PXE boot images of Oracle Linux 9 to /var/lib/tftpboot
+#  become: true
+#  ansible.builtin.synchronize:
+#    mode: push
+#    src: /var/www/server.ms.local/oraclelinux-9/images/pxeboot/
+#    dest: /var/lib/tftpboot/oraclelinux-9/
+#    rsync_opts:
+#      - "--include='vmlinuz'"
+#      - "--include='initrd.img'"
+#      - "--exclude='*'"
+
+- name: Copy PXE boot images of AlmaLinux 9 to /var/lib/tftpboot
+  become: true
+  ansible.builtin.synchronize:
+    mode: push
+    src: /var/www/server.ms.local/almalinux-9/images/pxeboot/
+    dest: /var/lib/tftpboot/almalinux-9/
+    rsync_opts:
+      - "--include='vmlinuz'"
+      - "--include='initrd.img'"
+      - "--exclude='*'"
+
+- name: Copy PXE boot images of Ubuntu 24.04 to /var/lib/tftpboot
+  become: true
+  ansible.builtin.synchronize:
+    mode: push
+    src: /var/www/server.ms.local/ubuntu-24-04/casper/
+    dest: /var/lib/tftpboot/ubuntu-24-04/
+    rsync_opts:
+      - "--include='initrd'"
+      - "--include='vmlinuz'"
+      - "--exclude='*'"
+
+- name: Copy PXE boot images of openSUSE 15 to /var/lib/tftpboot
+  become: true
+  ansible.builtin.synchronize:
+    mode: push
+    src: /var/www/server.ms.local/opensuse-15/boot/x86_64/loader/
+    dest: /var/lib/tftpboot/opensuse-15/
+    rsync_opts:
+      - "--include='linux'"
+      - "--include='initrd'"
+      - "--exclude='*'"
+
+############################## EOF #############################

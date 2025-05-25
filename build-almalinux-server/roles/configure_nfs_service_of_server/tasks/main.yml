@@ -1,0 +1,39 @@
+---
+# tasks file for configure_nfs_service_of_server
+- name: Create /nfs-share with necessary ownership and permissions
+  become: true
+  file:
+    path: /nfs-share
+    state: directory
+    mode: '2770'
+    owner: muthuks
+    group: muthuks
+
+- name: Create custom exports under /etc/exports
+  become: true
+  template:
+    src: nfs-exports.j2  
+    dest: /etc/exports
+
+- name: Update hostname server.ms.local in /etc/nfs.conf 
+  become: true
+  lineinfile:
+    path: /etc/nfs.conf
+    line: "host=server.{{ server_domain_name }}"
+    insertafter: '^\[nfsd\]$'
+    backup: true
+
+- name: Enable and Start nfs-server service
+  become: true
+  systemd_service:
+    name: nfs-server
+    state: started
+    enabled: true
+
+- name: Restart nfs-server service
+  become: true
+  systemd_service:
+    name: nfs-server
+    state: restarted
+
+############################# EOF ##############################
