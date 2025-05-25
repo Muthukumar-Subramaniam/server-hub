@@ -163,20 +163,20 @@ fn_select_os_distro() {
 cat << EOF
 
 Please select OS distribution to install :
+
 	1 ) AlmaLinux Latest ( Uses Local Mirror for Installation )
 	2 ) Ubuntu Server Latest ( Requires Internet Connection )
-	3 ) OpenSuse Leap Latest ( Requires Internet Connection )
 
 EOF
-	read -p "Enter Option Number : " os_distribution
+	read -p "Enter Option Number ( default - AlmaLinux ) : " os_distribution
 
 	case ${os_distribution} in
-		1) os_distribution="almalinux"
+		1|"") os_distribution="almalinux"
 	   	   ;;
 		2) os_distribution="ubuntu"
 	   	   ;;
-		3) os_distribution="opensuse"
-	   	   ;;
+#		3) os_distribution="opensuse"
+#	   	   ;;
 		*) echo "Invalid Option!"
 	   	   fn_select_os_distro
 	   	   ;;
@@ -205,8 +205,8 @@ if [[ "${os_distribution}" == "almalinux" ]]; then
 	rsync -avPh "${ksmanager_main_dir}"/ks-templates/el-9-ks.cfg "${host_kickstart_dir}"/ 
 elif [[ "${os_distribution}" == "ubuntu" ]]; then
 	rsync -avPh --delete "${ksmanager_main_dir}"/ks-templates/ubuntu-24-04-ks "${host_kickstart_dir}"/
-elif [[ "${os_distribution}" == "opensuse" ]]; then
-	rsync -avPh "${ksmanager_main_dir}"/ks-templates/opensuse-15-autoinst.xml "${host_kickstart_dir}"/ 
+#elif [[ "${os_distribution}" == "opensuse" ]]; then
+#	rsync -avPh "${ksmanager_main_dir}"/ks-templates/opensuse-15-autoinst.xml "${host_kickstart_dir}"/ 
 fi
 
 

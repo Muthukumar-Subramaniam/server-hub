@@ -17,7 +17,7 @@
     #    - "oraclelinux-9"
     - "almalinux-9"
     - "ubuntu-24-04"
-    - "opensuse-15"
+    #    - "opensuse-15"
 
 - name: Copy /usr/share/syslinux to /var/lib/tftpboot
   become: true
