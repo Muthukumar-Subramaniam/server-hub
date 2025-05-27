@@ -104,6 +104,20 @@ fn_calculate_network_cidr() {
     echo "${network_octet1}.${network_octet2}.${network_octet3}.${network_octet4}/${network_cidr}"
 }
 
+fn_cidr_prefix_to_netmask() {
+    local cidr_prefix=$1
+    
+    local binary_mask=$(printf '%*s' "$cidr_prefix" '' | tr ' ' '1')
+    binary_mask=$(printf '%-32s' "$binary_mask" | tr ' ' '0')
+
+    dnsbinder_netmask=""
+    for i in {0..3}; do
+        local octet_decimal=$((2#${binary_mask:$((i * 8)):8}))
+        dnsbinder_netmask+=$octet_decimal
+        [[ $i -lt 3 ]] && dnsbinder_netmask+=.
+    done
+}
+
 fn_split_network_into_cidr24subnets() {
 
 	v_network_and_cidr="${1}"
@@ -157,6 +171,8 @@ fn_split_network_into_cidr24subnets() {
 	# Extract network and CIDR from input
 	v_network=$(echo "${v_network_and_cidr}" | cut -d "/" -f 1)
 	v_cidr=$(echo "${v_network_and_cidr}" | cut -d "/" -f 2)
+
+	fn_cidr_prefix_to_netmask "${v_cidr}"
 	
 	# Check if CIDR is valid
 	if ! [[ "${v_cidr}" =~ ^[0-9]+$ ]] || [ "${v_cidr}" -lt 16 ] || [ "${v_cidr}" -gt 24 ]; then
@@ -211,8 +227,6 @@ fn_configure_named_dns_server() {
 		exit
 	fi
 
-
-	
 	fn_instruct_on_valid_domain_name	
 
 	while :
@@ -392,6 +406,20 @@ EOF
 	print_success "[ done ]"
 
 	if ! "${server_is_hosted_on_gcp}" ; then
+
+		print_notify "\nUpdating dnsbinder related global variables to /etc/environment . . . " "nskip"
+
+		echo "dnsbinder_domain=\"${v_given_domain}\"" >> /etc/environment
+		echo "dnsbinder_network_cidr=\"${v_network_and_cidr}\"" >> /etc/environment
+		echo "dnsbinder_cidr_prefix=\"${v_cidr}\"" >> /etc/environment
+		echo "dnsbinder_netmask=\"${dnsbinder_netmask}\"" >> /etc/environment
+		echo "dnsbinder_gateway=\"${v_network_gateway}\"" >> /etc/environment
+		echo "dnsbinder_broadcast=\"${v_last_subnet_part}.255\"" >> /etc/environment
+		echo "dnsbinder_server_ipv4_address=\"${v_primary_ip}\"" >> /etc/environment
+		echo "dnsbinder_server_short_name=\"${v_dns_host_short_name}\"" >> /etc/environment
+		echo "dnsbinder_server_fqdn=\"${v_dns_host_short_name}.${v_given_domain}\"" >> /etc/environment
+
+		source /etc/environment
 
 		print_notify "\nUpdating Network Manager to point the local dns server and domain . . . " "nskip"
 

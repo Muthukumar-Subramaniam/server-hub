@@ -6,21 +6,22 @@ then
     exit 1
 fi
 
-dnsbinder_script='/server-hub/named-manage/dnsbinder.sh'
-ksmanager_main_dir='/server-hub/ks-manage'
-ksmanager_hub_dir='/var/www/server.ms.local/ksmanager-hub'
-ipv4_domain='ms.local'
-ipv4_netmask='255.255.252.0'
-ipv4_prefix='22'
-ipv4_gateway="192.168.168.1"
-ipv4_nameserver="192.168.168.3"
-ipv4_nfsserver="192.168.168.3"
-tftp_server_name="server"
-ntp_pool_name="server"
-web_server_name="server"
+ipv4_domain="${dnsbinder_domain}"
+ipv4_netmask="${dnsbinder_netmask}"
+ipv4_prefix="${dnsbinder_cidr_prefix}"
+ipv4_gateway="${dnsbinder_gateway}"
+ipv4_nameserver="${dnsbinder_server_ipv4_address}"
+ipv4_nfsserver="${dnsbinder_server_ipv4_address}"
+tftp_server_name="${dnsbinder_server_short_name}"
+ntp_pool_name="${dnsbinder_server_short_name}"
+web_server_name="${dnsbinder_server_short_name}"
 win_kickstart_hostname="windows"
 ##rhel_activation_key=$(cat /server-hub/rhel-activation-key.base64 | base64 -d)
 time_of_last_update=$(date | sed  "s/ /-/g")
+
+dnsbinder_script='/server-hub/named-manage/dnsbinder.sh'
+ksmanager_main_dir='/server-hub/ks-manage'
+ksmanager_hub_dir="/var/www/${web_server_name}.${ipv4_domain}/ksmanager-hub"
 
 
 while :
