@@ -446,7 +446,7 @@ EOF
 
 	print_notify "\nCreating the command dnsbinder . . . " "nskip"
 
-	cp -p $(pwd)/$0 /usr/bin/dnsbinder
+	ln -s /server-hub/named-manage/dnsbinder.sh /usr/bin/dnsbinder
 
 	print_success "[ done ]"
 

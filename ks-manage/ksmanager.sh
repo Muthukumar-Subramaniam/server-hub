@@ -18,11 +18,13 @@ web_server_name="${dnsbinder_server_short_name}"
 win_kickstart_hostname="windows"
 ##rhel_activation_key=$(cat /server-hub/rhel-activation-key.base64 | base64 -d)
 time_of_last_update=$(date | sed  "s/ /-/g")
+shadow_password_super_mgmt_user=$(grep "${mgmt_super_user}" /etc/shadow | cut -d ":" -f 2)
 
 dnsbinder_script='/server-hub/named-manage/dnsbinder.sh'
 ksmanager_main_dir='/server-hub/ks-manage'
 ksmanager_hub_dir="/var/www/${web_server_name}.${ipv4_domain}/ksmanager-hub"
 
+mkdir -p "${ksmanager_hub_dir}"
 
 while :
 do
@@ -130,6 +132,10 @@ fn_get_mac_address() {
 
 echo -e "\nLooking up MAC Address for the host ${kickstart_hostname} from mac-address-cache . . ."
 
+if [ ! -f "${ksmanager_hub_dir}"/mac-address-cache ]; then
+	touch  "${ksmanager_hub_dir}"/mac-address-cache
+fi
+
 if grep ^"${kickstart_hostname} " "${ksmanager_hub_dir}"/mac-address-cache &>>/dev/null
 then
 	mac_address_of_host=$(grep ^"${kickstart_hostname} " "${ksmanager_hub_dir}"/mac-address-cache | cut -d " " -f 2 )
@@ -190,9 +196,15 @@ fn_select_os_distro
 # shellcheck disable=SC2021
 ipv4_address=$(host "${kickstart_hostname}.${ipv4_domain}" | cut -d " " -f 4 | tr -d '[[:space:]]')
 
-mkdir -p "${ksmanager_hub_dir}"
+
 
 rsync -avPh --delete "${ksmanager_main_dir}"/addons-for-kickstarts/ "${ksmanager_hub_dir}"/addons-for-kickstarts/
+
+rsync -avPh /etc/pki/tls/certs/"${web_server_name}.${ipv4_domain}-apache-selfsigned.crt" "${ksmanager_hub_dir}"/addons-for-kickstarts/
+
+rsync -avPh "/home/${mgmt_super_user}/.ssh/authorized_keys" "${ksmanager_hub_dir}"/addons-for-kickstarts/
+
+chmod +r "${ksmanager_hub_dir}"/addons-for-kickstarts/authorized_keys
 
 host_kickstart_dir="${ksmanager_hub_dir}/kickstarts/${kickstart_hostname}.${ipv4_domain}"
 
@@ -212,12 +224,18 @@ fi
 
 
 # shellcheck disable=SC2044
+escape_sed_replacement() {
+    printf '%s' "$1" | sed -e 's/[\/&$.*[\]^(){}|?+\\]/\\&/g'
+}
+
 fn_set_environment() {
 	local input_dir_or_file="${1}"
 	local working_file=
 
-	fn_run_sed_command() {
+	fn_update_dynamic_parameters() {
+
 		local working_file="${1}"
+
 		sed -i "s/get_ipv4_address/${ipv4_address}/g" "${working_file}"
 		sed -i "s/get_ipv4_netmask/${ipv4_netmask}/g" "${working_file}"
 		sed -i "s/get_ipv4_prefix/${ipv4_prefix}/g" "${working_file}"
@@ -232,19 +250,27 @@ fn_set_environment() {
 		sed -i "s/get_tftp_server_name/${tftp_server_name}.ms.local/g" "${working_file}"
 		sed -i "s/get_rhel_activation_key/${rhel_activation_key}/g" "${working_file}"
 		sed -i "s/get_time_of_last_update/${time_of_last_update}/g" "${working_file}"
+		sed -i "s/get_mgmt_super_user/${mgmt_super_user}/g" "${working_file}"
+
+		awk -v val="$shadow_password_super_mgmt_user" '
+		{
+    			gsub(/get_shadow_password_super_mgmt_user/, val)
+		}
+		1
+		' "${working_file}" > "${working_file}"_tmp_ksmanager && mv "${working_file}"_tmp_ksmanager "${working_file}"
 	}
 
 	if [ -d "${input_dir_or_file}" ]
 	then
 		for working_file in $(find "${input_dir_or_file}" -type f )
 		do
-			fn_run_sed_command "${working_file}"
+			fn_update_dynamic_parameters "${working_file}"
 		done
 
 	elif [ -f "${input_dir_or_file}" ]
 	then
 		working_file="${input_dir_or_file}"
-		fn_run_sed_command "${working_file}"
+		fn_update_dynamic_parameters "${working_file}"
 	fi
 }
 

@@ -1,5 +1,5 @@
 network:
     version: 2
     ethernets:
-        eth-muthuks:
+        eth-get_mgmt_super_user:
             dhcp4: true
