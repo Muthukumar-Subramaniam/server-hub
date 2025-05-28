@@ -1,4 +1,5 @@
 #!/bin/bash
+
 if command -v ansible &>/dev/null; then
 	echo "Ansible is already installed, Proceeding further . . ."
 else
@@ -12,6 +13,11 @@ else
 	rm get-pip.py
 	echo "## Completed Ansible Installation ##"
 fi
+
+echo "\nAdd password-less sudo access for $USER . . . \n"
+mgmt_super_user=$USER
+
+echo "${mgmt_super_user} ALL=(ALL) NOPASSWD:ALL" | sudo tee /etc/sudoers.d/${mgmt_super_user}
 
 echo -e "\nSetting Up ansible.cfg . . . \n"
 sed -i "/remote_user/c\remote_user=$USER" ansible.cfg 
