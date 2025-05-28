@@ -14,7 +14,7 @@
       - net-tools
       - zip
       - tftp-server
-      - dhcp-server
+      - kea
       - syslinux
       - httpd
       - mod_ssl

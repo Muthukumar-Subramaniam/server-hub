@@ -2,6 +2,7 @@
 # tasks file for configure_chronyd_service_of_server
 
 - name: Comment existing NTP pool from chrony
+  become: true
   ansible.builtin.replace:
     path: /etc/chrony.conf
     regexp: '^pool '

@@ -1,19 +1,19 @@
 ---
 # tasks file for setup_pxe_boot_of_server
-- name: Configure /etc/dhcp/dhcpd.conf
+- name: Configure /etc/kea/kea-dhcp4.conf
   become: true
   template:
-    src: dhcpd_conf.j2
-    dest: /etc/dhcp/dhcpd.conf
+    src: kea_dhcp4_conf.j2
+    dest: /etc/kea/kea-dhcp4.conf
 
-- name: Enable and Start dhcpd and tftp.socket
+- name: Enable and Start kea-dhcp4 and tftp.socket
   become: true
   systemd_service:
     name: "{{ item }}"
     state: started
     enabled: true
   loop:
-    - "dhcpd"
+    - "kea-dhcp4"
     - "tftp.socket"
 
 - name: Restart dhcpd and tftp.socket
@@ -22,26 +22,20 @@
     name: "{{ item }}"
     state: restarted
   loop:
-    - "dhcpd"
+    - "kea-dhcp4"
     - "tftp.socket"
 
-- name: Get AlmaLinux version info
-  ansible.builtin.command: cat /etc/os-release
-  register: almalinux_os_release_info
-
-- name: Extract AlmaLinux version
-  ansible.builtin.set_fact:
-    alma_version_major: "{{ almalinux_os_release_info.stdout | regex_search('^VERSION_ID=\"([0-9]+)', '\\1') }}"
-
 - name: Create directory /iso-manage to manage ISOs
+  become: true
   file:
     path: /iso-manage
     state: directory
 
 - name: Download AlmaLinux latest boot ISO from official repo to /iso-manage
+  become: true
   get_url:
-    url: "https://repo.almalinux.org/almalinux/{{ alma_version_major }}/isos/x86_64/AlmaLinux-{{ alma_version_major }}-latest-x86_64-boot.iso"
-    dst: "/iso-manage/AlmaLinux-{{ alma_version_major }}-latest-x86_64-boot.iso"
+    url: "https://repo.almalinux.org/almalinux/{{ ansible_env.alma_version_major }}/isos/x86_64/AlmaLinux-{{ ansible_env.alma_version_major }}-latest-x86_64-boot.iso"
+    dest: "/iso-manage/AlmaLinux-{{ ansible_env.alma_version_major }}-latest-x86_64-boot.iso"
 
 - name: Create almalinux-latest mount point under /var/www//{{ ansible_env.dnsbinder_server_short_name }}.{{ ansible_env.dnsbinder_domain }}
   file:
@@ -51,8 +45,8 @@
 - name: Mount AlmaLinux ISO and update an entry in fstab as well 
   become: true
   ansible.posix.mount:
-    path: "/var/www/{{ {{ ansible_env.dnsbinder_server_short_name }}.{{ ansible_env.dnsbinder_domain }}/almalinux-latest"
-    src: "/iso-manage/AlmaLinux-{{ alma_version_major }}-latest-x86_64-boot.iso"
+    path: "/var/www/{{ ansible_env.dnsbinder_server_short_name }}.{{ ansible_env.dnsbinder_domain }}/almalinux-latest"
+    src: "/iso-manage/AlmaLinux-{{ ansible_env.alma_version_major }}-latest-x86_64-boot.iso"
     fstype: iso9660
     opts: "uid={{ ansible_env.mgmt_super_user }},gid={{ ansible_env.mgmt_super_user }}"
     state: mounted
@@ -63,7 +57,7 @@
     path: "/var/lib/tftpboot/almalinux-latest"
     state: directory
 
-- name: Copy PXE boot images from AlmaLinux {{ alma_version_major }} to /var/lib/tftpboot
+- name: Copy PXE boot images from AlmaLinux {{ ansible_env.alma_version_major }} to /var/lib/tftpboot
   become: true
   ansible.builtin.synchronize:
     mode: push

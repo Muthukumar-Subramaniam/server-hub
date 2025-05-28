@@ -21,7 +21,7 @@
     owner: root
     group: root
     mode: '0600'
-    comment: "root@{{ inventory_hostname }}"
+    comment: "root@{{ ansible_env.dnsbinder_server_fqdn }}"
     force: false
 
 - name: Generate SSH key for {{ ansible_env.mgmt_super_user }}

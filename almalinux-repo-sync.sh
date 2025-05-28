@@ -20,7 +20,7 @@ if ! ping -c 1 google.com &>/dev/null; then
 fi
 
 # Define paths
-LOCAL_REPO_DIR="/var/www/server.${dnsbinder_domain}/almalinux-local-repo"
+LOCAL_REPO_DIR="/var/www/${dnsbinder_server_fqdn}.${dnsbinder_domain}/almalinux-local-repo"
 REMOTE_BASEOS="https://repo.almalinux.org/almalinux/${almalinux_major_version}/BaseOS/x86_64/os/repodata/repomd.xml"
 REMOTE_APPSTREAM="https://repo.almalinux.org/almalinux/${almalinux_major_version}/AppStream/x86_64/os/repodata/repomd.xml"
 LOCK_FILE="/var/lock/almalinux-repo-sync.lock"

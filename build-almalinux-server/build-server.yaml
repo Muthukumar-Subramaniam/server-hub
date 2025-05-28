@@ -9,7 +9,7 @@
       role: upgrade-server
 
     - name: Install Required Packages
-      role: install-required-packages
+      role: install_required_packages
 
     - name: Generate SSH Keys
       role: generate_ssh_keys_of_server

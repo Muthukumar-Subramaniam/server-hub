@@ -281,7 +281,7 @@ fn_set_environment "${host_kickstart_dir}"
 
 echo -e "\nCreating or Updating /var/lib/tftpboot/grub.cfg-01-${grub_cfg_mac_address} . . .\n"
 
-rsync -avPh "${ksmanager_main_dir}"/grub-template-"${os_distribution}".cfg  /var/lib/tftpboot/grub.cfg-01-"${grub_cfg_mac_address}"
+rsync -avPh "${ksmanager_main_dir}"/grub-template-almalinux.cfg  /var/lib/tftpboot/grub.cfg-01-"${grub_cfg_mac_address}"
 
 fn_set_environment "/var/lib/tftpboot/grub.cfg-01-${grub_cfg_mac_address}"
 

@@ -1,3 +1,5 @@
 [server]
+server
+[server:vars]
 ansible_connection=local
 ansible_host=localhost
