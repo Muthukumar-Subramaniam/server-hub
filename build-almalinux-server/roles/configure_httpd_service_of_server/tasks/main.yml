@@ -1,36 +1,27 @@
 ---
 # tasks file for configure_httpd_service_of_server
-- name: Create directory /var/www/server.{{ server_domain_name }}
+- name: Create directory /var/www/{{ ansible_env.dnsbinder_server_fqdn }}
   become: true
   file:
-    path: "/var/www/server.{{ server_domain_name }}"
+    path: "/var/www/{{ ansible_env.dnsbinder_server_fqdn }}"
     state: directory
-    owner: "{{ mgmt_user }}"
-    group: "{{ mgmt_user }}"
+    owner: "{{ ansible_env.mgmt_super_user }}"
+    group: "{{ ansible_env.mgmt_super_user }}"
 
-- name: Create directories for ISO mount points
+- name: Create /var/www/{{ ansible_env.dnsbinder_server_fqdn }}/fancy-index
   file:
-    path: "/var/www/server.{{ server_domain_name }}/{{ item }}"
-    state: directory
-  loop:
-    - "almalinux-9"
-    - "ubuntu-24-04"
-    - "opensuse-15"
-
-- name: Create /var/www/server.{{ server_domain_name }}/fancy-index
-  file:
-    path: "/var/www/server.{{ server_domain_name }}/fancy-index"
+    path: "/var/www/{{ ansible_env.dnsbinder_server_fqdn }}/fancy-index"
     state: directory
 
-- name: Copy fancy-index to /var/www/server.{{ server_domain_name }}/fancy-index
+- name: Copy fancy-index to /var/www/{{ ansible_env.dnsbinder_server_fqdn }}/fancy-index
   ansible.posix.synchronize:
     src: fancy-index/
-    dest: "/var/www/server.{{ server_domain_name }}/fancy-index/"
+    dest: "/var/www/{{ ansible_env.dnsbinder_server_fqdn }}/fancy-index/"
 
-- name: Copy .htaccess file to /var/www/server.{{ server_domain_name }}
+- name: Copy .htaccess file to /var/www/{{ ansible_env.dnsbinder_server_fqdn }}
   ansible.posix.synchronize:
-    src: "/var/www/server.{{ server_domain_name }}/fancy-index/.htaccess"
-    dest: "/var/www/server.{{ server_domain_name }}/.htaccess"
+    src: "/var/www/{{ ansible_env.dnsbinder_server_fqdn }}/fancy-index/.htaccess"
+    dest: "/var/www/{{ ansible_env.dnsbinder_server_fqdn }}/.htaccess"
 
 - name: Comment out Listen in default httpd.conf and ssl.conf files
   become: true
@@ -52,7 +43,7 @@
 - name: Generate private key
   become: true
   community.crypto.openssl_privatekey:
-    path: "/etc/pki/tls/private/server.{{ server_domain_name }}-apache-selfsigned.key"
+    path: "/etc/pki/tls/private/{{ ansible_env.dnsbinder_server_fqdn }}-apache-selfsigned.key"
     size: 2048
     type: RSA
     mode: '0600'
@@ -60,35 +51,35 @@
 - name: Create certificate signing request (CSR) for self-signed certificate
   become: true
   community.crypto.openssl_csr_pipe:
-    privatekey_path: "/etc/pki/tls/private/server.{{ server_domain_name }}-apache-selfsigned.key"
-    organization_name: "{{ server_domain_name }}"
-    common_name: "server.{{ server_domain_name }}"  
+    privatekey_path: "/etc/pki/tls/private/{{ ansible_env.dnsbinder_server_fqdn }}-apache-selfsigned.key"
+    organization_name: "{{ ansible_env.dnsbinder_domain }}"
+    common_name: "{{ ansible_env.dnsbinder_server_fqdn }}"  
     subject_alt_name:
-      - "DNS:server.{{ server_domain_name }}"
-      - "DNS:server"
+      - "DNS:{{ ansible_env.dnsbinder_server_fqdn }}"
+      - "DNS:{{ ansible_env.dnsbinder_server_short_name }}"
   register: ca_csr_content
 
 - name: Generate self-signed certificate
   become: true
   community.crypto.x509_certificate:
-    path: "/etc/pki/tls/certs/server.{{ server_domain_name }}-apache-selfsigned.crt"
-    privatekey_path: "/etc/pki/tls/private/server.{{ server_domain_name }}-apache-selfsigned.key"
+    path: "/etc/pki/tls/certs/{{ ansible_env.dnsbinder_server_fqdn }}-apache-selfsigned.crt"
+    privatekey_path: "/etc/pki/tls/private/{{ ansible_env.dnsbinder_server_fqdn }}-apache-selfsigned.key"
     csr_content: "{{ ca_csr_content.csr }}"
     provider: selfsigned
     selfsigned_not_after: +3650d  # valid for 10 years
     mode: '0644'
 
-- name: Create custom httpd configuration for server.{{ server_domain_name }}
+- name: Create custom httpd configuration for {{ ansible_env.dnsbinder_server_fqdn }}
   become: true
   template:
     src: custom_httpd_config.j2 
-    dest: "/etc/httpd/conf.d/server.{{ server_domain_name }}.conf"
+    dest: "/etc/httpd/conf.d/{{ ansible_env.dnsbinder_server_fqdn }}.conf"
 
 - name: Copy self-signed SSL certificate to /etc/pki/ca-trust/source/anchors
   become: true
   ansible.posix.synchronize:
-    src: "/etc/pki/tls/certs/server.{{ server_domain_name }}-apache-selfsigned.crt"
-    dest: "/etc/pki/ca-trust/source/anchors/server.{{ server_domain_name }}-apache-selfsigned.crt"
+    src: "/etc/pki/tls/certs/{{ ansible_env.dnsbinder_server_fqdn }}-apache-selfsigned.crt"
+    dest: "/etc/pki/ca-trust/source/anchors/{{ ansible_env.dnsbinder_server_fqdn }}-apache-selfsigned.crt"
 
 - name: Run update-ca-trust
   become: true

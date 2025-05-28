@@ -39,7 +39,7 @@ autoinstall:
 
   identity:
     hostname: get_hostname.get_ipv4_domain
-    password: "$6$lszCEKBW0uYUhm5N$16w1FJB/zUMQCVvTWQxtye0TqX7yDEM87HP2Lz84bqPCGvry4B8cWYcaClJsPCmPs4Z1/TSKkFdsK/u/WJg990"
+    password: "get_shadow_password_super_mgmt_user"
     username: get_mgmt_super_user
 
   user-data:
@@ -47,7 +47,7 @@ autoinstall:
     chpasswd:
       expire: false
       list:
-        - root:$6$lszCEKBW0uYUhm5N$16w1FJB/zUMQCVvTWQxtye0TqX7yDEM87HP2Lz84bqPCGvry4B8cWYcaClJsPCmPs4Z1/TSKkFdsK/u/WJg990
+        - root:get_shadow_password_super_mgmt_user
     runcmd:
       - /usr/bin/echo -e "HISTSIZE=-1\nHISTFILESIZE=-1" | tee -a /home/get_mgmt_super_user/.bashrc /root/.bashrc
       - var_PS1_variable_get_mgmt_super_user=$(curl -s -L http://get_web_server_name.get_ipv4_domain/ksmanager-hub/addons-for-kickstarts/PS1-env-variable-normal-user)

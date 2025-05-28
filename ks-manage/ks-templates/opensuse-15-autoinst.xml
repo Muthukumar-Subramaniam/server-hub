@@ -667,7 +667,7 @@
       </password_settings>
       <shell>/bin/bash</shell>
       <uid>1000</uid>
-      <user_password>$6$RFgSwOUC9EL20n/s$Rdgqxt8HwCivWin89xqBzr7dMVmtTD92yCTgHMl5QgMKtZCN8JT7P5nCyfM9Ptxm0fCnUV3eRVyV10hZu0f8C.</user_password>
+      <user_password>get_shadow_password_super_mgmt_user</user_password>
       <username>get_mgmt_super_user</username>
     </user>
     <user t="map">
@@ -706,7 +706,7 @@
       </password_settings>
       <shell>/bin/bash</shell>
       <uid>0</uid>
-      <user_password>$6$1b/jyK38KQDOubAs$8RRVJBXBp6KvGoqReN9W36VAnW/oTW6s72OwZq4ZC7/eXD77EgUb5OEnNdgHk.lQg29ADAuNVkrhH.iuy7M730</user_password>
+      <user_password>get_shadow_password_super_mgmt_user</user_password>
       <username>root</username>
     </user>
     <user t="map">

@@ -1,19 +1,19 @@
-<Directory "/var/www/server.{{ server_domain_name }}">
+<Directory "/var/www/{{ ansible_env.dnsbinder_server_fqdn }}">
     Options Indexes MultiViews FollowSymLinks
     AllowOverride all
     Require all granted
 </Directory>
 
-Listen server.{{ server_domain_name }}:80
-Listen server.{{ server_domain_name }}:443 https
-<VirtualHost server.{{ server_domain_name }}:443>
-	ServerName server.{{ server_domain_name }}
-	DocumentRoot /var/www/server.{{ server_domain_name }}
+Listen {{ ansible_env.dnsbinder_server_fqdn }}:80
+Listen {{ ansible_env.dnsbinder_server_fqdn }}:443 https
+<VirtualHost {{ ansible_env.dnsbinder_server_fqdn }}:443>
+	ServerName {{ ansible_env.dnsbinder_server_fqdn }}
+	DocumentRoot /var/www/{{ ansible_env.dnsbinder_server_fqdn }}
 	SSLEngine on
- 	SSLCertificateFile /etc/pki/tls/certs/server.{{ server_domain_name }}-apache-selfsigned.crt
- 	SSLCertificateKeyFile /etc/pki/tls/private/server.{{ server_domain_name }}-apache-selfsigned.key
+ 	SSLCertificateFile /etc/pki/tls/certs/{{ ansible_env.dnsbinder_server_fqdn }}-apache-selfsigned.crt
+ 	SSLCertificateKeyFile /etc/pki/tls/private/{{ ansible_env.dnsbinder_server_fqdn }}-apache-selfsigned.key
 </VirtualHost>
-<VirtualHost server.{{ server_domain_name }}:80>
-	ServerName server.{{ server_domain_name }}
-    	DocumentRoot /var/www/server.{{ server_domain_name }}
+<VirtualHost {{ ansible_env.dnsbinder_server_fqdn }}:80>
+	ServerName {{ ansible_env.dnsbinder_server_fqdn }}
+    	DocumentRoot /var/www/{{ ansible_env.dnsbinder_server_fqdn }}
 </VirtualHost>

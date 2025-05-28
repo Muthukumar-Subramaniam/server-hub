@@ -1,9 +1,9 @@
 ---
 # tasks file for apply-firewall-rules
-- name: Add server's local Network CIDR ( {{ server_mgmt_network }} ) to trusted zone
+- name: Add local Network CIDR ( {{ ansible_env.dnsbinder_network_cidr }} ) to trusted zone
   become: true
   ansible.posix.firewalld:
-    source: "{{ server_mgmt_network }}"
+    source: "{{ ansible_env.dnsbinder_network_cidr }}"
     zone: trusted
     permanent: true
     immediate: true

@@ -6,6 +6,8 @@ then
     exit 1
 fi
 
+source /etc/os-release
+almalinux_major_version="${VERSION_ID%%.*}"
 ipv4_domain="${dnsbinder_domain}"
 ipv4_netmask="${dnsbinder_netmask}"
 ipv4_prefix="${dnsbinder_cidr_prefix}"
@@ -166,37 +168,35 @@ else
 	fn_get_mac_address
 fi
 
-fn_select_os_distro() {
-cat << EOF
+#fn_select_os_distro() {
+#cat << EOF
 
-Please select OS distribution to install :
-
-	1 ) AlmaLinux Latest ( Uses Local Mirror for Installation )
-	2 ) Ubuntu Server Latest ( Requires Internet Connection )
-
-EOF
-	read -p "Enter Option Number ( default - AlmaLinux ) : " os_distribution
-
-	case ${os_distribution} in
-		1|"") os_distribution="almalinux"
-	   	   ;;
-		2) os_distribution="ubuntu"
-	   	   ;;
+#Please select OS distribution to install :
+#
+#	1 ) AlmaLinux Latest ( Uses Local Mirror for Installation )
+#	2 ) Ubuntu Server Latest ( Requires Internet Connection )
+#
+#EOF
+#	read -p "Enter Option Number ( default - AlmaLinux ) : " os_distribution
+#
+#	case ${os_distribution} in
+#		1|"") os_distribution="almalinux"
+#	   	   ;;
+#		2) os_distribution="ubuntu"
+#	   	   ;;
 #		3) os_distribution="opensuse"
 #	   	   ;;
-		*) echo "Invalid Option!"
-	   	   fn_select_os_distro
-	   	   ;;
-	esac
-}
+#		*) echo "Invalid Option!"
+#	   	   fn_select_os_distro
+#	   	   ;;
+#	esac
+#}
 
 
-fn_select_os_distro
+#fn_select_os_distro
 
 # shellcheck disable=SC2021
 ipv4_address=$(host "${kickstart_hostname}.${ipv4_domain}" | cut -d " " -f 4 | tr -d '[[:space:]]')
-
-
 
 rsync -avPh --delete "${ksmanager_main_dir}"/addons-for-kickstarts/ "${ksmanager_hub_dir}"/addons-for-kickstarts/
 
@@ -214,14 +214,15 @@ echo -e "\nGenerating kickstart for ${kickstart_hostname}.${ipv4_domain} under $
 
 rm -rf "${host_kickstart_dir}"/*
 
-if [[ "${os_distribution}" == "almalinux" ]]; then
-	rsync -avPh "${ksmanager_main_dir}"/ks-templates/el-9-ks.cfg "${host_kickstart_dir}"/ 
-elif [[ "${os_distribution}" == "ubuntu" ]]; then
-	rsync -avPh --delete "${ksmanager_main_dir}"/ks-templates/ubuntu-24-04-ks "${host_kickstart_dir}"/
+#if [[ "${os_distribution}" == "almalinux" ]]; then
+#	rsync -avPh "${ksmanager_main_dir}"/ks-templates/el-9-ks.cfg "${host_kickstart_dir}"/ 
+#elif [[ "${os_distribution}" == "ubuntu" ]]; then
+#	rsync -avPh --delete "${ksmanager_main_dir}"/ks-templates/ubuntu-24-04-ks "${host_kickstart_dir}"/
 #elif [[ "${os_distribution}" == "opensuse" ]]; then
 #	rsync -avPh "${ksmanager_main_dir}"/ks-templates/opensuse-15-autoinst.xml "${host_kickstart_dir}"/ 
-fi
+#fi
 
+rsync -avPh "${ksmanager_main_dir}"/ks-templates/almalinux-latest-ks.cfg "${host_kickstart_dir}"/ 
 
 # shellcheck disable=SC2044
 escape_sed_replacement() {
@@ -251,6 +252,7 @@ fn_set_environment() {
 		sed -i "s/get_rhel_activation_key/${rhel_activation_key}/g" "${working_file}"
 		sed -i "s/get_time_of_last_update/${time_of_last_update}/g" "${working_file}"
 		sed -i "s/get_mgmt_super_user/${mgmt_super_user}/g" "${working_file}"
+		sed -i "s/get_almalinux_major_version/${almalinux_major_version}/g" "${working_file}"
 
 		awk -v val="$shadow_password_super_mgmt_user" '
 		{
@@ -303,7 +305,7 @@ echo "	Web Server   : ${web_server_name}.${ipv4_domain}"
 echo "	Windows Host : ${win_hostname}.${ipv4_domain}"	
 echo "	KS Local     : ${host_kickstart_dir}"
 echo "	KS Web       : https://${host_kickstart_dir#/var/www/}"
-echo "	Selected OS  : ${os_distribution} server edition"
+echo "	Install OS   : AlmaLinux-${almalinux_major_version}-latest"
 
 echo -e "\nAll done, You can proceed to pxeboot the host ${kickstart_hostname}\n"
 

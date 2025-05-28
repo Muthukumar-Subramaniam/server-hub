@@ -10,7 +10,7 @@
     group: "{{ item.owner }}"
   loop:
     - { path: "/root/.ssh", owner: "root" }
-    - { path: "/home/{{ mgmt_user }}/.ssh", owner: "{{ mgmt_user }}" }
+    - { path: "/home/{{ ansible_env.mgmt_super_user }}/.ssh", owner: "{{ ansible_env.mgmt_super_user }}" }
 
 - name: Generate SSH key for root
   become: true
@@ -24,16 +24,16 @@
     comment: "root@{{ inventory_hostname }}"
     force: false
 
-- name: Generate SSH key for {{ mgmt_user }}
+- name: Generate SSH key for {{ ansible_env.mgmt_super_user }}
   become: true
   ansible.builtin.openssh_keypair:
-    path: /home/{{ mgmt_user }}/.ssh/id_rsa
+    path: "/home/{{ ansible_env.mgmt_super_user }}/.ssh/id_rsa"
     type: rsa
     size: 4096
-    owner: "{{ mgmt_user }}"
-    group: "{{ mgmt_user }}"
+    owner: "{{ ansible_env.mgmt_super_user }}"
+    group: "{{ ansible_env.mgmt_super_user }}"
     mode: '0600'
-    comment: "{{ mgmt_user }}@{{ inventory_hostname }}"
+    comment: "{{ ansible_env.mgmt_super_user }}@{{ ansible_env.dnsbinder_server_fqdn }}"
     force: false
 
 - name: Read root public key
@@ -42,10 +42,10 @@
     src: /root/.ssh/id_rsa.pub
   register: root_pubkey
 
-- name: Read {{ mgmt_user }} public key
+- name: Read {{ ansible_env.mgmt_super_user }} public key
   become: true
   ansible.builtin.slurp:
-    src: /home/{{ mgmt_user }}/.ssh/id_rsa.pub
+    src: "/home/{{ ansible_env.mgmt_super_user }}/.ssh/id_rsa.pub"
   register: mgmt_user_pubkey
 
 - name: Set authorized_keys for root
@@ -59,13 +59,13 @@
     group: root
     mode: '0600'
 
-- name: Set authorized_keys for {{ mgmt_user }}
+- name: Set authorized_keys for {{ ansible_env.mgmt_super_user }}
   become: true
   ansible.builtin.copy:
-    dest: /home/{{ mgmt_user }}/.ssh/authorized_keys
+    dest: "/home/{{ ansible_env.mgmt_super_user }}/.ssh/authorized_keys"
     content: |
       {{ root_pubkey['content'] | b64decode }}
       {{ mgmt_user_pubkey['content'] | b64decode }}
-    owner: "{{ mgmt_user }}"
-    group: "{{ mgmt_user }}"
+    owner: "{{ ansible_env.mgmt_super_user }}"
+    group: "{{ ansible_env.mgmt_super_user }}"
     mode: '0600'

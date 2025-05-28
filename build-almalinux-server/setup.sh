@@ -13,11 +13,11 @@ else
 	echo "## Completed Ansible Installation ##"
 fi
 
-echo -e "\nSetting Up Variables for the build-server playbook . . . \n"
-vars_file="server_vars.yaml"
->"${vars_file}"
-echo "mgmt_user: \"$USER\"" >> "${vars_file}"
-echo "shadow_pass_mgmt_user: \"$(sudo grep $USER /etc/shadow | cut -d ":" -f2)\"" >> "${vars_file}"
+echo -e "\nSetting Up ansible.cfg . . . \n"
 sed -i "/remote_user/c\remote_user=$USER" ansible.cfg 
 
+echo -e "\nSetting up local dns domain with dnsbinder . . .\n"
 
+bash /server-hub/named-manage/dnsbinder.sh
+
+echo -e "\nPlease reboot the server if you did not face any issue with setup script ! \n"

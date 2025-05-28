@@ -15,11 +15,11 @@
     src: nfs-exports.j2  
     dest: /etc/exports
 
-- name: Update hostname server.ms.local in /etc/nfs.conf 
+- name: Update hostname {{ ansible_env.dnsbinder_server_fqdn }} in /etc/nfs.conf 
   become: true
   lineinfile:
     path: /etc/nfs.conf
-    line: "host=server.{{ server_domain_name }}"
+    line: "host={{ ansible_env.dnsbinder_server_fqdn }}"
     insertafter: '^\[nfsd\]$'
     backup: true
 

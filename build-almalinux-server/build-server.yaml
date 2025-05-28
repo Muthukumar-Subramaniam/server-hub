@@ -1,8 +1,6 @@
 #!/usr/bin/env ansible-playbook
 - name: Playbook to build server.ms.local
   hosts: server
-  vars_files:
-    - server_vars.yaml 
   roles:
     - name: Set Environment Vars for the Playbook
       role: setup_global_vars

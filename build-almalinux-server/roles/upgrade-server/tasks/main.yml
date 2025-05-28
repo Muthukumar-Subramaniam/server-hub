@@ -1,6 +1,6 @@
 ---
 # tasks file for upgrade-server
-- name: Upgrade the system packages (RedHat based systems)
+- name: Upgrade the system packages
   become: true
   dnf:
     update_cache: true

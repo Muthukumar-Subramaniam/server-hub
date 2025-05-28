@@ -1,68 +1,10 @@
 ---
 # tasks file for setup_pxe_boot_of_server
-- name: Copy dhcpd configuration from backup to /etc/dhcp/dhcpd.conf
+- name: Configure /etc/dhcp/dhcpd.conf
   become: true
-  ansible.posix.synchronize:
-    src: "{{ var_cfg_bkp_dir }}/pxe-boot-configs/etc-dhcp-dhcpd.conf"
+  template:
+    src: dhcpd_conf.j2
     dest: /etc/dhcp/dhcpd.conf
-
-- name: Create distro directories under /var/lib/tftpboot
-  become: true
-  file:
-    path: "/var/lib/tftpboot/{{ item }}"
-    state: directory
-  loop:
-    #    - "rhel-9"
-    #    - "rocky-9"
-    #    - "oraclelinux-9"
-    - "almalinux-9"
-    - "ubuntu-24-04"
-    #    - "opensuse-15"
-
-- name: Copy /usr/share/syslinux to /var/lib/tftpboot
-  become: true
-  ansible.posix.synchronize:
-    src: /usr/share/syslinux/
-    dest: /var/lib/tftpboot/
-
-- name: Copy /boot/efi/EFI/{{ ansible_facts['distribution'] | lower }}/grubx64.efi to /var/lib/tftpboot
-  become: true
-  ansible.posix.synchronize:
-    src: "/boot/efi/EFI/{{ ansible_facts['distribution'] | lower }}/grubx64.efi"
-    dest: /var/lib/tftpboot/grubx64.efi
-  
-- name: Apply Read permission to /var/lib/tftpboot/grubx64.efi      
-  become: true
-  file:
-    path: /var/lib/tftpboot/grubx64.efi
-    mode: 0644
-
-- name: Copy mount-iso.sh from backup to /root
-  become: true
-  ansible.posix.synchronize:
-    src: "{{ var_cfg_bkp_dir }}/mount-iso.sh"
-    dest: "/root/mount-iso.sh"
-
-- name: Copy mount-iso.service from backup to /etc/systemd/system
-  become: true
-  ansible.posix.synchronize:
-    src: "{{ var_cfg_bkp_dir }}/mount-iso.service"
-    dest: "/etc/systemd/system/mount-iso.service"
-
-- name: Reload systemd daemon
-  become: true
-  systemd_service:
-    daemon_reload: true
-
-- name: Enable and start mount-iso.service custom service
-  become: true
-  systemd_service:
-    name: mount-iso.service
-    state: started
-    enabled: true
-
-- name: Copy ISO vmlinuz and image files to /var/lib/tftpboot
-  include_tasks: copy_iso_images.yml
 
 - name: Enable and Start dhcpd and tftp.socket
   become: true
@@ -82,6 +24,73 @@
   loop:
     - "dhcpd"
     - "tftp.socket"
+
+- name: Get AlmaLinux version info
+  ansible.builtin.command: cat /etc/os-release
+  register: almalinux_os_release_info
+
+- name: Extract AlmaLinux version
+  ansible.builtin.set_fact:
+    alma_version_major: "{{ almalinux_os_release_info.stdout | regex_search('^VERSION_ID=\"([0-9]+)', '\\1') }}"
+
+- name: Create directory /iso-manage to manage ISOs
+  file:
+    path: /iso-manage
+    state: directory
+
+- name: Download AlmaLinux latest boot ISO from official repo to /iso-manage
+  get_url:
+    url: "https://repo.almalinux.org/almalinux/{{ alma_version_major }}/isos/x86_64/AlmaLinux-{{ alma_version_major }}-latest-x86_64-boot.iso"
+    dst: "/iso-manage/AlmaLinux-{{ alma_version_major }}-latest-x86_64-boot.iso"
+
+- name: Create almalinux-latest mount point under /var/www//{{ ansible_env.dnsbinder_server_short_name }}.{{ ansible_env.dnsbinder_domain }}
+  file:
+    path: "/var/www//{{ ansible_env.dnsbinder_server_short_name }}.{{ ansible_env.dnsbinder_domain }}//almalinux-latest"
+    state: directory
+
+- name: Mount AlmaLinux ISO and update an entry in fstab as well 
+  become: true
+  ansible.posix.mount:
+    path: "/var/www/{{ {{ ansible_env.dnsbinder_server_short_name }}.{{ ansible_env.dnsbinder_domain }}/almalinux-latest"
+    src: "/iso-manage/AlmaLinux-{{ alma_version_major }}-latest-x86_64-boot.iso"
+    fstype: iso9660
+    opts: "uid={{ ansible_env.mgmt_super_user }},gid={{ ansible_env.mgmt_super_user }}"
+    state: mounted
+
+- name: Create almalinux-latest under /var/lib/tftpboot to hold kernel and initrd image
+  become: true
+  file:
+    path: "/var/lib/tftpboot/almalinux-latest"
+    state: directory
+
+- name: Copy PXE boot images from AlmaLinux {{ alma_version_major }} to /var/lib/tftpboot
+  become: true
+  ansible.builtin.synchronize:
+    mode: push
+    src: "/var/www/{{ ansible_env.dnsbinder_server_short_name }}.{{ ansible_env.dnsbinder_domain }}/almalinux-latest/images/pxeboot/"
+    dest: "/var/lib/tftpboot/almalinux-latest/"
+    rsync_opts:
+      - "--include='vmlinuz'"
+      - "--include='initrd.img'"
+      - "--exclude='*'"
+
+- name: Copy /usr/share/syslinux to /var/lib/tftpboot
+  become: true
+  ansible.posix.synchronize:
+    src: /usr/share/syslinux/
+    dest: /var/lib/tftpboot/
+
+- name: Copy /boot/efi/EFI/almalinux/grubx64.efi to /var/lib/tftpboot
+  become: true
+  ansible.posix.synchronize:
+    src: "/boot/efi/EFI/almalinux/grubx64.efi"
+    dest: /var/lib/tftpboot/grubx64.efi
+  
+- name: Apply Read permission to /var/lib/tftpboot/grubx64.efi      
+  become: true
+  file:
+    path: /var/lib/tftpboot/grubx64.efi
+    mode: 0644
 
 - name: Create command sym-link dnsbinder
   become: true

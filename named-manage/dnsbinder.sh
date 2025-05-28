@@ -175,8 +175,8 @@ fn_split_network_into_cidr24subnets() {
 	fn_cidr_prefix_to_netmask "${v_cidr}"
 	
 	# Check if CIDR is valid
-	if ! [[ "${v_cidr}" =~ ^[0-9]+$ ]] || [ "${v_cidr}" -lt 16 ] || [ "${v_cidr}" -gt 24 ]; then
-    		print_error "\nInvalid CIDR. Only Networks with CIDR between 16 and 24 is allowed ! \n"
+	if ! [[ "${v_cidr}" =~ ^[0-9]+$ ]] || [ "${v_cidr}" -lt 16 ] || [ "${v_cidr}" -gt 22 ]; then
+    		print_error "\nInvalid CIDR. Only Networks with CIDR between 16 and 22 is allowed ! \n"
     		exit 1
 	fi
 	
@@ -412,6 +412,8 @@ EOF
 		echo "dnsbinder_domain=\"${v_given_domain}\"" >> /etc/environment
 		echo "dnsbinder_network_cidr=\"${v_network_and_cidr}\"" >> /etc/environment
 		echo "dnsbinder_cidr_prefix=\"${v_cidr}\"" >> /etc/environment
+		echo "dnsbinder_first24_subnet=\"${v_first_subnet_part}\"" >> /etc/environment
+		echo "dnsbinder_last24_subnet=\"${v_last_subnet_part}\"" >> /etc/environment
 		echo "dnsbinder_netmask=\"${dnsbinder_netmask}\"" >> /etc/environment
 		echo "dnsbinder_gateway=\"${v_network_gateway}\"" >> /etc/environment
 		echo "dnsbinder_broadcast=\"${v_last_subnet_part}.255\"" >> /etc/environment

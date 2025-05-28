@@ -1,5 +1,3 @@
 [server]
-server.ms.local
-[server:vars]
 ansible_connection=local
 ansible_host=localhost

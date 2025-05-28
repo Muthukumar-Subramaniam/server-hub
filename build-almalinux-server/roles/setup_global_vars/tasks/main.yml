@@ -1,10 +1,5 @@
 ---
 # tasks file for setup_global_vars
-- set_fact:
-    server_domain_name: "{{ ansible_fqdn.split('.', 1)[1] }}"
-
-- set_fact:
-    server_mgmt_network: "{{ ansible_default_ipv4.network }}/{{ ansible_default_ipv4.prefix }}"
 
 - set_fact:
     ps1_variable_mgmt_user: "PS1='[\\[\\033]0;$TITLEPREFIX:\\007\\]\\[\\033[0;32m\\]\\u@\\h \\[\\033[0;36m\\]\\W\\[\\033[0;33m\\]`__git_ps1`\\[\\033[0m\\]]$ '"
