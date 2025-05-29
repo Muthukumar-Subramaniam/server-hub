@@ -25,17 +25,17 @@
     - "kea-dhcp4"
     - "tftp.socket"
 
-- name: Create directory /iso-manage to manage ISOs
-  become: true
-  file:
-    path: /iso-manage
-    state: directory
+#- name: Create directory /iso-manage to manage ISOs
+#  become: true
+#  file:
+#    path: /iso-manage
+#    state: directory
 
-- name: Download AlmaLinux latest boot ISO from official repo to /iso-manage
-  become: true
-  get_url:
-    url: "https://repo.almalinux.org/almalinux/{{ ansible_env.alma_version_major }}/isos/x86_64/AlmaLinux-{{ ansible_env.alma_version_major }}-latest-x86_64-boot.iso"
-    dest: "/iso-manage/AlmaLinux-{{ ansible_env.alma_version_major }}-latest-x86_64-boot.iso"
+#- name: Download AlmaLinux latest boot ISO from official repo to /iso-manage
+#  become: true
+#  get_url:
+#    url: "https://repo.almalinux.org/almalinux/{{ ansible_env.alma_version_major }}/isos/x86_64/AlmaLinux-{{ ansible_env.alma_version_major }}-latest-x86_64-boot.iso"
+#    dest: "/iso-manage/AlmaLinux-{{ ansible_env.alma_version_major }}-latest-x86_64-boot.iso"
 
 - name: Create almalinux-latest mount point under /var/www//{{ ansible_env.dnsbinder_server_short_name }}.{{ ansible_env.dnsbinder_domain }}
   file:
@@ -46,7 +46,7 @@
   become: true
   ansible.posix.mount:
     path: "/var/www/{{ ansible_env.dnsbinder_server_short_name }}.{{ ansible_env.dnsbinder_domain }}/almalinux-latest"
-    src: "/iso-manage/AlmaLinux-{{ ansible_env.alma_version_major }}-latest-x86_64-boot.iso"
+    src: /dev/sr0
     fstype: iso9660
     opts: "uid={{ ansible_env.mgmt_super_user }},gid={{ ansible_env.mgmt_super_user }}"
     state: mounted
@@ -100,11 +100,11 @@
     dest: /usr/bin/ksmanager
     state: link
 
-- name: Create command sym-link almalinux-repo-sync
-  become: true
-  file:
-    src: /server-hub/almalinux-repo-sync.sh
-    dest: /bin/almalinux-repo-sync
-    state: link
+#- name: Create command sym-link almalinux-repo-sync
+#  become: true
+#  file:
+#    src: /server-hub/almalinux-repo-sync.sh
+#    dest: /bin/almalinux-repo-sync
+#    state: link
 
 ################################ EOF ##################################

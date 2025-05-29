@@ -31,4 +31,48 @@ echo -e "\nSetting up local dns domain with dnsbinder . . .\n"
 
 sudo bash /server-hub/named-manage/dnsbinder.sh
 
+sudo source /etc/environment
+
+echo -e "\nReserve DHCP lease records in DNS . . .\n"
+
+for IP in $(seq 0 254)
+do 
+	sudo bash /server-hub/named-manage/dnsbinder.sh -ci dhcp-lease${IP} ${dnsbinder_last24_subnet}.${IP}
+done
+
+echo -e "\nUpdate Network Interface to conventional naming . . .\n"
+sudo mkdir -p /etc/systemd/network
+V_count=0
+for v_interface in $(ls /sys/class/net | grep -v lo)
+do
+        echo -e "[Match]\nMACAddress=$(ip link | grep $v_interface -A 1 | grep link/ether | cut -d " " -f 6)\n\n[Link]\nName=eth$V_count" | sudo tee /etc/systemd/network/7$V_count-eth$V_count.link
+V_count=$((V_count+1))
+done
+
+
+sudo mkdir -p /root/system-connections/orig-during-install
+
+sudo cp -a /etc/NetworkManager/system-connections/* /root/system-connections/orig-during-install/
+
+v_count=0
+for v_interface_file in $(ls /etc/NetworkManager/system-connections/)
+do
+        sudo mv /etc/NetworkManager/system-connections/$v_interface_file /etc/NetworkManager/system-connections/eth$v_count.nmconnection
+        v_interface=$(echo $v_interface_file | /bin/cut -d "." -f 1)
+        sudo sed -i "s/$v_interface/eth$v_count/g" /etc/NetworkManager/system-connections/eth$v_count.nmconnection
+        v_count=$((v_count+1))
+done
+
+sudo mv /etc/NetworkManager/system-connections/eth* /root/system-connections
+
+sudo rm -rf /etc/NetworkManager/system-connections/*
+
+sudo cp -a /root/system-connections/. /etc/NetworkManager/system-connections/.
+
+sudo rm -rf /etc/NetworkManager/system-connections/orig-during-install
+
+echo -e "\nDisabling SELinux . . .\n"
+
+sudo grubby --update-kernel ALL --args selinux=0
+
 echo -e "\nPlease reboot the server if you did not face any issue with setup script ! \n"
