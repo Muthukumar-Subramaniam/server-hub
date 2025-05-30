@@ -15,7 +15,7 @@
         "subnet": "{{ ansible_env.dnsbinder_network_cidr }}",
         "pools": [
           {
-            "pool": "{{ ansible_env.dnsbinder_first24_subnet }}.0 - {{ ansible_env.dnsbinder_last24_subnet }}.254"
+            "pool": "{{ ansible_env.dnsbinder_last24_subnet }}.0 - {{ ansible_env.dnsbinder_last24_subnet }}.254"
           }
         ],
         "option-data": [
