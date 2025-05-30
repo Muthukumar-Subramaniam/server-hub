@@ -86,16 +86,40 @@
   command: update-ca-trust
   changed_when: false
 
-- name: Add NetworkManager-wait-online.service to as dependency for httpd.service
+    #- name: Ensure NetworkManager-wait-online.service is in Wants= and After= directives for httpd.service
+    #  become: true
+    #  ansible.builtin.replace:
+    #    path: /usr/lib/systemd/system/httpd.service
+    #    regexp: '^({{ item.key }}=.*?)(?<!\SNetworkManager-wait-online\.service)(\s*)$'
+    #    replace: '\1 NetworkManager-wait-online.service'
+    #    backup: true
+    #  loop:
+    #    - { key: 'Wants' }
+    #    - { key: 'After' }
+    #
+- name: Ensure drop-in directory exists for httpd
   become: true
-  ansible.builtin.lineinfile:
-    path: /usr/lib/systemd/system/httpd.service
-    regexp: '^{{ item.key }}=(.*)$'
-    line: '{{ item.key }}=\1 NetworkManager-wait-online.service'
-    backrefs: true
-  with_items:
-    - { key: 'Wants' }
-    - { key: 'After' }
+  ansible.builtin.file:
+    path: /etc/systemd/system/httpd.service.d
+    state: directory
+    mode: '0755'
+
+- name: Add NetworkManager-wait-online.service to httpd unit via drop-in
+  become: true
+  ansible.builtin.copy:
+    dest: /etc/systemd/system/httpd.service.d/wait-online.conf
+    content: |
+      [Unit]
+      Wants=NetworkManager-wait-online.service
+      After=NetworkManager-wait-online.service
+    mode: '0644'
+    owner: root
+    group: root
+
+- name: Reload systemd to apply changes
+  become: true
+  ansible.builtin.systemd:
+    daemon_reload: true
 
 - name: Enable and Start httpd service
   become: true

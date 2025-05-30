@@ -11,14 +11,11 @@ if command -v ansible &>/dev/null; then
 	echo -e "\nAnsible is already installed, Proceeding further . . .\n"
 else
 	echo -e "\nInstalling Ansible . . . \n"
-#	curl https://bootstrap.pypa.io/get-pip.py -o get-pip.py
-#	python3 get-pip.py --user
-	sudo dnf install python3-pip -y
+	sudo dnf install python3-pip python3-cryptography -y
 	pip3 install packaging
 	pip3 install --user ansible
 	pip3 install argcomplete
 	activate-global-python-argcomplete
-	rm get-pip.py
 	echo "## Completed Ansible Installation ##"
 fi
 
