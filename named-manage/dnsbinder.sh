@@ -175,8 +175,8 @@ fn_split_network_into_cidr24subnets() {
 	fn_cidr_prefix_to_netmask "${v_cidr}"
 	
 	# Check if CIDR is valid
-	if ! [[ "${v_cidr}" =~ ^[0-9]+$ ]] || [ "${v_cidr}" -lt 16 ] || [ "${v_cidr}" -gt 22 ]; then
-    		print_error "\nInvalid CIDR. Only Networks with CIDR between 16 and 22 is allowed ! \n"
+	if ! [[ "${v_cidr}" =~ ^[0-9]+$ ]] || [ "${v_cidr}" -lt 16 ] || [ "${v_cidr}" -gt 24 ]; then
+    		print_error "\nInvalid CIDR. Only Networks with CIDR between 16 and 24 is allowed ! \n"
     		exit 1
 	fi
 	

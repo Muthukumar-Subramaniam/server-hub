@@ -43,9 +43,9 @@ sudo bash /server-hub/named-manage/dnsbinder.sh --setup
 
 source /etc/environment
 
-echo -e "\nReserve DHCP lease records in DNS . . .\n"
+echo -e "\nReserve Records for DHCP lease DNS . . .\n"
 
-for IP in $(seq 0 254)
+for IP in $(seq 201 254)
 do 
 	sudo bash /server-hub/named-manage/dnsbinder.sh -ci dhcp-lease${IP} ${dnsbinder_last24_subnet}.${IP}
 done
