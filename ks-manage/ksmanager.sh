@@ -18,11 +18,9 @@ ipv4_nfsserver="${dnsbinder_server_ipv4_address}"
 tftp_server_name="${dnsbinder_server_short_name}"
 ntp_pool_name="${dnsbinder_server_short_name}"
 web_server_name="${dnsbinder_server_short_name}"
-win_kickstart_hostname="windows"
 ##rhel_activation_key=$(cat /server-hub/rhel-activation-key.base64 | base64 -d)
 time_of_last_update=$(date | sed  "s/ /-/g")
 shadow_password_super_mgmt_user=$(grep "${mgmt_super_user}" /etc/shadow | cut -d ":" -f 2)
-
 dnsbinder_script='/server-hub/named-manage/dnsbinder.sh'
 ksmanager_main_dir='/server-hub/ks-manage'
 ksmanager_hub_dir="/var/www/${web_server_name}.${ipv4_domain}/ksmanager-hub"
@@ -293,6 +291,8 @@ rsync -avPh "${ksmanager_main_dir}"/grub-template-almalinux-manual.cfg /var/lib/
 
 fn_set_environment "/var/lib/tftpboot/grub.cfg"
 
+chown -R ${mgmt_super_user}:${mgmt_super_user}  "${ksmanager_hub_dir}"
+
 echo -e "\nFYI:"
 echo "	Hostname     : ${kickstart_hostname}.${ipv4_domain}"
 echo "	MAC Address  : ${mac_address_of_host}" 
@@ -305,7 +305,6 @@ echo "	Domain Name  : ${ipv4_domain}"
 echo "	TFTP Server  : ${tftp_server_name}.${ipv4_domain}"
 echo "	NTP Pool     : ${ntp_pool_name}.${ipv4_domain}"
 echo "	Web Server   : ${web_server_name}.${ipv4_domain}"
-echo "	Windows Host : ${win_hostname}.${ipv4_domain}"	
 echo "	KS Local     : ${host_kickstart_dir}"
 echo "	KS Web       : https://${host_kickstart_dir#/var/www/}"
 echo "	Install OS   : AlmaLinux-${almalinux_major_version}-latest"
