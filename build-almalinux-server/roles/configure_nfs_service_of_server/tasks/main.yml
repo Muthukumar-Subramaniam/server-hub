@@ -6,8 +6,8 @@
     path: /nfs-share
     state: directory
     mode: '2770'
-    owner: muthuks
-    group: muthuks
+    owner: {{ ansible_env.mgmt_super_user }}
+    group: {{ ansible_env.mgmt_super_user }}
 
 - name: Create custom exports under /etc/exports
   become: true
