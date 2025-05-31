@@ -9,6 +9,7 @@ fi
 source /etc/os-release
 almalinux_major_version="${VERSION_ID%%.*}"
 ipv4_domain="${dnsbinder_domain}"
+ipv4_network_cidr="${dnsbinder_network_cidr}"
 ipv4_netmask="${dnsbinder_netmask}"
 ipv4_prefix="${dnsbinder_cidr_prefix}"
 ipv4_gateway="${dnsbinder_gateway}"
@@ -237,6 +238,7 @@ fn_set_environment() {
 
 		local working_file="${1}"
 
+		sed -i "s|get_ipv4_network_cidr|${ipv4_network_cidr}|g" "${working_file}"
 		sed -i "s/get_ipv4_address/${ipv4_address}/g" "${working_file}"
 		sed -i "s/get_ipv4_netmask/${ipv4_netmask}/g" "${working_file}"
 		sed -i "s/get_ipv4_prefix/${ipv4_prefix}/g" "${working_file}"
@@ -281,13 +283,13 @@ fn_set_environment "${host_kickstart_dir}"
 
 echo -e "\nCreating or Updating /var/lib/tftpboot/grub.cfg-01-${grub_cfg_mac_address} . . .\n"
 
-rsync -avPh "${ksmanager_main_dir}"/grub-template-almalinux.cfg  /var/lib/tftpboot/grub.cfg-01-"${grub_cfg_mac_address}"
+rsync -avPh "${ksmanager_main_dir}"/grub-template-almalinux-auto.cfg  /var/lib/tftpboot/grub.cfg-01-"${grub_cfg_mac_address}"
 
 fn_set_environment "/var/lib/tftpboot/grub.cfg-01-${grub_cfg_mac_address}"
 
 echo -e "\nCreating or Updating /var/lib/tftpboot/grub.cfg . . .\n"
 
-rsync -avPh "${ksmanager_main_dir}"/grub-template-manual.cfg /var/lib/tftpboot/grub.cfg
+rsync -avPh "${ksmanager_main_dir}"/grub-template-almalinux-manual.cfg /var/lib/tftpboot/grub.cfg
 
 fn_set_environment "/var/lib/tftpboot/grub.cfg"
 
@@ -297,6 +299,7 @@ echo "	MAC Address  : ${mac_address_of_host}"
 echo "	IPv4 Address : ${ipv4_address}"
 echo "	IPv4 Netmask : ${ipv4_netmask}"
 echo "	IPv4 Gateway : ${ipv4_gateway}"
+echo "	IPv4 Network : ${ipv4_network_cidr}"
 echo "	IPv4 DNS     : ${ipv4_nameserver}"
 echo "	Domain Name  : ${ipv4_domain}"
 echo "	TFTP Server  : ${tftp_server_name}.${ipv4_domain}"
