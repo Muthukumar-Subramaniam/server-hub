@@ -24,6 +24,7 @@ shadow_password_super_mgmt_user=$(grep "${mgmt_super_user}" /etc/shadow | cut -d
 dnsbinder_script='/server-hub/named-manage/dnsbinder.sh'
 ksmanager_main_dir='/server-hub/ks-manage'
 ksmanager_hub_dir="/var/www/${web_server_name}.${ipv4_domain}/ksmanager-hub"
+os_name_and_version=$(cat /var/www/${web_server_name}.${ipv4_domain}/almalinux-latest/media.repo | grep name | cut -d "=" -f 2)
 
 mkdir -p "${ksmanager_hub_dir}"
 
@@ -253,6 +254,7 @@ fn_set_environment() {
 		sed -i "s/get_time_of_last_update/${time_of_last_update}/g" "${working_file}"
 		sed -i "s/get_mgmt_super_user/${mgmt_super_user}/g" "${working_file}"
 		sed -i "s/get_almalinux_major_version/${almalinux_major_version}/g" "${working_file}"
+		sed -i "s/get_os_name_and_version/${os_name_and_version}/g" "${working_file}"
 
 		awk -v val="$shadow_password_super_mgmt_user" '
 		{
