@@ -162,7 +162,7 @@ control plane node still won't be ready and all system pods would be running exp
 kubectl get nodes -o wide
 ```
 ```
-kubetctl get pods -A
+kubectl get pods -A
 ```
 Now install calico CNI
 ```
