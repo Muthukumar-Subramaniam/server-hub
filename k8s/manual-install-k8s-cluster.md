@@ -153,10 +153,9 @@ sudo kubeadm config images pull
 sudo kubeadm init --pod-network-cidr=10.8.0.0/22
 ```
 ```
-k8s_user="${USER}"
-mkdir -p "${HOME}"/.kube
-sudo cp -i /etc/kubernetes/admin.conf "${HOME}"/.kube/config
-sudo chown $(id -u "${k8s_user}"):$(id -g "${k8s_user}") "${HOME}"/.kube/config
+mkdir -p $HOME/.kube
+sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
+sudo chown $(id -u):$(id -g) $HOME/.kube/config
 ```
 Now wait for control plane node to be in ready state
 ```
