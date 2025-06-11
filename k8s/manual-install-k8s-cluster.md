@@ -152,6 +152,16 @@ sudo kubeadm config images pull
 ```
 sudo kubeadm init --pod-network-cidr=10.8.0.0/22
 ```
+If firewalld is running in case of RedHat-based or SUSE-based systems, either disable it or run the below commands to allow required networks
+```
+sudo firewall-cmd --permanent --zone=trusted --add-source=10.8.0.0/22
+```
+```
+sudo firewall-cmd --permanent --zone=trusted --add-source=< cluster mgmt network cidr >
+```
+```
+sudo firewall-cmd --reload
+```
 ```
 mkdir -p $HOME/.kube
 sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
@@ -200,17 +210,7 @@ kubectl get pods -A -o wide --watch
 ```
 kubectl get nodes -o wide
 ```
-### Step 11) If firewalld is running in case of RedHat-based or SUSE-based systems, either disable it or run the below commands to allow required networks
-```
-sudo firewall-cmd --permanent --zone=trusted --add-source=< pod network cidr >
-```
-```
-sudo firewall-cmd --permanent --zone=trusted --add-source=< cluster mgmt network cidr >
-```
-```
-sudo firewall-cmd --reload
-```
-```
+### Step 11) 
 ```
 ## Now the cluster is ready for deployments if all nodes are in ready state.
 ### We might need below add-on deployments as well for networking and storage needs
