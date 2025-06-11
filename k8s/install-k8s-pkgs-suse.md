@@ -11,12 +11,12 @@ k8s_vers_major_minor="${k8s_vers_major}.${k8s_vers_minor}"
 #### Configure kubernetes repo
 ```
 cat <<EOF | sudo tee /etc/zypp/repos.d/k8s.repo
-[k8s-${var_k8s_version_major_minor}]
-name=k8s-${var_k8s_version_major_minor}
-baseurl=https://pkgs.k8s.io/core:/stable:/${var_k8s_version_major_minor}/rpm/
+[k8s-${k8s_vers_major_minor}]
+name=k8s-${k8s_vers_major_minor}
+baseurl=https://pkgs.k8s.io/core:/stable:/${k8s_vers_major_minor}/rpm/
 enabled=1
 gpgcheck=1
-gpgkey=https://pkgs.k8s.io/core:/stable:/${var_k8s_version_major_minor}/rpm/repodata/repomd.xml.key
+gpgkey=https://pkgs.k8s.io/core:/stable:/${k8s_vers_major_minor}/rpm/repodata/repomd.xml.key
 EOF
 ```
 #### Install kubeadm, kubelet and kubectl packages
