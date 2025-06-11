@@ -205,7 +205,8 @@ kubectl get pods -A -o wide --watch
 kubectl get nodes -o wide
 ```
 ```
-
+## Now the cluster is ready for deployments if all nodes are in ready state.
+### We might need below add-on deployments as well for networking and storage needs
 
 
 
