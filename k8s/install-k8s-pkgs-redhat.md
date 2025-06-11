@@ -24,3 +24,8 @@ EOF
 ```
 sudo dnf makecache && sudo dnf install -y kubelet kubeadm kubectl --disableexcludes=k8s-"${k8s_vers_major_minor}"
 ```
+#### Enable kubelet service
+```
+sudo systemctl enable kubelet
+```
+```
