@@ -41,18 +41,27 @@ sudo swapoff -a
 sudo sed -i '/swap/s/^/#/' /etc/fstab
 ```
 
-### Step 2 ) Update your system packages in all the nodes. 
+### Step 2 ) Update your system packages in all the nodes .  
+#### If distro is RedHat-based 
+```
+sudo dnf clean all && sudo dnf update --refresh -y
+```
+```
+sudo dnf install -y curl wget rsync
+```
 #### If distro is Debian-based 
 ```
 sudo apt clean all && sudo apt update && sudo apt upgrade -y
 ```
-#### If distro is RedHat-based 
 ```
-sudo dnf clean all && sudo dnf makecache && sudo dnf update -y
+sudo apt install -y curl wget rsync
 ```
 #### If distro is SUSE-based 
 ```
 sudo zypper clean -a && sudo zypper rr && sudo zypper update -y
+```
+```
+sudo zypper install -y curl wget rsync
 ```
 #### Reboot the system if the above system packages upgrade requires it 
 ```
