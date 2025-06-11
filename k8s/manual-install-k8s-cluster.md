@@ -139,25 +139,31 @@ sudo systemctl daemon-reload && sudo systemctl enable --now containerd.service &
 ```
 
 ### Step 7) Configure kubernetes repo and install kubeadm, kubectl and kubelet packages
+----
 [Click here if RedHat-based systems](install-k8s-pkgs-redhat.md)  
 [Click here if Debian-based systems](install-k8s-pkgs-debian.md)  
 [Click here if SUSE-based systems](install-k8s-pkgs-suse.md)  
 
-### Step 5) Set variables for the component versions in all the nodes
-#### Set the variables of latest versions by querying api end points of respective github repos
+### Step 8) Below Steps are to be executed on control plane node
+----
 ```
-k8s_vers=$(curl -s -L https://api.github.com/repos/kubernetes/kubernetes/releases/latest | jq -r '.tag_name' 2>>/dev/null | tr -d '[:space:]')
+sudo systemctl enable --now kubelet.service && sudo systemctl status kubelet.service --no-pager
+```
+```
+sudo kubeadm config images pull
+```
+```
+sudo kubeadm init --pod-network-cidr=10.8.0.0/22
+```
+```
+k8s_user="${USER}"
+mkdir -p "${HOME}"/.kube
+sudo cp -i /etc/kubernetes/admin.conf "${HOME}"/.kube/config
+sudo chown $(id -u "${k8s_user}"):$(id -g "${k8s_user}") "${HOME}"/.kube/config
+```
 
-runc_vers=$(curl -s -L https://api.github.com/repos/opencontainers/runc/releases/latest | jq -r '.tag_name' 2>>/dev/null | tr -d '[:space:]')
-calico_versio=$(curl -s -L https://api.github.com/repos/projectcalico/calico/releases/latest | jq -r '.tag_name' 2>>/dev/null | tr -d '[:space:]')
-```
-#### Step 6) Just check whether above variables are set with version details
-```
-echo "kubernetes version : ${k8s_vers}"
-echo "containerd version : ${containerd_vers}"
-echo "runc version : ${runc_vers}"
-echo "calico CNI version : ${calico_versio}"
-```
+calico_versio=$(curl -s -L https://api.github.com/repos/projectcalico/calico/releases/latest | jq -r '.tag_name' 2>>/dev/null | tr -d '[:space:]') && echo "calico CNI version : ${calico_versio}"
+
 
 
 
