@@ -95,7 +95,7 @@ sudo sysctl --system
 runc_vers=$(curl -s -L https://api.github.com/repos/opencontainers/runc/releases/latest | jq -r '.tag_name' 2>>/dev/null | tr -d '[:space:]') && echo "latest runc version : ${runc_vers}"
 ```
 ```
-sudo wget -P /usr/bin/ https://github.com/opencontainers/runc/releases/download/"${runc_version}"/runc.amd64 && sudo chmod +x /usr/bin/runc
+sudo wget -P /usr/bin/ https://github.com/opencontainers/runc/releases/download/"${runc_vers}"/runc.amd64 && sudo chmod +x /usr/bin/runc
 ```
 ```
 runc --version
