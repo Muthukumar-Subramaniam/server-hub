@@ -17,3 +17,7 @@ curl -fsSL https://pkgs.k8s.io/core:/stable:/"${k8s_vers_major_minor}"/deb/Relea
 ```
 sudo apt-get update && sudo apt-get install -y kubelet kubeadm kubectl && sudo apt-mark hold kubelet kubeadm
 ```
+#### Enable kubelet service
+```
+sudo systemctl enable kubelet
+```
