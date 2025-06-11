@@ -152,16 +152,6 @@ sudo kubeadm config images pull
 ```
 sudo kubeadm init --pod-network-cidr=10.8.0.0/22
 ```
-If firewalld is running in case of RedHat-based or SUSE-based systems, either disable it or run the below commands to allow required networks
-```
-sudo firewall-cmd --permanent --zone=trusted --add-source=10.8.0.0/22
-```
-```
-sudo firewall-cmd --permanent --zone=trusted --add-source=< cluster mgmt network cidr >
-```
-```
-sudo firewall-cmd --reload
-```
 ```
 mkdir -p $HOME/.kube
 sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
@@ -198,19 +188,27 @@ To create token to join worker nodes, run the below
 ```
 kubeadm token create --print-join-command
 ```
-### Step 9) Now run the above join command in worker nodes to join them to the k8s cluster
+### Step 9) If firewalld is running in case of RedHat-based or SUSE-based systems, either disable it or run the below commands to allow required networks in all nodes
+```
+sudo firewall-cmd --permanent --zone=trusted --add-source=10.8.0.0/22
+```
+```
+sudo firewall-cmd --permanent --zone=trusted --add-source=< cluster mgmt network cidr >
+```
+```
+sudo firewall-cmd --reload
+```
+### Step 10) Now run the kubeadm join command in worker nodes to join them to the k8s cluster
 If the join command succeeds, your kubelet service will start in worker node
 ```
 sudo systemctl status kubelet.service --no-pager
 ```
-### Step 10) Now go to control plane node to check nodes and pod details, you could find pods running in worker nodes as well, it might take a little time for all the pods to be in running state.
+### Step 11) Now go to control plane node to check nodes and pod details, you could find pods running in worker nodes as well, it might take a little time for all the pods to be in running state.
 ```
 kubectl get pods -A -o wide --watch
 ```
 ```
 kubectl get nodes -o wide
-```
-### Step 11) 
 ```
 ## Now the cluster is ready for deployments if all nodes are in ready state.
 ### We might need below add-on deployments as well for networking and storage needs
