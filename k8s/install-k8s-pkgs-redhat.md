@@ -1,8 +1,8 @@
-#### Sets a variable for latest version of k8s by fetching the version info from github api
+#### Set a variable for latest version of k8s by fetching the version info from github api
 ```
 k8s_vers=$(curl -s -L https://api.github.com/repos/kubernetes/kubernetes/releases/latest | jq -r '.tag_name' 2>>/dev/null | tr -d '[:space:]') && echo "latest kubernetes version : ${k8s_vers}"
 ```
-#### Sets a variable for the major version number of k8s to configure repo
+#### Set a variable for the major version number of k8s to configure repo
 ```
 k8s_vers_major=$(echo "${k8s_vers}" | cut -d "." -f 1)
 k8s_vers_minor=$(echo "${k8s_vers}" | cut -d "." -f 2)
