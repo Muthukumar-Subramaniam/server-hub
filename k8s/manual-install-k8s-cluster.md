@@ -123,7 +123,7 @@ containerd --version
 sudo mkdir -p /etc/containerd && ( containerd config default | sudo tee /etc/containerd/config.toml )
 ```
 ```
-sudo sed -i '/containerd\.runtimes\.runc\.options/ a\            SystemdCgroup = true' /etc/containerd/config.toml && ( containerd config dump | grep SystemdCgroup )
+sudo sed -i '/containerd\.runtimes\.runc\.options/ a\            SystemdCgroup = true' /etc/containerd/config.toml && ( containerd config dump | grep -B 1 SystemdCgroup )
 ```
 ```
 sudo wget -P /etc/systemd/system/ https://raw.githubusercontent.com/containerd/containerd/main/containerd.service
