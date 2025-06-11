@@ -183,6 +183,11 @@ Now wait for all the pods to be running including core-dns
 ```
 kubetctl get pods -A --watch
 ```
+Update your bashrc file for kubectl command arguement tab completion
+```
+echo 'source <(kubectl completion bash)' >> "${HOME}"/.bashrc
+source "${HOME}"/.bashrc
+```
 
 
 
