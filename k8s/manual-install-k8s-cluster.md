@@ -49,26 +49,43 @@ sudo sed -i '/swap/s/^/#/' /etc/fstab
 sudo dnf clean all && sudo dnf update --refresh -y
 ```
 ```
-sudo dnf install -y curl wget rsync
+sudo dnf install -y curl wget rsync jq
 ```
 #### If distro is Debian-based 
 ```
 sudo apt clean all && sudo apt update && sudo apt upgrade -y
 ```
 ```
-sudo apt install -y curl wget rsync
+sudo apt install -y curl wget rsync jq
 ```
 #### If distro is SUSE-based 
 ```
 sudo zypper clean -a && sudo zypper rr && sudo zypper update -y
 ```
 ```
-sudo zypper install -y curl wget rsync
+sudo zypper install -y curl wget rsync jq
 ```
 #### Reboot the system if the above system packages upgrade requires it 
 ```
 sudo reboot
 ```
+### Step 3) Set variables for the component versions in all the nodes
+#### Set the variables of latest versions by querying api end points of respective github repos
+```
+k8s_vers=$(curl -s -L https://api.github.com/repos/kubernetes/kubernetes/releases/latest | jq -r '.tag_name' 2>>/dev/null | tr -d '[:space:]')
+containerd_vers=$(curl -s -L https://api.github.com/repos/containerd/containerd/releases/latest | jq -r '.tag_name' 2>>/dev/null | tr -d '[:space:]')
+runc_vers=$(curl -s -L https://api.github.com/repos/opencontainers/runc/releases/latest | jq -r '.tag_name' 2>>/dev/null | tr -d '[:space:]')
+```
+#### Just check whether above variables are set with version details
+```
+echo "kubernetes version : ${k8s_vers}"
+echo "containerd version : ${containerd_vers}"
+echo "runc version : ${runc_vers}"
+```
+
+
+
+
 
 
 
