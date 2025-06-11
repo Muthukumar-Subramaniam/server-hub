@@ -144,7 +144,7 @@ sudo systemctl daemon-reload && sudo systemctl enable --now containerd.service &
 [Click here if Debian-based systems](install-k8s-pkgs-debian.md)  
 [Click here if SUSE-based systems](install-k8s-pkgs-suse.md)  
 
-### Step 8) Below Steps are to be executed on control plane node
+### Step 8) Below Steps are to be executed on control plane node only
 ----
 ```
 sudo systemctl enable --now kubelet.service && sudo systemctl status kubelet.service --no-pager
@@ -161,8 +161,28 @@ mkdir -p "${HOME}"/.kube
 sudo cp -i /etc/kubernetes/admin.conf "${HOME}"/.kube/config
 sudo chown $(id -u "${k8s_user}"):$(id -g "${k8s_user}") "${HOME}"/.kube/config
 ```
-
-calico_versio=$(curl -s -L https://api.github.com/repos/projectcalico/calico/releases/latest | jq -r '.tag_name' 2>>/dev/null | tr -d '[:space:]') && echo "calico CNI version : ${calico_versio}"
+Now wait for control plane node to be in ready state
+```
+kubectl get nodes --watch -o wide
+```
+Once control plane node is ready check whether all system pods are running expect core-dns in pending state, it is because we are yet to install a CNI for our cluster
+```
+kubetctl get pods -A --watch
+```
+Now install calico CNI
+```
+calico_versio=$(curl -s -L https://api.github.com/repos/projectcalico/calico/releases/latest | jq -r '.tag_name' 2>>/dev/null | tr -d '[:space:]') && echo "latest calico version : ${calico_versio}"
+```
+```
+wget https://raw.githubusercontent.com/projectcalico/calico/"${calico_version}"/manifests/calico.yaml
+```
+```
+kubectl apply -f calico.yaml
+```
+Now wait for all the pods to be running including core-dns
+```
+kubetctl get pods -A --watch
+```
 
 
 
