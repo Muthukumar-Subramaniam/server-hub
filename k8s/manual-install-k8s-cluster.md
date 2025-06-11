@@ -103,15 +103,30 @@ sudo wget -P /usr/bin/ https://github.com/opencontainers/runc/releases/download/
 ```
 runc --version
 ```
+### Step 6) Download containerd binary and setup containerd service
+```
+containerd_vers=$(curl -s -L https://api.github.com/repos/containerd/containerd/releases/latest | jq -r '.tag_name' 2>>/dev/null | tr -d '[:space:]') && echo "latest containerd version : ${containerd_vers}"
+```
+```
+mkdir -p containerd && wget -P containerd/ https://github.com/containerd/containerd/releases/download/"${containerd_version}"/containerd-"${containerd_version:1}"-linux-amd64.tar.gz
+```
+```
+tar Cxzvf containerd/ containerd/containerd-"${var_containerd_version:1}"-linux-amd64.tar.gz
+```
+```
+chmod -R +x containerd/bin && sudo chown -R root:root containerd/bin
+```
+```
+sudo rsync -avPh containerd/bin/ /usr/bin/ && sudo rm -rf containerd
 ```
 
-```
-### Step 5) Download containerd binary and setup containerd service
+
+
 ### Step 5) Set variables for the component versions in all the nodes
 #### Set the variables of latest versions by querying api end points of respective github repos
 ```
 k8s_vers=$(curl -s -L https://api.github.com/repos/kubernetes/kubernetes/releases/latest | jq -r '.tag_name' 2>>/dev/null | tr -d '[:space:]')
-containerd_vers=$(curl -s -L https://api.github.com/repos/containerd/containerd/releases/latest | jq -r '.tag_name' 2>>/dev/null | tr -d '[:space:]')
+
 runc_vers=$(curl -s -L https://api.github.com/repos/opencontainers/runc/releases/latest | jq -r '.tag_name' 2>>/dev/null | tr -d '[:space:]')
 calico_versio=$(curl -s -L https://api.github.com/repos/projectcalico/calico/releases/latest | jq -r '.tag_name' 2>>/dev/null | tr -d '[:space:]')
 ```
