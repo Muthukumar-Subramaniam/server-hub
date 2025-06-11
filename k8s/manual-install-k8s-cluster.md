@@ -204,6 +204,18 @@ kubectl get pods -A -o wide --watch
 ```
 kubectl get nodes -o wide
 ```
+### Step 11) If firewalld is running in case of RedHat-based or SUSE-based systems, either disable it or run the below commands to allow required networks
+```
+sudo firewall-cmd --permanent --zone=trusted --add-source=< pod network cidr >
+```
+```
+sudo firewall-cmd --permanent --zone=trusted --add-source=< cluster mgmt network cidr >
+```
+```
+sudo firewall-cmd --reload
+```
+```
+```
 ## Now the cluster is ready for deployments if all nodes are in ready state.
 ### We might need below add-on deployments as well for networking and storage needs
 
