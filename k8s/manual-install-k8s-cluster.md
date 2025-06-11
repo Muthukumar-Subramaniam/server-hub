@@ -192,8 +192,19 @@ To create token to join worker nodes, run the below
 ```
 kubeadm token create --print-join-command
 ```
-
-
+### Step 9) Now run the above join command in worker nodes to join them to the k8s cluster
+If the join command succeeds, your kubelet service will start in worker node
+```
+sudo systemctl status kubelet.service --no-pager
+```
+### Step 10) Now go to control plane node to check nodes and pod details, you could find pods running in worker nodes as well, it might take a little time for all the pods to be in running state.
+```
+kubectl get pods -A -o wide --watch
+```
+```
+kubectl get nodes -o wide
+```
+```
 
 
 
