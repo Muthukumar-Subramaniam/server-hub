@@ -69,7 +69,30 @@ sudo zypper install -y curl wget rsync jq
 ```
 sudo reboot
 ```
-### Step 3) Set variables for the component versions in all the nodes
+### Step 3) Load required kernel modules
+----
+```
+sudo modprobe -vv overlay && sudo modprobe -vv br_netfilter
+```
+```
+cat << EOF | sudo tee /etc/modules-load.d/k8s.conf
+overlay
+br_netfilter
+EOF
+```
+### Step 4) Load required kernel parameters
+----
+```
+cat << EOF | sudo tee /etc/sysctl.d/k8s.conf
+net.ipv4.ip_forward = 1
+net.bridge.bridge-nf-call-ip6tables = 1
+net.bridge.bridge-nf-call-iptables = 1
+EOF
+```
+```
+sudo sysctl --system
+```
+### Step 5) Set variables for the component versions in all the nodes
 #### Set the variables of latest versions by querying api end points of respective github repos
 ```
 k8s_vers=$(curl -s -L https://api.github.com/repos/kubernetes/kubernetes/releases/latest | jq -r '.tag_name' 2>>/dev/null | tr -d '[:space:]')
