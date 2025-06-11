@@ -157,13 +157,12 @@ mkdir -p $HOME/.kube
 sudo cp -i /etc/kubernetes/admin.conf $HOME/.kube/config
 sudo chown $(id -u):$(id -g) $HOME/.kube/config
 ```
-Now wait for control plane node to be in ready state
+control plane node still won't be ready and all system pods would be running expect for core-dns in pending state, it is because we are yet to install a CNI for our cluster
 ```
-kubectl get nodes --watch -o wide
+kubectl get nodes -o wide
 ```
-Once control plane node is ready check whether all system pods are running expect core-dns in pending state, it is because we are yet to install a CNI for our cluster
 ```
-kubetctl get pods -A --watch
+kubetctl get pods -A
 ```
 Now install calico CNI
 ```
@@ -178,6 +177,10 @@ kubectl apply -f calico.yaml
 Now wait for all the pods to be running including core-dns
 ```
 kubetctl get pods -A --watch
+```
+Once all pods are running, now the control plane becomes ready
+```
+kubectl get nodes -o wide
 ```
 Update your bashrc file for kubectl command arguement tab completion
 ```
