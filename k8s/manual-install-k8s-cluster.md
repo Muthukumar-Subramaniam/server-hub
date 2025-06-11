@@ -105,10 +105,10 @@ runc --version
 containerd_vers=$(curl -s -L https://api.github.com/repos/containerd/containerd/releases/latest | jq -r '.tag_name' 2>>/dev/null | tr -d '[:space:]') && echo "latest containerd version : ${containerd_vers}"
 ```
 ```
-mkdir -p containerd && wget -P containerd/ https://github.com/containerd/containerd/releases/download/"${containerd_version}"/containerd-"${containerd_version:1}"-linux-amd64.tar.gz
+mkdir -p containerd && wget -P containerd/ https://github.com/containerd/containerd/releases/download/"${containerd_vers}"/containerd-"${containerd_vers:1}"-linux-amd64.tar.gz
 ```
 ```
-tar Cxzvf containerd/ containerd/containerd-"${containerd_version:1}"-linux-amd64.tar.gz
+tar Cxzvf containerd/ containerd/containerd-"${containerd_vers:1}"-linux-amd64.tar.gz
 ```
 ```
 chmod -R +x containerd/bin && sudo chown -R root:root containerd/bin
