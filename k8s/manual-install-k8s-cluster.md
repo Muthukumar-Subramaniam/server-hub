@@ -166,10 +166,10 @@ kubectl get pods -A
 ```
 Now install calico CNI
 ```
-calico_versio=$(curl -s -L https://api.github.com/repos/projectcalico/calico/releases/latest | jq -r '.tag_name' 2>>/dev/null | tr -d '[:space:]') && echo "latest calico version : ${calico_versio}"
+calico_vers=$(curl -s -L https://api.github.com/repos/projectcalico/calico/releases/latest | jq -r '.tag_name' 2>>/dev/null | tr -d '[:space:]') && echo "latest calico version : ${calico_vers}"
 ```
 ```
-wget https://raw.githubusercontent.com/projectcalico/calico/"${calico_version}"/manifests/calico.yaml
+wget https://raw.githubusercontent.com/projectcalico/calico/"${calico_vers}"/manifests/calico.yaml
 ```
 ```
 kubectl apply -f calico.yaml
