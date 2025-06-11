@@ -36,10 +36,7 @@ This documentation is designed for manually installing kubeadm-based [Kubernetes
 ### Step 1 ) Turn of swap in all the nodes
 ----
 ```
-sudo swapoff -a
-```
-```
-sudo sed -i '/swap/s/^/#/' /etc/fstab
+sudo swapoff -a && sudo sed -i '/swap/s/^/#/' /etc/fstab
 ```
 
 ### Step 2 ) Update your system packages in all the nodes .  
