@@ -92,6 +92,21 @@ EOF
 ```
 sudo sysctl --system
 ```
+### Step 5) Download and setup the latest version of runc binary
+----
+```
+runc_vers=$(curl -s -L https://api.github.com/repos/opencontainers/runc/releases/latest | jq -r '.tag_name' 2>>/dev/null | tr -d '[:space:]') && echo "latest runc version : ${runc_vers}"
+```
+```
+sudo wget -P /usr/bin/ https://github.com/opencontainers/runc/releases/download/"${runc_version}"/runc.amd64 && sudo chmod +x /usr/bin/runc
+```
+```
+runc --version
+```
+```
+
+```
+### Step 5) Download containerd binary and setup containerd service
 ### Step 5) Set variables for the component versions in all the nodes
 #### Set the variables of latest versions by querying api end points of respective github repos
 ```
