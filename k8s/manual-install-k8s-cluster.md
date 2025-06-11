@@ -33,7 +33,15 @@ This documentation is designed for manually installing kubeadm-based [Kubernetes
 
 ## Installation steps 
 ----
-### Step 1 ) Update your system packages in all the nodes. 
+### Step 1 ) Turn of swap in all the nodes
+```
+sudo swapoff -a
+```
+```
+sudo sed -i '/swap/s/^/#/' /etc/fstab
+```
+
+### Step 2 ) Update your system packages in all the nodes. 
 #### If distro is Debian-based 
 ```
 sudo apt clean all && sudo apt update && sudo apt upgrade -y
