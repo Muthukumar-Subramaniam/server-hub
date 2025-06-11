@@ -75,12 +75,14 @@ sudo reboot
 k8s_vers=$(curl -s -L https://api.github.com/repos/kubernetes/kubernetes/releases/latest | jq -r '.tag_name' 2>>/dev/null | tr -d '[:space:]')
 containerd_vers=$(curl -s -L https://api.github.com/repos/containerd/containerd/releases/latest | jq -r '.tag_name' 2>>/dev/null | tr -d '[:space:]')
 runc_vers=$(curl -s -L https://api.github.com/repos/opencontainers/runc/releases/latest | jq -r '.tag_name' 2>>/dev/null | tr -d '[:space:]')
+calico_versio=$(curl -s -L https://api.github.com/repos/projectcalico/calico/releases/latest | jq -r '.tag_name' 2>>/dev/null | tr -d '[:space:]')
 ```
 #### Just check whether above variables are set with version details
 ```
 echo "kubernetes version : ${k8s_vers}"
 echo "containerd version : ${containerd_vers}"
 echo "runc version : ${runc_vers}"
+echo "calico CNI version : ${calico_versio}"
 ```
 
 
