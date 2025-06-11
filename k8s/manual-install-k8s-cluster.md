@@ -176,7 +176,7 @@ kubectl apply -f calico.yaml
 ```
 Now wait for all the pods to be running including core-dns
 ```
-kubetctl get pods -A --watch
+kubectl get pods -A --watch
 ```
 Once all pods are running, now the control plane becomes ready
 ```
