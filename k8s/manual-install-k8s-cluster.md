@@ -138,7 +138,10 @@ sudo sed -i "s|usr/local/bin|usr/bin|g" /etc/systemd/system/containerd.service
 sudo systemctl daemon-reload && sudo systemctl enable --now containerd.service && sudo systemctl status containerd.service --no-pager
 ```
 
-
+### Step 7) Configure kubernetes repo and install kubeadm, kubectl and kubelet packages
+[Click here for RedHat-based systems](install-k8s-pkgs-redhat.md)
+[Click here for Debian-based systems](install-k8s-pkgs-debian.md)
+[Click here for SUSE-based systems](install-k8s-pkgs-suse.md)
 
 ### Step 5) Set variables for the component versions in all the nodes
 #### Set the variables of latest versions by querying api end points of respective github repos
@@ -148,7 +151,7 @@ k8s_vers=$(curl -s -L https://api.github.com/repos/kubernetes/kubernetes/release
 runc_vers=$(curl -s -L https://api.github.com/repos/opencontainers/runc/releases/latest | jq -r '.tag_name' 2>>/dev/null | tr -d '[:space:]')
 calico_versio=$(curl -s -L https://api.github.com/repos/projectcalico/calico/releases/latest | jq -r '.tag_name' 2>>/dev/null | tr -d '[:space:]')
 ```
-#### Just check whether above variables are set with version details
+#### Step 6) Just check whether above variables are set with version details
 ```
 echo "kubernetes version : ${k8s_vers}"
 echo "containerd version : ${containerd_vers}"
