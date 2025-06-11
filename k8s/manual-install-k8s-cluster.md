@@ -33,7 +33,7 @@ This documentation is designed for manually installing kubeadm-based [Kubernetes
 
 ## Installation steps 
 ----
-### Step 1) Update your system packages. 
+### Step 1 ) Update your system packages in all the nodes. 
 #### If distro is Debian-based 
 ```
 sudo apt update && sudo apt upgrade -y
