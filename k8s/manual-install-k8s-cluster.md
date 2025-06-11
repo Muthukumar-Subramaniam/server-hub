@@ -119,6 +119,24 @@ chmod -R +x containerd/bin && sudo chown -R root:root containerd/bin
 ```
 sudo rsync -avPh containerd/bin/ /usr/bin/ && sudo rm -rf containerd
 ```
+```
+containerd --version
+```
+```
+sudo mkdir -p /etc/containerd && ( containerd config default | sudo tee /etc/containerd/config.toml )
+```
+```
+sudo sed -i "/SystemdCgroup/s/false/true/g" /etc/containerd/config.toml && ( containerd config dump | grep SystemdCgroup )
+```
+```
+sudo wget -P /etc/systemd/system/ https://raw.githubusercontent.com/containerd/containerd/main/containerd.service
+```
+```
+sudo sed -i "s|usr/local/bin|usr/bin|g" /etc/systemd/system/containerd.service
+```
+```
+sudo systemctl daemon-reload && sudo systemctl enable --now containerd.service && sudo systemctl status containerd.service --no-pager
+```
 
 
 
