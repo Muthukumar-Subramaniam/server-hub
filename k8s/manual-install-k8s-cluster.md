@@ -188,7 +188,10 @@ Update your bashrc file for kubectl command arguement tab completion
 echo 'source <(kubectl completion bash)' >> "${HOME}"/.bashrc
 source "${HOME}"/.bashrc
 ```
-
+To create token to join worker nodes, run the below
+```
+kubeadm token create --print-join-command
+```
 
 
 
