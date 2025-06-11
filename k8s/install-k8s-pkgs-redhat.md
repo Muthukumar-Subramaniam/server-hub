@@ -28,4 +28,3 @@ sudo dnf makecache && sudo dnf install -y kubelet kubeadm kubectl --disableexclu
 ```
 sudo systemctl enable kubelet
 ```
-```
