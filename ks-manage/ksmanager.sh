@@ -199,6 +199,8 @@ host_kickstart_dir="${ksmanager_hub_dir}/kickstarts/${kickstart_hostname}.${ipv4
 
 mkdir -p "${host_kickstart_dir}"
 
+rm -rf "${host_kickstart_dir}"/*
+
 fn_select_os_distro
 
 if [[ "${os_distribution}" == "almalinux" ]]; then
@@ -232,8 +234,6 @@ rsync -avPh "/home/${mgmt_super_user}/.ssh/authorized_keys" "${ksmanager_hub_dir
 chmod +r "${ksmanager_hub_dir}"/addons-for-kickstarts/authorized_keys
 
 echo -e "\nGenerating kickstart for ${kickstart_hostname}.${ipv4_domain} under ${host_kickstart_dir} . . .\n"
-
-rm -rf "${host_kickstart_dir}"/*
 
 # shellcheck disable=SC2044
 escape_sed_replacement() {
