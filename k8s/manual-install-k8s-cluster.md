@@ -65,14 +65,7 @@ sudo reboot
 ### Step 4) Load required kernel parameters
 ----
 ```
-cat << EOF | sudo tee /etc/sysctl.d/k8s.conf
-net.ipv4.ip_forward = 1
-net.bridge.bridge-nf-call-ip6tables = 1
-net.bridge.bridge-nf-call-iptables = 1
-EOF
-```
-```
-sudo sysctl --system
+(echo -e "net.ipv4.ip_forward = 1\nnet.bridge.bridge-nf-call-ip6tables = 1\nnet.bridge.bridge-nf-call-iptables = 1" | sudo tee /etc/sysctl.d/k8s.conf >/dev/null) && sudo sysctl --system
 ```
 ### Step 5) Download and setup the latest version of runc binary
 ----
