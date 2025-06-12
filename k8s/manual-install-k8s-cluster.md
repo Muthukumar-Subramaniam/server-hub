@@ -31,7 +31,7 @@ This documentation is designed for manually installing kubeadm-based [Kubernetes
 * [csi-driver-smb](https://github.com/kubernetes-csi/csi-driver-smb)
 * [MetalLB](https://github.com/metallb/metallb) LoadBalancer
 
-## Installation steps 
+## Installation Steps 
 ----
 ### Step 1 ) Turn of swap in all the nodes
 ----
@@ -79,6 +79,7 @@ sudo wget -O /usr/bin/runc https://github.com/opencontainers/runc/releases/downl
 runc --version
 ```
 ### Step 6) Download containerd binary and setup containerd service
+----
 ```
 containerd_vers=$(curl -s -L https://api.github.com/repos/containerd/containerd/releases/latest | jq -r '.tag_name' 2>>/dev/null | tr -d '[:space:]') && echo "latest containerd version : ${containerd_vers}"
 ```
@@ -136,7 +137,7 @@ sudo firewall-cmd --permanent --zone=trusted --add-source=< cluster mgmt network
 sudo firewall-cmd --reload
 ```
 
-### Step 9) Below Steps are to be executed on control plane node only
+### Step 9) Configure Control Plane ( Steps Specific only for Control Plane node )
 ----
 ```
 sudo systemctl enable --now kubelet.service && sudo systemctl status kubelet.service --no-pager
@@ -187,7 +188,8 @@ To create token to join worker nodes, run the below
 sudo kubeadm token create --print-join-command
 ```
 
-### Step 10) Now run the kubeadm join command in worker nodes to join them to the k8s cluster
+### Step 10) Now run the above printed kubeadm join command in worker nodes to join them to the k8s cluster
+----
 If the join command succeeds, the kubelet service should be running now in the worker nodes
 ```
 sudo systemctl status kubelet.service --no-pager
