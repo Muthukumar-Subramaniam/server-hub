@@ -184,11 +184,11 @@ source "${HOME}"/.bashrc
 ```
 To create token to join worker nodes, run the below
 ```
-kubeadm token create --print-join-command
+sudo kubeadm token create --print-join-command
 ```
 
 ### Step 10) Now run the kubeadm join command in worker nodes to join them to the k8s cluster
-If the join command succeeds, your kubelet service will start in worker node
+If the join command succeeds, the kubelet service should be running now in the worker nodes
 ```
 sudo systemctl status kubelet.service --no-pager
 ```
