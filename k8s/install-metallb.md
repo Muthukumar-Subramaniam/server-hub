@@ -44,5 +44,5 @@ kubectl apply -f metallb-IPAddressPool-L2Advertisement.yaml
 ```
 kubectl get ipaddresspools.metallb.io -n metallb-system
 ```
-[Click Here to Go Back to Main Documenation](manual-install-k8s-cluster.md#Click-Here-to-Configure-metallb-for-Your-Cluster)
+[Click Here to Go Back to Main Documenation](manual-install-k8s-cluster.md#addons-for-the-cluster-for-networking-and-storage-needs)
 
