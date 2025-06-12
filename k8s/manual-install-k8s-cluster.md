@@ -209,5 +209,5 @@ kubectl get nodes -o wide
 
 [ Click Here to Configure CSI NFS driver for Your Cluster ](install-csi-nfs.md)  
 
-[ Click Here to Configure CSI SMB driver for Your Cluster ](install-smb-nfs.md)  
+[ Click Here to Configure CSI SMB driver for Your Cluster ](install-csi-smb.md)  
 
