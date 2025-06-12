@@ -41,15 +41,15 @@ sudo swapoff -a && sudo sed -i '/swap/s/^/#/' /etc/fstab
 
 ### Step 2 ) Upgrade system packages and install some required packages  
 ----
-#### If distro is RedHat-based 
+#### If your linux distro is RedHat-based 
 ```
 sudo dnf clean all && sudo dnf update --refresh -y && sudo dnf install -y curl wget rsync jq
 ```
-#### If distro is Debian-based 
+#### If your linux distro is Debian-based 
 ```
 sudo apt clean all && sudo apt update && sudo apt upgrade -y && sudo apt install -y curl wget rsync jq
 ```
-#### If distro is SUSE-based 
+#### If your linux distro is SUSE-based 
 ```
 sudo zypper clean -a && sudo zypper rr && sudo zypper update -y && sudo zypper install -y curl wget rsync jq
 ```
