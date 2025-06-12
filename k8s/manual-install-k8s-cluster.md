@@ -141,7 +141,22 @@ sudo systemctl daemon-reload && sudo systemctl enable --now containerd.service &
 [Click here if Debian-based systems](install-k8s-pkgs-debian.md)  
 [Click here if SUSE-based systems](install-k8s-pkgs-suse.md)  
 
-### Step 8) Below Steps are to be executed on control plane node only
+### Step 8) If firewalld is running in case of RedHat-based or SUSE-based systems, either disable it or run the below commands to allow required networks in all nodes
+----
+```
+k8s_pod_network_cidr="10.8.0.0/22" # Pod Network of your choice
+```
+```
+sudo firewall-cmd --permanent --zone=trusted --add-source="${k8s_pod_network_cidr}"
+```
+```
+sudo firewall-cmd --permanent --zone=trusted --add-source=< cluster mgmt network cidr >
+```
+```
+sudo firewall-cmd --reload
+```
+
+### Step 9) Below Steps are to be executed on control plane node only
 ----
 ```
 sudo systemctl enable --now kubelet.service && sudo systemctl status kubelet.service --no-pager
@@ -150,7 +165,7 @@ sudo systemctl enable --now kubelet.service && sudo systemctl status kubelet.ser
 sudo kubeadm config images pull
 ```
 ```
-sudo kubeadm init --pod-network-cidr=10.8.0.0/22
+sudo kubeadm init --pod-network-cidr="${k8s_pod_network_cidr}"
 ```
 ```
 mkdir -p $HOME/.kube
@@ -191,16 +206,7 @@ To create token to join worker nodes, run the below
 ```
 kubeadm token create --print-join-command
 ```
-### Step 9) If firewalld is running in case of RedHat-based or SUSE-based systems, either disable it or run the below commands to allow required networks in all nodes
-```
-sudo firewall-cmd --permanent --zone=trusted --add-source=10.8.0.0/22
-```
-```
-sudo firewall-cmd --permanent --zone=trusted --add-source=< cluster mgmt network cidr >
-```
-```
-sudo firewall-cmd --reload
-```
+
 ### Step 10) Now run the kubeadm join command in worker nodes to join them to the k8s cluster
 If the join command succeeds, your kubelet service will start in worker node
 ```
