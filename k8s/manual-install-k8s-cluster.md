@@ -134,7 +134,7 @@ sudo systemctl daemon-reload && sudo systemctl enable --now containerd.service &
 ----
 [Click here if SUSE-based systems](install-k8s-pkgs-suse.md)  
 ----
-### Step 8) If firewalld is running in case of RedHat-based or SUSE-based systems, either disable it or run the below commands to allow required networks in all nodes
+### Step 8) Allow networks in firewalld if running in case of RedHat-based or SUSE-based systems
 ----
 ```
 k8s_pod_network_cidr="10.8.0.0/22" # Pod Network of your choice
