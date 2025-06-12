@@ -40,3 +40,7 @@ EOF
 ```
 kubectl apply -f metallb-IPAddressPool-L2Advertisement.yaml
 ```
+### Validate
+```
+kubectl get ipaddresspools.metallb.io -n metallb-system
+```
