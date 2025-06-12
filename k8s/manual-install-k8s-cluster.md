@@ -60,13 +60,7 @@ sudo reboot
 ### Step 3) Load required kernel modules
 ----
 ```
-sudo modprobe -vv overlay && sudo modprobe -vv br_netfilter
-```
-```
-cat << EOF | sudo tee /etc/modules-load.d/k8s.conf
-overlay
-br_netfilter
-EOF
+sudo modprobe -vv overlay && sudo modprobe -vv br_netfilter && ( echo -e "overlay\nbr_netfilter" | sudo tee /etc/modules-load.d/k8s.conf )
 ```
 ### Step 4) Load required kernel parameters
 ----
