@@ -201,7 +201,7 @@ kubectl get nodes -o wide
 ```
 ## Now the cluster is ready for deployments if all nodes are in ready state.
 ### We might need below add-on deployments as well for networking and storage needs
-
-
-
+[ Click Here to Configure metallb for Your Cluster ](install-metallb.md)
+[ Click Here to Configure CSI NFS driver for Your Cluster ](install-csi-nfs.md)
+[ Click Here to Configure CSI SMB driver for Your Cluster ](install-smb-nfs.md)
 
