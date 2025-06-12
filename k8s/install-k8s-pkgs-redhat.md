@@ -28,3 +28,4 @@ sudo dnf makecache && sudo dnf install -y kubelet kubeadm kubectl --disableexclu
 ```
 sudo systemctl enable kubelet
 ```
+[Click here to go back to next step in main document](manual-install-k8s-cluster.md#step-8-allow-networks-in-firewalld-if-running-in-case-of-redhat-based-or-suse-based-systems)
