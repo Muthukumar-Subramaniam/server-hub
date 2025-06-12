@@ -27,4 +27,4 @@ sudo zypper --gpg-auto-import-keys refresh && sudo zypper install -y kubelet kub
 ```
 sudo systemctl enable kubelet
 ```
-
+[Click here to go back to next step in main document](manual-install-k8s-cluster.md#step-8-allow-networks-in-firewalld-if-running-in-case-of-redhat-based-or-suse-based-systems)
