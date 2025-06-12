@@ -129,9 +129,11 @@ sudo systemctl daemon-reload && sudo systemctl enable --now containerd.service &
 ### Step 7) Configure kubernetes repo and install kubeadm, kubectl and kubelet packages
 ----
 [Click here if RedHat-based systems](install-k8s-pkgs-redhat.md)  
+----
 [Click here if Debian-based systems](install-k8s-pkgs-debian.md)  
+----
 [Click here if SUSE-based systems](install-k8s-pkgs-suse.md)  
-
+----
 ### Step 8) If firewalld is running in case of RedHat-based or SUSE-based systems, either disable it or run the below commands to allow required networks in all nodes
 ----
 ```
