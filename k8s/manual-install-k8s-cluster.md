@@ -39,7 +39,7 @@ This documentation is designed for manually installing kubeadm-based [Kubernetes
 sudo swapoff -a && sudo sed -i '/swap/s/^/#/' /etc/fstab
 ```
 
-### Step 2 ) Update your system packages in all the nodes .  
+### Step 2 ) Upgrade system packages and install some required packages  
 ----
 #### If distro is RedHat-based 
 ```
