@@ -619,6 +619,7 @@
       <package>chrony</package>
       <package>autoyast2</package>
       <package>tmux</package>
+      <package>tar</package>
       <package>samba-client</package>
     </packages>
     <patterns t="list">

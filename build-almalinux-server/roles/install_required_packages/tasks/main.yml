@@ -6,6 +6,7 @@
     update_cache: true
     name:
       - bash-completion
+      - tar
       - vim
       - git
       - bind-utils
