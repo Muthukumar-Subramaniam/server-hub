@@ -156,7 +156,6 @@ sudo virt-install \
   --disk path="$ISO_DIR/$ISO_NAME",device=cdrom,bus=sata \
   --os-variant almalinux9 \
   --network network=default,model=virtio \
-  --location 
   --initrd-inject="${KS_FILE}" \
   --location "/mnt/iso-for-${infra_server_name}" \
   --extra-args "inst.ks=file:/${infra_server_name}_ks.cfg inst.stage2=cdrom inst.repo=cdrom" \
