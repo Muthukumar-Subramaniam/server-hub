@@ -148,12 +148,14 @@ sudo virt-install \
   --features acpi=on,apic=on \
   --memory 4096 \
   --vcpus 2 \
-  --disk path=/virtual-machines/${infra_server_name}/${infra_server_name}.qcow2,size=30,bus=virtio,boot.order=1 \
-  --disk path="$ISO_DIR/$ISO_NAME",device=cdrom,bus=sata,boot.order=2 \
+  --disk path=/virtual-machines/${infra_server_name}/${infra_server_name}.qcow2,size=30,bus=virtio \
+  --disk path="$ISO_DIR/$ISO_NAME",device=cdrom,bus=sata \
   --os-variant almalinux9 \
   --network network=default,model=virtio \
+  --location 
   --initrd-inject="${KS_FILE}" \
-  --extra-args "inst.ks=file:/${infra_server_name}_ks.cfg inst.stage2=hd:sr0" \
+  --location "$ISO_DIR/$ISO_NAME"
+  --extra-args "inst.ks=file:/${infra_server_name}_ks.cfg inst.stage2=cdrom inst.repo=cdrom" \
   --graphics none \
   --console pty,target_type=serial \
   --noautoconsole \
