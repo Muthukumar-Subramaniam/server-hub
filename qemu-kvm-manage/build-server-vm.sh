@@ -143,6 +143,10 @@ awk -v val="$shadow_password_super_mgmt_user" '
 
 echo -e "\nBuckle Up! We are going to deploy the server VM ( ${infra_server_name} ) . . . \n"
 
+echo -e "Mount ISP $ISO_DIR/$ISO_NAME on /mnt/iso-for-${infra_server_name} for VM installation . . ."
+sudo mkdir /mnt/iso-for-${infra_server_name}
+sudo mount -o loop "${ISO_DIR}/${ISO_NAME}" /mnt/iso-for-${infra_server_name}
+
 sudo virt-install \
   --name ${infra_server_name} \
   --features acpi=on,apic=on \
@@ -154,7 +158,7 @@ sudo virt-install \
   --network network=default,model=virtio \
   --location 
   --initrd-inject="${KS_FILE}" \
-  --location "${ISO_DIR}" \
+  --location "/mnt/iso-for-${infra_server_name}" \
   --extra-args "inst.ks=file:/${infra_server_name}_ks.cfg inst.stage2=cdrom inst.repo=cdrom" \
   --graphics none \
   --console pty,target_type=serial \
@@ -173,3 +177,4 @@ if ! sudo virsh list | grep -q "${infra_server_name}"; then
 else
 	echo -e "\nFailed to depoy your infra server VM ( ${infra_server_name} ) on qemu-kvm ! Please check where it went wrong\n !" 
 fi
+
