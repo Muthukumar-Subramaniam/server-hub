@@ -154,7 +154,7 @@ sudo virt-install \
   --network network=default,model=virtio \
   --location 
   --initrd-inject="${KS_FILE}" \
-  --location "$ISO_DIR/$ISO_NAME" \
+  --location "${ISO_DIR}/${ISO_NAME}" \
   --extra-args "inst.ks=file:/${infra_server_name}_ks.cfg inst.stage2=cdrom inst.repo=cdrom" \
   --graphics none \
   --console pty,target_type=serial \
