@@ -153,7 +153,7 @@ sudo virt-install \
   --os-variant almalinux9 \
   --network network=default,model=virtio \
   --initrd-inject="${KS_FILE}" \
-  --extra-args "inst.ks=file:/${infra_server_name}_ks.cfg inst.stage2=hd:sr0"
+  --extra-args "inst.ks=file:/${infra_server_name}_ks.cfg inst.stage2=hd:sr0" \
   --graphics none \
   --console pty,target_type=serial \
   --noautoconsole \
@@ -161,7 +161,7 @@ sudo virt-install \
   --cpu host-model \
   --boot loader=/usr/share/edk2/ovmf/OVMF_CODE.fd,\
 nvram.template=/usr/share/edk2/ovmf/OVMF_VARS.fd,\
-nvram=/virtual-machines/server/server_VARS.fd,\
+nvram=/virtual-machines/${infra_server_name}/${infra_server_name}_VARS.fd,\
 menu=on \
 
 sudo virsh console ${infra_server_name}
