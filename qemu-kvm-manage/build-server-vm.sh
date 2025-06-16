@@ -120,14 +120,14 @@ echo "  Netmask    : $ipv4_netmask"
 echo "  Gateway    : $ipv4_gateway"
 echo "============================================="
 
-sudo mkdir -p /virtual-machines
-sudo chowm -R $USER:qemu /virtual-machines
-chmod -R g+s /virtual-machines
+#sudo mkdir -p /virtual-machines
+#sudo chown -R $USER:qemu /virtual-machines
+#chmod -R g+s /virtual-machines
 mkdir -p "/virtual-machines/${infra_server_name}"
 
 KS_FILE="/virtual-machines/${infra_server_name}/${infra_server_name}_ks.cfg"
 cp -f almalinux-template-ks.cfg "${KS_FILE}" 
-sudo chowm $USER:qemu "${KS_FILE}"
+sudo chown $USER:qemu "${KS_FILE}"
 sed -i "s/get_ipv4_address/${ipv4_address}/g" "${KS_FILE}"
 sed -i "s/get_ipv4_netmask/${ipv4_netmask}/g" "${KS_FILE}"
 sed -i "s/get_ipv4_gateway/${ipv4_gateway}/g" "${KS_FILE}"
