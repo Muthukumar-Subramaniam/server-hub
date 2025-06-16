@@ -528,7 +528,7 @@
       <type t="symbol">CT_LVM</type>
     </drive>
     <drive t="map">
-      <device>/dev/nvme0n1</device>
+      <device>/dev/get_disk_type_for_the_vm</device>
       <disklabel>gpt</disklabel>
       <partitions t="list">
         <partition t="map">

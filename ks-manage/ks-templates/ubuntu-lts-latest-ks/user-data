@@ -84,21 +84,21 @@ autoinstall:
   storage:
     config:
     - ptable: gpt
-      path: /dev/nvme0n1
+      path: /dev/get_disk_type_for_the_vm
       wipe: superblock-recursive
       preserve: false
       name: ''
       grub_device: false
-      id: disk-nvme0n1
+      id: disk-get_disk_type_for_the_vm
       type: disk
-    - device: disk-nvme0n1
+    - device: disk-get_disk_type_for_the_vm
       size: 134217728
       wipe: superblock
       flag: boot
       number: 1
       preserve: false
       grub_device: true
-##      path: /dev/nvme0n1p1  <--- new subiquity fix
+##      path: /dev/get_disk_type_for_the_vmp1  <--- new subiquity fix
       id: partition-0
       type: partition
     - fstype: fat32
@@ -106,12 +106,12 @@ autoinstall:
       preserve: false
       id: format-0
       type: format
-    - device: disk-nvme0n1
+    - device: disk-get_disk_type_for_the_vm
       size: 536870912
       wipe: superblock
       number: 2
       preserve: false
-##      path: /dev/nvme0n1p2  <--- new subiquity fix
+##      path: /dev/get_disk_type_for_the_vmp2  <--- new subiquity fix
       id: partition-1
       type: partition
     - fstype: xfs
@@ -119,12 +119,12 @@ autoinstall:
       preserve: false
       id: format-1
       type: format
-    - device: disk-nvme0n1
+    - device: disk-get_disk_type_for_the_vm
       size: -1
       wipe: superblock
       number: 3
       preserve: false
-##      path: /dev/nvme0n1p3  <--- new subiquity fix
+##      path: /dev/get_disk_type_for_the_vmp3  <--- new subiquity fix
       id: partition-2
       type: partition
     - name: ubuntu

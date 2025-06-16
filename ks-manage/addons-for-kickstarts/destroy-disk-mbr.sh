@@ -22,4 +22,4 @@ else
         done
 fi
 
-dd if=/dev/zero of=/dev/nvme0n1 bs=512 count=1
+dd if=/dev/zero of=/dev/get_disk_type_for_the_vm bs=512 count=1

@@ -195,11 +195,21 @@ EOF
 # shellcheck disable=SC2021
 ipv4_address=$(host "${kickstart_hostname}.${ipv4_domain}" | cut -d " " -f 4 | tr -d '[[:space:]]')
 
+disk_type_for_the_vm=$(dmidecode -t1 | awk -F: '/Manufacturer/ {
+    manufacturer=tolower($2);
+    gsub(/^ +| +$/, "", manufacturer);
+    if (manufacturer ~ /vmware/) print "nvme0n1";
+    else if (manufacturer ~ /qemu/) print "vda";
+}')
+
+
 host_kickstart_dir="${ksmanager_hub_dir}/kickstarts/${kickstart_hostname}.${ipv4_domain}"
 
 mkdir -p "${host_kickstart_dir}"
 
 rm -rf "${host_kickstart_dir}"/*
+
+
 
 fn_select_os_distro
 
@@ -265,6 +275,7 @@ fn_set_environment() {
 		sed -i "s/get_time_of_last_update/${time_of_last_update}/g" "${working_file}"
 		sed -i "s/get_mgmt_super_user/${mgmt_super_user}/g" "${working_file}"
 		sed -i "s/get_os_name_and_version/${os_name_and_version}/g" "${working_file}"
+		sed -i "s/get_disk_type_for_the_vm/${disk_type_for_the_vm}/g" "${working_file}"
 
 		awk -v val="$shadow_password_super_mgmt_user" '
 		{
