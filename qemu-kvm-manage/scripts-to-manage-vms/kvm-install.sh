@@ -35,18 +35,16 @@ mkdir -p /virtual-machines/${qemu_kvm_hostname}
 sudo virt-install \
   --name ${qemu_kvm_hostname} \
   --features acpi=on,apic=on \
-  --memory 2048 \
+  --memory 4096 \
   --vcpus 2 \
   --disk path=/virtual-machines/${qemu_kvm_hostname}/${qemu_kvm_hostname}.qcow2,size=20,bus=virtio,boot.order=1 \
   --os-variant almalinux9 \
   --network network=default,model=virtio,mac=${MAC_ADDRESS},boot.order=2 \
   --graphics none \
   --console pty,target_type=serial \
-  --noautoconsole \
   --machine q35 \
   --cpu host-model \
   --boot loader=/usr/share/edk2/ovmf/OVMF_CODE.fd,\
 nvram.template=/usr/share/edk2/ovmf/OVMF_VARS.fd,\
-nvram=/virtual-machines/${qemu_kvm_hostname}/${qemu_kvm_hostname}_VARS.fd,\
-menu=on \
-  --pxe
+nvram=/virtual-machines/${qemu_kvm_hostname}/${qemu_kvm_hostname}_VARS.fd,menu=on \
+  --pxe \
