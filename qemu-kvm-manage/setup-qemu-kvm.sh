@@ -39,3 +39,8 @@ sudo virsh net-define virbr0.xml
 sudo virsh net-start default
 sudo virsh net-autostart default
 sudo virsh net-dumpxml default
+
+echo -e "\nCreate custom tools to manage VMs . . .\n"
+sudo ln -s /server-hub/qemu-kvm-manage/scripts-to-manage-vms/kvm-install.sh /bin/kvm-install
+sudo ln -s /server-hub/qemu-kvm-manage/scripts-to-manage-vms/kvm-remove.sh /bin/kvm-remove
+sudo ln -s /server-hub/qemu-kvm-manage/scripts-to-manage-vms/kvm-reimage.sh /bin/kvm-reimage
