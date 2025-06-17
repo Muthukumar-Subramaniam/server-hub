@@ -4,7 +4,7 @@
 if [ -n "$1" ]; then
     qemu_kvm_hostname="$1"
 else
-    read -p "Please enter the Hostname of the VM to be deleted: " qemu_kvm_hostname
+    read -p "Please enter the Hostname of the VM to be removed : " qemu_kvm_hostname
 fi
 
 # Check if VM exists in 'virsh list --all'

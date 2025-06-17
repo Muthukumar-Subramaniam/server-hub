@@ -2,6 +2,22 @@
 infra_server_ipv4_address=$(cat /virtual-machines/ipv4-address-address-of-infra-server-vm)
 infra_mgmt_super_username=$(cat /virtual-machines/infra-mgmt-super-username)
 
+# Use first argument or prompt for hostname
+if [ -n "$1" ]; then
+    qemu_kvm_hostname="$1"
+else
+    read -p "Please enter the Hostname of the VM to be installed : " qemu_kvm_hostname
+fi
+
+# Check if VM exists in 'virsh list --all'
+if sudo virsh list --all | awk '{print $2}' | grep -Fxq "$qemu_kvm_hostname"; then
+    echo "❌ Error: VM \"$qemu_kvm_hostname\" exists already."
+    echo "Either do one of the below, "
+    echo "	* Remove the VM using kvm-remove and then try ! "  
+    echo "	* Re-image the VM using kvm-reimage ! "  
+    exit 1
+fi
+
 read -p "Please enter the Hostname of the VM to be created : " qemu_kvm_hostname
 
 echo -e "\nUpdating ksmanager to create PXE environment for ${qemu_kvm_hostname} . . . \n"
