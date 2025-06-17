@@ -147,7 +147,8 @@ echo -e "Mount ISP $ISO_DIR/$ISO_NAME on /mnt/iso-for-${infra_server_name} for V
 sudo mkdir /mnt/iso-for-${infra_server_name}
 sudo mount -o loop "${ISO_DIR}/${ISO_NAME}" /mnt/iso-for-${infra_server_name}
 
-
+echo "$ipv4_address" >/virtual-machines/ipv4-address-address-of-infra-server-vm
+echo "$mgmt_super_user" >/virtual-machines/infra-mgmt-super-username
 
 sudo virt-install \
   --name ${infra_server_name} \

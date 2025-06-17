@@ -1,5 +1,6 @@
 #!/bin/bash
-infra_host="server.ms.local"
+infra_server_ipv4_address=$(cat /virtual-machines/ipv4-address-address-of-infra-server-vm)
+infra_mgmt_super_username=$(cat /virtual-machines/infra-mgmt-super-username)
 
 read -p "Please enter the Hostname of the VM to be created : " qemu_kvm_hostname
 
@@ -13,12 +14,12 @@ echo "If in case of new VM, Please utilize this MAC Address when prompted : ${MA
 
 >/tmp/install-vm-logs-"${qemu_kvm_hostname}"
 
-ssh muthuks@${infra_host} "sudo ksmanager ${qemu_kvm_hostname}" | tee -a /tmp/install-vm-logs-"${qemu_kvm_hostname}"
+ssh -t ${infra_mgmt_super_username}@${infra_server_ipv4_address} "sudo ksmanager ${qemu_kvm_hostname}" | tee -a /tmp/install-vm-logs-"${qemu_kvm_hostname}"
 
 CURRENT_MAC_ADDRESS=$( grep "MAC Address  :"  /tmp/install-vm-logs-"${qemu_kvm_hostname}" | awk -F': ' '{print $2}' )
 
 if [ -z ${CURRENT_MAC_ADDRESS} ]; then
-	"Something went wrong while executing ksmanager, Please check in ${infra_host}"
+	echo -e "\nSomething went wrong while executing ksmanager ! \nPlease check what is the issue from your Infra Server VM ( ${infra_server_ipv4_address} ) ! \n"
 	exit 1
 fi
 
