@@ -18,8 +18,6 @@ if sudo virsh list --all | awk '{print $2}' | grep -Fxq "$qemu_kvm_hostname"; th
     exit 1
 fi
 
-read -p "Please enter the Hostname of the VM to be created : " qemu_kvm_hostname
-
 echo -e "\nUpdating ksmanager to create PXE environment for ${qemu_kvm_hostname} . . . \n"
 
 echo -e "Generating MAC Address for the VM, will be appiled in case of a new VM . . .\n"
