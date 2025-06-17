@@ -1,4 +1,13 @@
 #!/bin/bash
+# Check if we're inside a QEMU guest
+if sudo dmidecode -s system-manufacturer | grep -qi 'QEMU'; then
+    echo "❌❌❌  FATAL: WRONG PLACE, BUDDY! ❌❌❌"
+    echo "This script is meant to be run on the *host* system managing QEMU/KVM VMs."
+    echo "You’re currently inside a QEMU guest VM, which makes absolutely no sense."
+    echo "💥 ABORTING EXECUTION 💥"
+    exit 1
+fi
+
 ISO_DIR="/virtual-machines/iso-files"
 ISO_NAME="AlmaLinux-10-latest-x86_64-dvd.iso"
 # Check for virt-install (part of qemu-kvm/libvirt package)
@@ -120,9 +129,6 @@ echo "  Netmask    : $ipv4_netmask"
 echo "  Gateway    : $ipv4_gateway"
 echo "============================================="
 
-#sudo mkdir -p /virtual-machines
-#sudo chown -R $USER:qemu /virtual-machines
-#chmod -R g+s /virtual-machines
 mkdir -p "/virtual-machines/${infra_server_name}"
 
 KS_FILE="/virtual-machines/${infra_server_name}/${infra_server_name}_ks.cfg"

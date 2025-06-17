@@ -1,4 +1,13 @@
 #!/bin/bash
+# Check if we're inside a QEMU guest
+if sudo dmidecode -s system-manufacturer | grep -qi 'QEMU'; then
+    echo "❌❌❌  FATAL: WRONG PLACE, BUDDY! ❌❌❌"
+    echo "This script is meant to be run on the *host* system managing QEMU/KVM VMs."
+    echo "You’re currently inside a QEMU guest VM, which makes absolutely no sense."
+    echo "💥 ABORTING EXECUTION 💥"
+    exit 1
+fi
+
 infra_server_ipv4_address=$(cat /virtual-machines/ipv4-address-address-of-infra-server-vm)
 infra_mgmt_super_username=$(cat /virtual-machines/infra-mgmt-super-username)
 
