@@ -32,4 +32,4 @@ spec:
       port: 80
       targetPort: 80
   type: LoadBalancer
-  loadBalancerIP: 10.10.20.101
+  loadBalancerIP: 10.10.20.201

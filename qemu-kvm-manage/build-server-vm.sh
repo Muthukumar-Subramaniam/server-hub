@@ -147,6 +147,8 @@ echo -e "Mount ISP $ISO_DIR/$ISO_NAME on /mnt/iso-for-${infra_server_name} for V
 sudo mkdir /mnt/iso-for-${infra_server_name}
 sudo mount -o loop "${ISO_DIR}/${ISO_NAME}" /mnt/iso-for-${infra_server_name}
 
+
+
 sudo virt-install \
   --name ${infra_server_name} \
   --features acpi=on,apic=on \
@@ -158,22 +160,17 @@ sudo virt-install \
   --network network=default,model=virtio \
   --initrd-inject="${KS_FILE}" \
   --location "/mnt/iso-for-${infra_server_name}" \
-  --extra-args "inst.ks=file:/${infra_server_name}_ks.cfg inst.stage2=cdrom inst.repo=cdrom" \
+  --extra-args "inst.ks=file:/${infra_server_name}_ks.cfg inst.stage2=cdrom inst.repo=cdrom console=ttyS0 nomodeset inst.text quiet" \
   --graphics none \
   --console pty,target_type=serial \
-  --noautoconsole \
   --machine q35 \
   --cpu host-model \
   --boot loader=/usr/share/edk2/ovmf/OVMF_CODE.fd,\
 nvram.template=/usr/share/edk2/ovmf/OVMF_VARS.fd,\
-nvram=/virtual-machines/${infra_server_name}/${infra_server_name}_VARS.fd,\
-menu=on \
+nvram=/virtual-machines/${infra_server_name}/${infra_server_name}_VARS.fd,menu=on \
 
-sudo virsh console ${infra_server_name}
-
-if ! sudo virsh list | grep -q "${infra_server_name}"; then
+if sudo virsh list | grep -q "${infra_server_name}"; then
 	echo -e "\nSuccessfully depoyed your infra server VM ( ${infra_server_name} ) running on qemu-kvm ! \n" 
 else
 	echo -e "\nFailed to depoy your infra server VM ( ${infra_server_name} ) on qemu-kvm ! Please check where it went wrong\n !" 
 fi
-
