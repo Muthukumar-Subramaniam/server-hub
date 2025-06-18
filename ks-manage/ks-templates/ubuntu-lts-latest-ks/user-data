@@ -3,38 +3,13 @@
 autoinstall:
   version: 1
 
-  refresh-installer:
-
-  update: yes
+  early-commands:
+    - echo "ttyS0" >> /etc/securetty
+    - systemctl stop serial-getty@ttyS0.service || true
+    - systemctl start serial-getty@ttyS0.service
 
   source:
    id: ubuntu-server-minimal
-  
-  update_packages: true
-
-  packages:
-    - vim
-    - less
-    - bash-completion
-    - nfs-common
-    - tmux
-    - net-tools
-    - sysstat
-    - zip
-    - tcpdump
-    - traceroute
-    - wget
-    - tar
-    - inetutils-ping
-    - dnsutils
-    - rsync
-    - netcat-openbsd
-    - nmap
-    - lsof
-
-  package_update: true
-
-  package_upgrade: true
 
   identity:
     hostname: get_hostname.get_ipv4_domain
@@ -48,6 +23,7 @@ autoinstall:
       list:
         - root:get_shadow_password_super_mgmt_user
     runcmd:
+      - apt-get update && apt-get install -y chrony vim less bash-completion nfs-common tmux net-tools sysstat zip tcpdump traceroute wget tar inetutils-ping dnsutils rsync netcat-openbsd nmap lsof
       - /usr/bin/echo -e "HISTSIZE=-1\nHISTFILESIZE=-1" | tee -a /home/get_mgmt_super_user/.bashrc /root/.bashrc
       - var_PS1_variable_get_mgmt_super_user=$(curl -s -L http://get_web_server_name.get_ipv4_domain/ksmanager-hub/addons-for-kickstarts/PS1-env-variable-normal-user)
       - echo "${var_PS1_variable_get_mgmt_super_user}" >> /home/get_mgmt_super_user/.bashrc
@@ -56,15 +32,14 @@ autoinstall:
       - echo "get_mgmt_super_user ALL=(ALL) NOPASSWD:ALL" >/etc/sudoers.d/get_mgmt_super_user
       - mkdir -p /home/get_mgmt_super_user/.ssh /root/.ssh
       - chmod 0700 /home/get_mgmt_super_user/.ssh /root/.ssh
-      - wget -O /home/get_mgmt_super_user/.ssh/authorized_keys http://get_web_server_name.get_ipv4_domain/ksmanager-hub/addons-for-kickstarts/authorized_keys
-      - wget -O /root/.ssh/authorized_keys http://get_web_server_name.get_ipv4_domain/ksmanager-hub/addons-for-kickstarts/authorized_keys
+      - curl -fsSL http://get_web_server_name.get_ipv4_domain/ksmanager-hub/addons-for-kickstarts/authorized_keys -o /home/get_mgmt_super_user/.ssh/authorized_keys
+      - curl -fsSL http://get_web_server_name.get_ipv4_domain/ksmanager-hub/addons-for-kickstarts/authorized_keys -o /root/.ssh/authorized_keys
       - chmod 0600 /home/get_mgmt_super_user/.ssh/authorized_keys /root/.ssh/authorized_keys
       - chown -R get_mgmt_super_user:get_mgmt_super_user /home/get_mgmt_super_user/.ssh
-      - wget -P /usr/local/share/ca-certificates/ http://get_web_server_name.get_ipv4_domain/ksmanager-hub/addons-for-kickstarts/ca-certs/get_web_server_name.get_ipv4_domain-apache-selfsigned.crt
+      - curl -fsSL http://get_web_server_name.get_ipv4_domain/ksmanager-hub/addons-for-kickstarts/ca-certs/get_web_server_name.get_ipv4_domain-apache-selfsigned.crt -o /usr/local/share/ca-certificates/get_web_server_name.get_ipv4_domain-apache-selfsigned.crt
       - update-ca-certificates
       - touch /etc/cloud/cloud-init.disabled
       - if ls /etc/netplan/*cloud* &>/dev/null;then mv /etc/netplan/*cloud* /etc/netplan/old/;fi
-      - apt install chrony -y
       - cp -p /etc/chrony/chrony.conf /etc/chrony/chrony.conf_bkp_orig
       - sed -i 's/^pool/#pool/g' /etc/chrony/chrony.conf
       - echo 'pool get_ntp_pool_name.get_ipv4_domain iburst' >> /etc/chrony/chrony.conf
@@ -99,7 +74,6 @@ autoinstall:
       number: 1
       preserve: false
       grub_device: true
-##      path: /dev/get_disk_type_for_the_vmp1  <--- new subiquity fix
       id: partition-0
       type: partition
     - fstype: fat32
@@ -112,7 +86,6 @@ autoinstall:
       wipe: superblock
       number: 2
       preserve: false
-##      path: /dev/get_disk_type_for_the_vmp2  <--- new subiquity fix
       id: partition-1
       type: partition
     - fstype: xfs
@@ -125,7 +98,6 @@ autoinstall:
       wipe: superblock
       number: 3
       preserve: false
-##      path: /dev/get_disk_type_for_the_vmp3  <--- new subiquity fix
       id: partition-2
       type: partition
     - name: ubuntu
@@ -165,8 +137,10 @@ autoinstall:
     - V_count=0;for v_interface in $(ls /sys/class/net | grep -v lo);do /target/usr/bin/echo -e "[Match]\nMACAddress=$(ip link | grep $v_interface -A 1 | grep link/ether | cut -d " " -f 6)\n\n[Link]\nName=eth$V_count" >/target/etc/systemd/network/7$V_count-eth$V_count.link;V_count=$((V_count+1));done
     - mkdir -p /target/etc/netplan/old
     - if ls /target/etc/netplan/*.yaml;then mv /target/etc/netplan/*.yaml /target/etc/netplan/old;fi
-    - wget -P /target/etc/netplan/ http://get_web_server_name.get_ipv4_domain/ksmanager-hub/kickstarts/get_hostname.get_ipv4_domain/ubuntu-lts-latest-ks/eth0.yaml
-    - wget -P /target/etc/netplan/ http://get_web_server_name.get_ipv4_domain/ksmanager-hub/kickstarts/get_hostname.get_ipv4_domain/ubuntu-lts-latest-ks/auto-create-int.yaml
+    - curl -fsSL http://get_web_server_name.get_ipv4_domain/ksmanager-hub/kickstarts/get_hostname.get_ipv4_domain/ubuntu-lts-latest-ks/eth0.yaml -o /target/etc/netplan/eth0.yaml
+    - curl -fsSL http://get_web_server_name.get_ipv4_domain/ksmanager-hub/kickstarts/get_hostname.get_ipv4_domain/ubuntu-lts-latest-ks/auto-create-int.yaml -o /target/etc/netplan/auto-create-int.yaml
     - V_count=1;for v_interface in $(ls /target/etc/systemd/network/ | grep -v eth0);do sed "s/eth-get_mgmt_super_user/eth$V_count/g" /target/etc/netplan/auto-create-int.yaml >/target/etc/netplan/eth$V_count.yaml;V_count=$((V_count+1));done
     - chmod 600 /target/etc/netplan/eth*.yaml
     - rm -rf /target/etc/netplan/auto-create-int.yaml
+    - /target/usr/bin/sed -i 's/^GRUB_CMDLINE_LINUX_DEFAULT=.*/GRUB_CMDLINE_LINUX_DEFAULT="console=ttyS0,115200n8 nomodeset"/' /target/etc/default/grub
+    - curtin in-target --target=/target -- update-grub
