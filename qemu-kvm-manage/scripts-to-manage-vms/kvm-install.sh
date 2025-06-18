@@ -58,7 +58,7 @@ mkdir -p /virtual-machines/${qemu_kvm_hostname}
 sudo virt-install \
   --name ${qemu_kvm_hostname} \
   --features acpi=on,apic=on \
-  --memory 4096 \
+  --memory 2048 \
   --vcpus 2 \
   --disk path=/virtual-machines/${qemu_kvm_hostname}/${qemu_kvm_hostname}.qcow2,size=20,bus=virtio,boot.order=1 \
   --os-variant almalinux9 \

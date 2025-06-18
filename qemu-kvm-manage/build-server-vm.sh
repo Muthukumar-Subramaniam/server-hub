@@ -159,7 +159,7 @@ echo "$mgmt_super_user" >/virtual-machines/infra-mgmt-super-username
 sudo virt-install \
   --name ${infra_server_name} \
   --features acpi=on,apic=on \
-  --memory 4096 \
+  --memory 2048 \
   --vcpus 2 \
   --disk path=/virtual-machines/${infra_server_name}/${infra_server_name}.qcow2,size=30,bus=virtio \
   --disk path="$ISO_DIR/$ISO_NAME",device=cdrom,bus=sata \
