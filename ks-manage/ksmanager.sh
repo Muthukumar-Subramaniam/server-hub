@@ -108,6 +108,16 @@ fn_validate_mac() {
     fi
 }
 
+fn_convert_mac_for_grub_cfg() {
+	# Convert MAC address to required format to append with grub.cfg file
+	grub_cfg_mac_address=$(echo "${mac_address_of_host}" | tr ':' '-' | tr 'A-F' 'a-f')
+}
+
+fn_cache_the_mac() {
+	echo -e "\nUpdating MAC address to mac-address-cache for future use . . .\n"
+	sed -i "/${kickstart_hostname}/d" "${ksmanager_hub_dir}"/mac-address-cache
+	echo "${kickstart_hostname} ${mac_address_of_host}" >> "${ksmanager_hub_dir}"/mac-address-cache
+}
 
 # Loop until a valid MAC address is provided
 
@@ -119,11 +129,6 @@ fn_get_mac_address() {
     		# Call the function to validate the MAC address
     		if fn_validate_mac "${mac_address_of_host}"
     		then
-			# Convert MAC address to required format to append with grub.cfg file
-			grub_cfg_mac_address=$(echo "${mac_address_of_host}" | tr ':' '-' | tr 'A-F' 'a-f')
-			echo -e "\nUpdating MAC address to mac-address-cache for future use . . .\n"
-			sed -i "/${kickstart_hostname}/d" "${ksmanager_hub_dir}"/mac-address-cache
-			echo "${kickstart_hostname} ${mac_address_of_host}" >> "${ksmanager_hub_dir}"/mac-address-cache
         		break
     		else
         		echo -e "\nInvalid MAC address provided. Please try again.\n"
@@ -143,20 +148,28 @@ then
 	echo -e "\nMAC Address ${mac_address_of_host} found for ${kickstart_hostname} in mac-address-cache! \n" 
 	while :
 	do
+		if [[ "$2" == "--qemu-kvm" ]]; then
+			fn_convert_mac_for_grub_cfg
+			break
+		fi
+		
 		read -p "Has the MAC Address ${mac_address_of_host} been changed for ${kickstart_hostname} (y/N) ? : " confirmation 
+
 		if [[ "${confirmation}" =~ ^[Nn]$ ]] 
 		then
-			grub_cfg_mac_address=$(echo "${mac_address_of_host}" | tr ':' '-' | tr 'A-F' 'a-f')
+			fn_convert_mac_for_grub_cfg
 			break
 
 		elif [[ -z "${confirmation}" ]]
 		then
-			grub_cfg_mac_address=$(echo "${mac_address_of_host}" | tr ':' '-' | tr 'A-F' 'a-f')
+			fn_convert_mac_for_grub_cfg
 			break
 
 		elif [[ "${confirmation}" =~ ^[Yy]$ ]]
 		then
 			fn_get_mac_address
+			fn_convert_mac_for_grub_cfg
+			fn_cache_the_mac
 			break
 		else
 			echo -e "\nInvalid Input! \n"
@@ -164,7 +177,17 @@ then
 	done
 else
 	echo -e "\nMAC Address for ${kickstart_hostname} not found in mac-address-cache! " 
-	fn_get_mac_address
+	# Check if second argument is --qemu-kvm
+	if [[ "$2" == "--qemu-kvm" ]]; then
+		echo -e "\nGenerating MAC Address for the QEMU/KVM VM ${kickstart_hostname} . . . \n"
+		mac_address_of_host=$(printf '52:54:00:%02x:%02x:%02x\n' $((RANDOM%256)) $((RANDOM%256)) $((RANDOM%256)))
+		fn_convert_mac_for_grub_cfg
+		fn_cache_the_mac
+	else
+		fn_get_mac_address
+		fn_convert_mac_for_grub_cfg
+		fn_cache_the_mac
+	fi
 fi
 
 fn_select_os_distro() {

@@ -15,42 +15,32 @@ infra_mgmt_super_username=$(cat /virtual-machines/infra-mgmt-super-username)
 if [ -n "$1" ]; then
     qemu_kvm_hostname="$1"
 else
-    read -p "Please enter the Hostname of the VM to be installed : " qemu_kvm_hostname
+	echo
+	read -p "🖥️  Please enter the hostname of the VM to be installed : " qemu_kvm_hostname
 fi
 
 # Check if VM exists in 'virsh list --all'
 if sudo virsh list --all | awk '{print $2}' | grep -Fxq "$qemu_kvm_hostname"; then
-    echo "❌ Error: VM \"$qemu_kvm_hostname\" exists already."
-    echo "Either do one of the below, "
-    echo "	* Remove the VM using kvm-remove and then try ! "  
-    echo "	* Re-image the VM using kvm-reimage ! "  
+    echo "❌ VM \"$qemu_kvm_hostname\" exists already."
+    echo "⚠️  Either do one of the following:"
+    echo "   ➤ Remove the VM using 'kvm-remove', then try again."
+    echo "   ➤ Re-image the VM using 'kvm-reimage'."
     exit 1
 fi
 
-echo -e "\nUpdating ksmanager to create PXE environment for ${qemu_kvm_hostname} . . . \n"
+echo -e "\n⚙️  Invoking ksmanager to create PXE environment For '${qemu_kvm_hostname}' . . .\n"
 
-echo -e "Generating MAC Address for the VM, will be appiled in case of a new VM . . .\n"
-
-MAC_ADDRESS=$(printf '52:54:00:%02x:%02x:%02x\n' $((RANDOM%256)) $((RANDOM%256)) $((RANDOM%256)))
-
-echo "If in case of new VM, Please utilize this MAC Address when prompted : ${MAC_ADDRESS} \n"
 
 >/tmp/install-vm-logs-"${qemu_kvm_hostname}"
 
-ssh -t ${infra_mgmt_super_username}@${infra_server_ipv4_address} "sudo ksmanager ${qemu_kvm_hostname}" | tee -a /tmp/install-vm-logs-"${qemu_kvm_hostname}"
+ssh -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -t ${infra_mgmt_super_username}@${infra_server_ipv4_address} "sudo ksmanager ${qemu_kvm_hostname}" | tee -a /tmp/install-vm-logs-"${qemu_kvm_hostname}"
 
-CURRENT_MAC_ADDRESS=$( grep "MAC Address  :"  /tmp/install-vm-logs-"${qemu_kvm_hostname}" | awk -F': ' '{print $2}' )
+MAC_ADDRESS=$( grep "MAC Address  :"  /tmp/install-vm-logs-"${qemu_kvm_hostname}" | awk -F': ' '{print $2}' )
 
-if [ -z ${CURRENT_MAC_ADDRESS} ]; then
-	echo -e "\nSomething went wrong while executing ksmanager ! \nPlease check what is the issue from your Infra Server VM ( ${infra_server_ipv4_address} ) ! \n"
+if [ -z ${MAC_ADDRESS} ]; then
+	echo -e "\n❌ Something went wrong while executing ksmanager ! "
+	echo -e "🛠️ Please check your Infra Server VM at ${infra_server_ipv4_address} for the root cause. \n"
 	exit 1
-fi
-
-if [[ "${MAC_ADDRESS}" != "${CURRENT_MAC_ADDRESS}" ]]; then
-	MAC_ADDRESS="${CURRENT_MAC_ADDRESS}"
-	echo "Existing MAC Address from the cache ${MAC_ADDRESS} will be applied to primary interface !"
-else
-	echo "MAC Address to be applied for the primary interface : ${MAC_ADDRESS}"
 fi
 
 mkdir -p /virtual-machines/${qemu_kvm_hostname}
@@ -71,3 +61,11 @@ sudo virt-install \
 nvram.template=/usr/share/edk2/ovmf/OVMF_VARS.fd,\
 nvram=/virtual-machines/${qemu_kvm_hostname}/${qemu_kvm_hostname}_VARS.fd,menu=on \
   --pxe \
+
+if sudo virsh list | grep -q "${qemu_kvm_hostname}"; then
+    echo -e "\n✅ Successfully installed the VM ${qemu_kvm_hostname} ! \n"
+else
+    echo -e "\n❌ Failed to install the VM (${infra_server_name}) ! \n"
+    echo "🔍 Please check what went wrong."
+    echo
+fi
