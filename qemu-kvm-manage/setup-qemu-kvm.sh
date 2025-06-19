@@ -2,11 +2,13 @@
 # Check if we're inside a QEMU guest
 if sudo dmidecode -s system-manufacturer | grep -qi 'QEMU'; then
     echo "❌❌❌  FATAL: WRONG PLACE, BUDDY! ❌❌❌"
-    echo "This script is meant to be run on the *host* system managing QEMU/KVM VMs."
-    echo "You’re currently inside a QEMU guest VM, which makes absolutely no sense."
+    echo -e "\n⚠️  Note:"
+    echo -e "  🔹 This script is meant to be run on the *host* system managing QEMU/KVM VMs."
+    echo -e "  🔹 You’re currently inside a QEMU guest VM, which makes absolutely no sense.\n"
     echo "💥 ABORTING EXECUTION 💥"
     exit 1
 fi
+
 
 echo "\nEnabling passwordless sudo for $USER . . .\n"
 cat <<EOF | sudo tee "/etc/sudoers.d/$USER"

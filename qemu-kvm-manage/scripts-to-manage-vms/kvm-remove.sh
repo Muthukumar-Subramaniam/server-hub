@@ -2,8 +2,9 @@
 # Check if we're inside a QEMU guest
 if sudo dmidecode -s system-manufacturer | grep -qi 'QEMU'; then
     echo "❌❌❌  FATAL: WRONG PLACE, BUDDY! ❌❌❌"
-    echo "This script is meant to be run on the *host* system managing QEMU/KVM VMs."
-    echo "You’re currently inside a QEMU guest VM, which makes absolutely no sense."
+    echo -e "\n⚠️  Note:"
+    echo -e "  🔹 This script is meant to be run on the *host* system managing QEMU/KVM VMs."
+    echo -e "  🔹 You’re currently inside a QEMU guest VM, which makes absolutely no sense.\n"
     echo "💥 ABORTING EXECUTION 💥"
     exit 1
 fi
@@ -12,7 +13,7 @@ fi
 if [ -n "$1" ]; then
     qemu_kvm_hostname="$1"
 else
-    read -p "Please enter the Hostname of the VM to be removed : " qemu_kvm_hostname
+    read -p "⌨️ Please enter the Hostname of the VM to be removed: " qemu_kvm_hostname
 fi
 
 # Check if VM exists in 'virsh list --all'
@@ -23,10 +24,10 @@ fi
 
 # Confirm deletion
 echo -e "\n⚠️ WARNING: This will permanently delete the VM \"$qemu_kvm_hostname\" and all associated files!"
-read -p "Are you sure you want to proceed? (yes/[no]): " confirm
+read -p "❓ Are you sure you want to proceed? (yes/[no]): " confirm
 
 if [[ "$confirm" != "yes" ]]; then
-    echo "Aborted."
+    echo -e "\n⛔ Aborted.\n"
     exit 1
 fi
 
@@ -37,4 +38,4 @@ sudo rm -f /virtual-machines/${qemu_kvm_hostname}/${qemu_kvm_hostname}.qcow2 \
            /virtual-machines/${qemu_kvm_hostname}/${qemu_kvm_hostname}_VARS.fd \
            /virtual-machines/${qemu_kvm_hostname}/${qemu_kvm_hostname}.xml
 
-echo "✅ VM \"$qemu_kvm_hostname\" deleted successfully."
+echo -e "✅ VM \"$qemu_kvm_hostname\" deleted successfully. \n"

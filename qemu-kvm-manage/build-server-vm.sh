@@ -2,8 +2,9 @@
 # Check if we're inside a QEMU guest
 if sudo dmidecode -s system-manufacturer | grep -qi 'QEMU'; then
     echo "❌❌❌  FATAL: WRONG PLACE, BUDDY! ❌❌❌"
-    echo "This script is meant to be run on the *host* system managing QEMU/KVM VMs."
-    echo "You’re currently inside a QEMU guest VM, which makes absolutely no sense."
+    echo -e "\n⚠️  Note:"
+    echo -e "  🔹 This script is meant to be run on the *host* system managing QEMU/KVM VMs."
+    echo -e "  🔹 You’re currently inside a QEMU guest VM, which makes absolutely no sense.\n"
     echo "💥 ABORTING EXECUTION 💥"
     exit 1
 fi
@@ -26,14 +27,13 @@ fi
 # Check ISO File
 if [[ ! -f "${ISO_DIR}/${ISO_NAME}" ]]; then
     echo "❌ ISO file ${ISO_DIR}/${ISO_NAME} not found."
-    echo "Please download the above ISO using script download-almalinux-latest.sh"
+    echo -e "⬇️  Please download the above ISO using the script \033[1mdownload-almalinux-latest.sh\033[0m"
     exit 1
 fi
 
 #Get Server Name
 while true; do
-  echo "(Note: same name will be used as hostname)"
-  read -rp "Enter Your Local Infra Server VM Name [default: server]: " infra_server_name
+  read -rp "⌨️  Enter your local Infra Server VM name [default: server]: " infra_server_name
 
   # If empty, use default
   if [[ -z "$infra_server_name" ]]; then
@@ -75,7 +75,7 @@ done
 
 # Prompt for password, validate length, confirm match
 while true; do
-  read -s -p "Enter Your Local Infra Management Password: " user_password
+  read -s -p "🔒 Enter your local Infra Management password: " user_password
   echo
   if [[ -z "$user_password" ]]; then
     echo "❌ Password cannot be empty. Please try again."
@@ -90,7 +90,7 @@ while true; do
   fi
 
   # Ask for confirmation
-  read -s -p "Confirm Your Local Infra Management Password: " confirm_password
+  read -s -p "🔒 Re-enter your local Infra Management password: " confirm_password
   echo
   if [[ "$user_password" != "$confirm_password" ]]; then
     echo "❌ Passwords do not match. Please try again."
@@ -107,22 +107,22 @@ salt=$(openssl rand -base64 6)
 # Generate SHA-512 shadow-compatible hash
 shadow_password_super_mgmt_user=$(openssl passwd -6 -salt "$salt" "$user_password")
 
-echo -n "Capturing Network Info from QEMU-KVM default Network Bridge . . ."
+echo -n "🌐 Capturing network info from QEMU-KVM default network bridge . . . "
 
 qemu_kvm_default_net_info=$(sudo virsh net-dumpxml default)
 ipv4_gateway=$(echo "$qemu_kvm_default_net_info" | awk -F"'" '/<ip address=/ {print $2}')
 ipv4_netmask=$(echo "$qemu_kvm_default_net_info" | awk -F"'" '/<ip address=/ {print $4}')
 ipv4_address=$(echo "$ipv4_gateway" | awk -F. '{ printf "%d.%d.%d.%d", $1, $2, $3, $4+1 }')
 
-echo "[ done ]"
+echo -e "✅"
 
 # Print as a neat block
-echo "Your Management Infra Server's Network Info :"
-echo "============================================"
-echo "  IP Address : $ipv4_address"
-echo "  Netmask    : $ipv4_netmask"
-echo "  Gateway    : $ipv4_gateway"
-echo "============================================="
+echo -e "\n📡 Your Management Infra Server's Network Info:"
+echo    "============================================"
+echo -e "  🌐 IPv4 Address : ${ipv4_address}"
+echo -e "  🌐 IPv4 Netmask : ${ipv4_netmask}"
+echo -e "  🌐 IPv4 Gateway : ${ipv4_gateway}"
+echo    "============================================"
 
 mkdir -p "/virtual-machines/${infra_server_name}"
 
@@ -142,14 +142,15 @@ awk -v val="$shadow_password_super_mgmt_user" '
 1
 ' "${KS_FILE}" > "${KS_FILE}"_tmp_ksmanager && mv "${KS_FILE}"_tmp_ksmanager "${KS_FILE}"
 
-echo -e "\nBuckle Up! We are going to deploy the server VM ( ${infra_server_name} ) . . . \n"
+echo -e "📦 Mounting ISP ${ISO_DIR}/${ISO_NAME} on /mnt/iso-for-${infra_server_name} for VM installation..."
 
-echo -e "Mount ISP $ISO_DIR/$ISO_NAME on /mnt/iso-for-${infra_server_name} for VM installation . . ."
-sudo mkdir /mnt/iso-for-${infra_server_name}
-sudo mount -o loop "${ISO_DIR}/${ISO_NAME}" /mnt/iso-for-${infra_server_name}
+sudo mkdir -p /mnt/iso-for-${infra_server_name}
+sudo mount -o loop "${ISO_DIR}/${ISO_NAME}" /mnt/iso-for-${infra_server_name} &>/dev/null
 
 echo "$ipv4_address" >/virtual-machines/ipv4-address-address-of-infra-server-vm
 echo "$mgmt_super_user" >/virtual-machines/infra-mgmt-super-username
+
+echo -e "\n🚀 Buckle up! We are about to deploy the Infra Server VM (${infra_server_name})...\n"
 
 sudo virt-install \
   --name ${infra_server_name} \
@@ -172,7 +173,9 @@ nvram.template=/usr/share/edk2/ovmf/OVMF_VARS.fd,\
 nvram=/virtual-machines/${infra_server_name}/${infra_server_name}_VARS.fd,menu=on \
 
 if sudo virsh list | grep -q "${infra_server_name}"; then
-	echo -e "\nSuccessfully depoyed your infra server VM ( ${infra_server_name} ) running on qemu-kvm ! \n" 
+	echo -e "\n✅ Successfully deployed your Infra Server VM (${infra_server_name}) !\n"
 else
-	echo -e "\nFailed to depoy your infra server VM ( ${infra_server_name} ) on qemu-kvm ! Please check where it went wrong\n !" 
+	echo -e "\n❌ Failed to deploy your Infra Server VM (${infra_server_name})!\n🔍 Please check where it went wrong.\n"
 fi
+
+exit

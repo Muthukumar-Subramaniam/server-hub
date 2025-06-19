@@ -2,8 +2,9 @@
 # Check if we're inside a QEMU guest
 if sudo dmidecode -s system-manufacturer | grep -qi 'QEMU'; then
     echo "❌❌❌  FATAL: WRONG PLACE, BUDDY! ❌❌❌"
-    echo "This script is meant to be run on the *host* system managing QEMU/KVM VMs."
-    echo "You’re currently inside a QEMU guest VM, which makes absolutely no sense."
+    echo -e "\n⚠️  Note:"
+    echo -e "  🔹 This script is meant to be run on the *host* system managing QEMU/KVM VMs."
+    echo -e "  🔹 You’re currently inside a QEMU guest VM, which makes absolutely no sense.\n"
     echo "💥 ABORTING EXECUTION 💥"
     exit 1
 fi
@@ -44,6 +45,8 @@ if [ -z ${MAC_ADDRESS} ]; then
 fi
 
 mkdir -p /virtual-machines/${qemu_kvm_hostname}
+
+echo -e "\n🚀 Starting installation of VM '${qemu_kvm_hostname}'...\n"
 
 sudo virt-install \
   --name ${qemu_kvm_hostname} \
