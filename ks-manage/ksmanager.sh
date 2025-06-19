@@ -1,11 +1,25 @@
 #!/bin/bash
 
-if [[ "${UID}" -ne 0 ]]
-then
-    echo -e "${v_RED}\nRun with sudo or run from root account ! ${v_RESET}\n"
-    exit 1
+if [[ "$EUID" -ne 0 ]]; then
+	if [[ "$USER" == "$mgmt_super_user" ]]; then
+		echo -e "\n🔒 Please run this tool using 'sudo' — direct execution is not allowed.\n"
+	    	exit 1
+    	else
+		echo -e "\n🔒 Access denied. Only infra management super user '${mgmt_super_user}' is authorized to run this tool.\n"
+    		exit 1
+    	fi
 fi
 
+if [[ "$(id -un)" == "root" && "$SUDO_USER" != "${mgmt_super_user}" ]]; then
+	echo -e "\n🔒 Access denied. Only infra management super user '${mgmt_super_user}' is authorized to run this tool with 'sudo'.\n"
+	exit 1
+fi
+
+script_name="$(basename "$0")"
+if [[ "$SUDO_COMMAND" != *"$script_name"* ]]; then
+	echo -e "\n🔒 Direct Root execution is not allowed. Only infra management super user '${mgmt_super_user}' can run this tool with sudo.\n"
+	exit 1
+fi
 
 ipv4_domain="${dnsbinder_domain}"
 ipv4_network_cidr="${dnsbinder_network_cidr}"
@@ -24,7 +38,6 @@ dnsbinder_script='/server-hub/named-manage/dnsbinder.sh'
 ksmanager_main_dir='/server-hub/ks-manage'
 ksmanager_hub_dir="/var/www/${web_server_name}.${ipv4_domain}/ksmanager-hub"
 
-
 mkdir -p "${ksmanager_hub_dir}"
 
 while :
@@ -32,67 +45,56 @@ do
 	# shellcheck disable=SC2162
 	if [ -z "${1}" ]
 	then
-		echo -e "Create Kickstart Host Profiles for PXE-boot in \"${ipv4_domain}\" domain,\n"
-		echo "Points to Keep in Mind While Entering the Hostname:"
-		echo " * Please use only letters, numbers, and hyphens."
-		echo " * Please do not start with a number."
-		echo -e " * Please do not append the domain name \"${ipv4_domain}\" \n"
-		read -r -p "Please Enter the Hostname for which Kickstarts are required : " kickstart_hostname
+		echo -e "\n🚀 Create Kickstart Host Profiles for PXE Boot.\n"
+		echo -e "📝 Points to Keep in Mind While Entering the Hostname:\n"
+    		echo -e "   🔹 Use only lowercase letters, numbers, and hyphens (-).\n   🔹 Also, must not start or end with a hyphen.\n"
+		read -r -p "🖥️ Please enter the hostname for which Kickstarts are required: " kickstart_hostname
 	else
 		kickstart_hostname="${1}"
 	fi
 
-	if [[ ${kickstart_hostname} =~ ^[[:alpha:]]([-[:alnum:]]*)$ ]]
-	then
-    		break
-  	else
-    		echo  "Invalid Hostname! "
-		echo "FYI:"
-		echo "	1. Please use only letters, numbers, and hyphens."
-		echo "	2. Please do not start with a number."
-		echo -e "	3. Please do not append the domain name ${ipv4_domain} \n"
-		exit 1
+	if [[ ! "${kickstart_hostname}" =~ ^[a-z0-9-]+$ || "${kickstart_hostname}" =~ ^- || "${kickstart_hostname}" =~ -$ ]]; then
+    		echo -e "❌ Invalid hostname ! \n   🔹 Use only lowercase letters, numbers, and hyphens (-).\n   🔹 Also, must not start or end with a hyphen.\n"
+    		exit 1
+	else
+		break
   	fi
 done
 
 if ! host "${kickstart_hostname}" &>/dev/null
 then
-	echo -e "\nNo DNS record found for \"${kickstart_hostname}\"\n"	
+	echo -e "\n❌ No DNS record found for \"${kickstart_hostname}\".\n"
 	while :
 	do
-		read -r -p "Enter (y) to create DNS record for ${kickstart_hostname} or (n) to exit the script : " v_confirmation
+		read -r -p "⌨️  Enter (y) to create a DNS record for \"${kickstart_hostname}\" or (n) to exit: " v_confirmation
 
 		if [[ "${v_confirmation}" == "y" ]]
 		then
-			echo -e "\nExecuting the script ${dnsbinder_script} . . .\n"
+			echo -e "\n🛠️  Creating the DNS record for \"${kickstart_hostname}\" using the tool '${dnsbinder_script}' . . .\n"
 			"${dnsbinder_script}" -c "${kickstart_hostname}"
 
 			if host "${kickstart_hostname}" &>/dev/null
 			then
-				echo -e "\nDNS Record for ${kickstart_hostname} created successfully! "
-				echo "FYI: $(host ${kickstart_hostname})"
-				echo -e "\nProceeding further . . .\n"
+				echo -e "\n⏳ Proceeding further . . .\n"
 				break
 			else
-				echo -e "\nSomething went wrong while creating ${kickstart_hostname} !\n"
-				exit
+				echo -e "\n❌ Something went wrong while creating \"${kickstart_hostname}\"!\n"
+				exit 1
 			fi
 
 		elif [[ "${v_confirmation}" == "n" ]]
 		then
-			echo -e "\nCancelled without any changes !\n"
+			echo -e "\n🚫 Cancelled — no changes were made.\n"
 			exit
-
 		else
-			echo -e "\nSelect only either (y/n) !\n"
+			echo -e "\n⚠️  Invalid input! Please select only (y) or (n).\n"
 			continue
 
 		fi
 	done
 else
-	echo -e "\nDNS Record found for ${kickstart_hostname}!\n"
-	echo "FYI: $(host ${kickstart_hostname})"
-
+	echo -e "\n✅ DNS record found for \"${kickstart_hostname}\" ! \n"
+	echo -e "ℹ️  FYI: $(host "${kickstart_hostname}")"
 fi
 
 # Function to validate MAC address
@@ -114,7 +116,7 @@ fn_convert_mac_for_grub_cfg() {
 }
 
 fn_cache_the_mac() {
-	echo -e "\nUpdating MAC address to mac-address-cache for future use . . .\n"
+	echo -e "\n📝 Updating MAC address to mac-address-cache for future use...\n"
 	sed -i "/${kickstart_hostname}/d" "${ksmanager_hub_dir}"/mac-address-cache
 	echo "${kickstart_hostname} ${mac_address_of_host}" >> "${ksmanager_hub_dir}"/mac-address-cache
 }
@@ -124,19 +126,19 @@ fn_cache_the_mac() {
 fn_get_mac_address() {
 	while :
 	do
-    		printf "\nEnter MAC address of the VM ${kickstart_hostname} : "
+		echo -e "\n⌨️  Enter the MAC address of the VM \"${kickstart_hostname}\": "
 		read mac_address_of_host
     		# Call the function to validate the MAC address
     		if fn_validate_mac "${mac_address_of_host}"
     		then
         		break
     		else
-        		echo -e "\nInvalid MAC address provided. Please try again.\n"
+			echo -e "\n❌ Invalid MAC address provided.\n🔁 Please try again.\n"
     		fi
 	done
 }
 
-echo -e "\nLooking up MAC Address for the host ${kickstart_hostname} from mac-address-cache . . ."
+echo -e "\n🔍 Looking up MAC address for host \"${kickstart_hostname}\" from mac-address-cache...\n"
 
 if [ ! -f "${ksmanager_hub_dir}"/mac-address-cache ]; then
 	touch  "${ksmanager_hub_dir}"/mac-address-cache
@@ -176,10 +178,10 @@ then
 		fi
 	done
 else
-	echo -e "\nMAC Address for ${kickstart_hostname} not found in mac-address-cache! " 
+	echo -e "\nℹ️  MAC address for \"${kickstart_hostname}\" not found in mac-address-cache.\n"
 	# Check if second argument is --qemu-kvm
 	if [[ "$2" == "--qemu-kvm" ]]; then
-		echo -e "\nGenerating MAC Address for the QEMU/KVM VM ${kickstart_hostname} . . . \n"
+		echo -e "\n⚙️  Generating MAC address for the QEMU/KVM VM \"${kickstart_hostname}\"...\n"
 		mac_address_of_host=$(printf '52:54:00:%02x:%02x:%02x\n' $((RANDOM%256)) $((RANDOM%256)) $((RANDOM%256)))
 		fn_convert_mac_for_grub_cfg
 		fn_cache_the_mac
@@ -191,29 +193,21 @@ else
 fi
 
 fn_select_os_distro() {
-cat << EOF
+    echo -e "\n📦 Please select the OS distribution to install: \n"
+    echo -e "  1️⃣  AlmaLinux Latest"
+    echo -e "  2️⃣  Ubuntu Server LTS Latest"
+    echo -e "  3️⃣  openSUSE Leap Latest\n"
 
-Please select OS distribution to install :
+    read -p "⌨️  Enter option number (default: AlmaLinux): " os_distribution
 
-	1 ) AlmaLinux Latest
-	2 ) Ubuntu-Server-LTS Latest
-	3 ) OpenSUSE-Leap Latest
-
-EOF
-	read -p "Enter Option Number ( default - AlmaLinux ) : " os_distribution
-
-	case ${os_distribution} in
-		1|"") os_distribution="almalinux"
-	   	   ;;
-		2) os_distribution="ubuntu"
-	   	   ;;
-		3) os_distribution="opensuse"
-	   	   ;;
-		*) echo "Invalid Option!"
-	   	   fn_select_os_distro
-	   	   ;;
-	esac
+    case "${os_distribution}" in
+        1 | "" ) os_distribution="almalinux" ;;
+        2 )      os_distribution="ubuntu" ;;
+        3 )      os_distribution="opensuse" ;;
+	* ) echo -e "\n❌ Invalid option! 🔁 Please try again."; fn_select_os_distro ;;
+    esac
 }
+
 
 # shellcheck disable=SC2021
 ipv4_address=$(host "${kickstart_hostname}.${ipv4_domain}" | cut -d " " -f 4 | tr -d '[[:space:]]')
@@ -232,41 +226,39 @@ mkdir -p "${host_kickstart_dir}"
 
 rm -rf "${host_kickstart_dir}"/*
 
-
-
 fn_select_os_distro
 
 if [[ "${os_distribution}" == "almalinux" ]]; then
 	if [ ! -f /var/lib/tftpboot/almalinux-latest/vmlinuz ]; then
-		echo -e "\nSeems like AlmaLinux is not yet configured for PXE-boot environment! \n"
-		exit 1
+		echo -e "\n⚠️  It seems AlmaLinux is not yet configured for the PXE-boot environment.\n🔄 Please try some other distro.\n"
+		fn_select_os_distro
 	fi
 	os_name_and_version=$(grep AlmaLinux /var/www/${web_server_name}.${ipv4_domain}/almalinux-latest/.discinfo)
-	rsync -avPh "${ksmanager_main_dir}"/ks-templates/almalinux-latest-ks.cfg "${host_kickstart_dir}"/ 
+	rsync -a -q "${ksmanager_main_dir}"/ks-templates/almalinux-latest-ks.cfg "${host_kickstart_dir}"/ 
 elif [[ "${os_distribution}" == "ubuntu" ]]; then
 	if [ ! -f /var/lib/tftpboot/ubuntu-lts-latest/vmlinuz ]; then
-		echo -e "\nSeems like Ubuntu-LTS is not yet configured for PXE-boot environment! \n"
-		exit 1
+		echo -e "\n⚠️  It seems Ubuntu-LTS is not yet configured for the PXE-boot environment.\n🔄 Please try some other distro.\n"
+		fn_select_os_distro
 	fi
 	os_name_and_version=$(awk -F'LTS' '{print $1 "LTS"}' /var/www/${web_server_name}.${ipv4_domain}/ubuntu-lts-latest/.disk/info)
-	rsync -avPh --delete "${ksmanager_main_dir}"/ks-templates/ubuntu-lts-latest-ks "${host_kickstart_dir}"/
+	rsync -a -q --delete "${ksmanager_main_dir}"/ks-templates/ubuntu-lts-latest-ks "${host_kickstart_dir}"/
 elif [[ "${os_distribution}" == "opensuse" ]]; then
 	if [ ! -f /var/lib/tftpboot/opensuse-leap-latest/linux ]; then
-		echo -e "\nSeems like OpenSUSE-Leap is not yet configured for PXE-boot environment! \n"
-		exit 1
+		echo -e "\n⚠️  It seems OpenSUSE Leap is not yet configured for the PXE-boot environment.\n🔄 Please try some other distro.\n"
+		fn_select_os_distro
 	fi
-	rsync -avPh "${ksmanager_main_dir}"/ks-templates/opensuse-leap-latest-autoinst.xml "${host_kickstart_dir}"/ 
+	rsync -a -q "${ksmanager_main_dir}"/ks-templates/opensuse-leap-latest-autoinst.xml "${host_kickstart_dir}"/ 
 fi
 
-rsync -avPh --delete "${ksmanager_main_dir}"/addons-for-kickstarts/ "${ksmanager_hub_dir}"/addons-for-kickstarts/
+echo -e "\n⚙️  Generating kickstart profile and GRUB configs for PXE boot of VM '${kickstart_hostname}'...\n"
 
-rsync -avPh /etc/pki/tls/certs/"${web_server_name}.${ipv4_domain}-apache-selfsigned.crt" "${ksmanager_hub_dir}"/addons-for-kickstarts/
+rsync -a -q --delete "${ksmanager_main_dir}"/addons-for-kickstarts/ "${ksmanager_hub_dir}"/addons-for-kickstarts/
 
-rsync -avPh "/home/${mgmt_super_user}/.ssh/authorized_keys" "${ksmanager_hub_dir}"/addons-for-kickstarts/
+rsync -a -q /etc/pki/tls/certs/"${web_server_name}.${ipv4_domain}-apache-selfsigned.crt" "${ksmanager_hub_dir}"/addons-for-kickstarts/
+
+rsync -a -q "/home/${mgmt_super_user}/.ssh/authorized_keys" "${ksmanager_hub_dir}"/addons-for-kickstarts/
 
 chmod +r "${ksmanager_hub_dir}"/addons-for-kickstarts/authorized_keys
-
-echo -e "\nGenerating kickstart for ${kickstart_hostname}.${ipv4_domain} under ${host_kickstart_dir} . . .\n"
 
 # shellcheck disable=SC2044
 escape_sed_replacement() {
@@ -325,43 +317,39 @@ fn_set_environment() {
 
 fn_set_environment "${host_kickstart_dir}"
 
-echo -e "\nCreating or Updating /var/lib/tftpboot/grub.cfg-01-${grub_cfg_mac_address} . . .\n"
-
 if [[ "${os_distribution}" == "almalinux" ]]; then
-	rsync -avPh "${ksmanager_main_dir}"/grub-template-almalinux-auto.cfg  /var/lib/tftpboot/grub.cfg-01-"${grub_cfg_mac_address}"
-	rsync -avPh "${ksmanager_main_dir}"/grub-template-almalinux-manual.cfg /var/lib/tftpboot/grub.cfg
+	rsync -a -q "${ksmanager_main_dir}"/grub-template-almalinux-auto.cfg  /var/lib/tftpboot/grub.cfg-01-"${grub_cfg_mac_address}"
+	rsync -a -q "${ksmanager_main_dir}"/grub-template-almalinux-manual.cfg /var/lib/tftpboot/grub.cfg
 elif [[ "${os_distribution}" == "ubuntu" ]]; then
-	rsync -avPh "${ksmanager_main_dir}"/grub-template-ubuntu-lts-auto.cfg  /var/lib/tftpboot/grub.cfg-01-"${grub_cfg_mac_address}"
-	rsync -avPh "${ksmanager_main_dir}"/grub-template-ubuntu-lts-manual.cfg /var/lib/tftpboot/grub.cfg
+	rsync -a -q "${ksmanager_main_dir}"/grub-template-ubuntu-lts-auto.cfg  /var/lib/tftpboot/grub.cfg-01-"${grub_cfg_mac_address}"
+	rsync -a -q "${ksmanager_main_dir}"/grub-template-ubuntu-lts-manual.cfg /var/lib/tftpboot/grub.cfg
 elif [[ "${os_distribution}" == "opensuse" ]]; then
-	rsync -avPh "${ksmanager_main_dir}"/grub-template-opensuse-leap-auto.cfg  /var/lib/tftpboot/grub.cfg-01-"${grub_cfg_mac_address}"
-	rsync -avPh "${ksmanager_main_dir}"/grub-template-opensuse-leap-manual.cfg /var/lib/tftpboot/grub.cfg
+	rsync -a -q "${ksmanager_main_dir}"/grub-template-opensuse-leap-auto.cfg  /var/lib/tftpboot/grub.cfg-01-"${grub_cfg_mac_address}"
+	rsync -a -q "${ksmanager_main_dir}"/grub-template-opensuse-leap-manual.cfg /var/lib/tftpboot/grub.cfg
 fi
 
 fn_set_environment "/var/lib/tftpboot/grub.cfg-01-${grub_cfg_mac_address}"
-
-echo -e "\nCreating or Updating /var/lib/tftpboot/grub.cfg . . .\n"
 
 fn_set_environment "/var/lib/tftpboot/grub.cfg"
 
 chown -R ${mgmt_super_user}:${mgmt_super_user}  "${ksmanager_hub_dir}"
 
-echo -e "\nFYI:"
-echo "	Hostname     : ${kickstart_hostname}.${ipv4_domain}"
-echo "	MAC Address  : ${mac_address_of_host}" 
-echo "	IPv4 Address : ${ipv4_address}"
-echo "	IPv4 Netmask : ${ipv4_netmask}"
-echo "	IPv4 Gateway : ${ipv4_gateway}"
-echo "	IPv4 Network : ${ipv4_network_cidr}"
-echo "	IPv4 DNS     : ${ipv4_nameserver}"
-echo "	Domain Name  : ${ipv4_domain}"
-echo "	TFTP Server  : ${tftp_server_name}.${ipv4_domain}"
-echo "	NTP Pool     : ${ntp_pool_name}.${ipv4_domain}"
-echo "	Web Server   : ${web_server_name}.${ipv4_domain}"
-echo "	KS Local     : ${host_kickstart_dir}"
-echo "	KS Web       : https://${host_kickstart_dir#/var/www/}"
-echo "	Requested OS : ${os_name_and_version}"
+echo -e "\nℹ️  FYI:\n"
+echo -e "  🖥️  Hostname     : ${kickstart_hostname}.${ipv4_domain}"
+echo -e "  🆔  MAC Address  : ${mac_address_of_host}"
+echo -e "  🌐  IPv4 Address : ${ipv4_address}"
+echo -e "  🌐  IPv4 Netmask : ${ipv4_netmask}"
+echo -e "  🌐  IPv4 Gateway : ${ipv4_gateway}"
+echo -e "  🌐  IPv4 Network : ${ipv4_network_cidr}"
+echo -e "  📡  IPv4 DNS     : ${ipv4_nameserver}"
+echo -e "  🌍  Domain Name  : ${ipv4_domain}"
+echo -e "  📁  TFTP Server  : ${tftp_server_name}.${ipv4_domain}"
+echo -e "  ⏰  NTP Pool     : ${ntp_pool_name}.${ipv4_domain}"
+echo -e "  🌐  Web Server   : ${web_server_name}.${ipv4_domain}"
+echo -e "  📂  KS Local     : ${host_kickstart_dir}"
+echo -e "  🔗  KS Web       : https://${host_kickstart_dir#/var/www/}"
+echo -e "  💿  Requested OS : ${os_name_and_version}"
 
-echo -e "\nAll done, You can proceed to pxeboot the host ${kickstart_hostname}\n"
+echo -e "\n✅ All done! You can proceed to PXE boot the host '${kickstart_hostname}'.\n"
 
 exit

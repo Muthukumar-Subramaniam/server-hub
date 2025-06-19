@@ -47,14 +47,9 @@ while true; do
     continue
   fi
 
-  # Allowed characters and hyphen position check
-  if [[ ! "$infra_server_name" =~ ^[a-z0-9-]+$ ]]; then
-    echo "❌ Only lowercase letters, numbers, and hyphens (-) are allowed."
-    continue
-  fi
-
-  if [[ "$infra_server_name" =~ ^- || "$infra_server_name" =~ -$ ]]; then
-    echo "❌ Server name cannot start or end with a hyphen (-)."
+  # Validate server name characters and hyphen position
+  if [[ ! "$infra_server_name" =~ ^[a-z0-9-]+$ || "$infra_server_name" =~ ^- || "$infra_server_name" =~ -$ ]]; then
+    echo -e "❌ Invalid hostname ! \n   🔹 Use only lowercase letters, numbers, and hyphens (-).\n   🔹 Also, must not start or end with a hyphen.\n"
     continue
   fi
 
