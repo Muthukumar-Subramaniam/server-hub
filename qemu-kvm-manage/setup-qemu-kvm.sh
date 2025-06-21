@@ -64,3 +64,4 @@ sudo ln -s /server-hub/qemu-kvm-manage/scripts-to-manage-vms/kvm-start.sh /bin/k
 sudo ln -s /server-hub/qemu-kvm-manage/scripts-to-manage-vms/kvm-stop.sh /bin/kvm-stop
 sudo ln -s /server-hub/qemu-kvm-manage/scripts-to-manage-vms/kvm-restart.sh /bin/kvm-restart
 sudo ln -s /server-hub/qemu-kvm-manage/scripts-to-manage-vms/kvm-console.sh /bin/kvm-console
+sudo ln -s /server-hub/qemu-kvm-manage/scripts-to-manage-vms/kvm-list.sh /bin/kvm-list
