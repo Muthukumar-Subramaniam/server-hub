@@ -60,3 +60,7 @@ echo -e "\nCreate custom tools to manage VMs . . .\n"
 sudo ln -s /server-hub/qemu-kvm-manage/scripts-to-manage-vms/kvm-install.sh /bin/kvm-install
 sudo ln -s /server-hub/qemu-kvm-manage/scripts-to-manage-vms/kvm-remove.sh /bin/kvm-remove
 sudo ln -s /server-hub/qemu-kvm-manage/scripts-to-manage-vms/kvm-reimage.sh /bin/kvm-reimage
+sudo ln -s /server-hub/qemu-kvm-manage/scripts-to-manage-vms/kvm-start.sh /bin/kvm-start
+sudo ln -s /server-hub/qemu-kvm-manage/scripts-to-manage-vms/kvm-stop.sh /bin/kvm-stop
+sudo ln -s /server-hub/qemu-kvm-manage/scripts-to-manage-vms/kvm-restart.sh /bin/kvm-restart
+sudo ln -s /server-hub/qemu-kvm-manage/scripts-to-manage-vms/kvm-console.sh /bin/kvm-console
