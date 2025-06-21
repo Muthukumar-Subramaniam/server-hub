@@ -1,4 +1,11 @@
 #!/bin/bash
+
+if [[ "$EUID" -eq 0 ]]; then
+    echo -e "\n⛔ Running as root user is not allowed."
+    echo -e "\n🔐 This script should be run as a user who has sudo privileges, but *not* using sudo.\n"
+    exit 1
+fi
+
 # Check if we're inside a QEMU guest
 if sudo dmidecode -s system-manufacturer | grep -qi 'QEMU'; then
     echo "❌❌❌  FATAL: WRONG PLACE, BUDDY! ❌❌❌"
@@ -13,7 +20,7 @@ fi
 if [ -n "$1" ]; then
     qemu_kvm_hostname="$1"
 else
-    read -p "⌨️ Please enter the Hostname of the VM to be removed: " qemu_kvm_hostname
+    read -rp "⌨️ Please enter the Hostname of the VM to be removed: " qemu_kvm_hostname
 fi
 
 # Check if VM exists in 'virsh list --all'
@@ -24,7 +31,7 @@ fi
 
 # Confirm deletion
 echo -e "\n⚠️ WARNING: This will permanently delete the VM \"$qemu_kvm_hostname\" and all associated files!"
-read -p "❓ Are you sure you want to proceed? (yes/[no]): " confirm
+read -rp "❓ Are you sure you want to proceed? (yes/[no]): " confirm
 
 if [[ "$confirm" != "yes" ]]; then
     echo -e "\n⛔ Aborted.\n"

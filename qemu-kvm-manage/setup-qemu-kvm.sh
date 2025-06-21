@@ -1,4 +1,11 @@
 #!/bin/bash
+# Run the script without sudo but the user shoudl have sudo access
+if [[ "$EUID" -eq 0 ]]; then
+    echo -e "\n⛔ Running as root user is not allowed."
+    echo -e "\n🔐 This script should be run as a user who has sudo privileges, but *not* using sudo.\n"
+    exit 1
+fi
+
 # Check if we're inside a QEMU guest
 if sudo dmidecode -s system-manufacturer | grep -qi 'QEMU'; then
     echo "❌❌❌  FATAL: WRONG PLACE, BUDDY! ❌❌❌"
@@ -9,20 +16,19 @@ if sudo dmidecode -s system-manufacturer | grep -qi 'QEMU'; then
     exit 1
 fi
 
-
 echo "\nEnabling passwordless sudo for $USER . . .\n"
 cat <<EOF | sudo tee "/etc/sudoers.d/$USER"
 $USER ALL=(ALL) NOPASSWD: ALL
 Defaults:$USER !authenticate
 EOF
 
-echo -e "\nInstall required packages for qemu-kvm . . . \n"
+echo -e "\nInstalling required packages for QEMU/KVM . . . \n"
 
 sudo dnf install -y qemu-kvm qemu-img libvirt libvirt-daemon libvirt-daemon-driver-qemu bridge-utils python3-libxml2 python3-libvirt libosinfo python3-gobject gobject-introspection edk2-ovmf 
 
-echo -e "\nEnable and start libvirtd . . . \n"
-systemctl enable --now libvirtd
-systemctl status libvirtd
+echo -e "\nEnabling and starting libvirtd . . . \n"
+sudo systemctl enable --now libvirtd
+sudo systemctl status libvirtd -l --no-pager
 sudo usermod -aG libvirt $USER
 sudo newgrp libvirt
 

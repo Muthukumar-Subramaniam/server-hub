@@ -1,4 +1,11 @@
 #!/bin/bash
+
+if [[ "$EUID" -eq 0 ]]; then
+    echo -e "\n⛔ Running as root user is not allowed."
+    echo -e "\n🔐 This script should be run as a user who has sudo privileges, but *not* using sudo.\n"
+    exit 1
+fi
+
 # Check if we're inside a QEMU guest
 if sudo dmidecode -s system-manufacturer | grep -qi 'QEMU'; then
     echo "❌❌❌  FATAL: WRONG PLACE, BUDDY! ❌❌❌"
