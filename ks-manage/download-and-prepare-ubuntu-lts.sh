@@ -34,7 +34,7 @@ ISO_PATH="${ISO_DIR}/${ISO_FILE}"
 
 echo -e "📁 Ensuring ISO directory exists..."
 sudo mkdir -p "$ISO_DIR"
-sudo chown "${mgmt_super_user}:${mgmt_super_user}" "$ISO_PATH"
+sudo chown "${mgmt_super_user}:${mgmt_super_user}" "$ISO_DIR"
 
 if [[ -f "$ISO_PATH" ]]; then
   echo -e "📦 ISO already exists: $ISO_PATH\n"
