@@ -120,7 +120,7 @@ salt=$(openssl rand -base64 6)
 # Generate SHA-512 shadow-compatible hash
 shadow_password_super_mgmt_user=$(openssl passwd -6 -salt "$salt" "$user_password")
 
-echoi -e -n "\n🌐 Capturing network info from QEMU-KVM default network bridge . . . "
+echo -e -n "\n🌐 Capturing network info from QEMU-KVM default network bridge . . . "
 
 qemu_kvm_default_net_info=$(sudo virsh net-dumpxml default)
 ipv4_gateway=$(echo "$qemu_kvm_default_net_info" | awk -F"'" '/<ip address=/ {print $2}')
