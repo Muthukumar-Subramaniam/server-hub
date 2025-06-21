@@ -33,7 +33,8 @@ ISO_URL="https://releases.ubuntu.com/${LATEST_LTS}/${ISO_FILE}"
 ISO_PATH="${ISO_DIR}/${ISO_FILE}"
 
 echo -e "📁 Ensuring ISO directory exists..."
-mkdir -p "$ISO_DIR"
+sudo mkdir -p "$ISO_DIR"
+sudo chown "${mgmt_super_user}:${mgmt_super_user}" "$ISO_PATH"
 
 if [[ -f "$ISO_PATH" ]]; then
   echo -e "📦 ISO already exists: $ISO_PATH\n"
