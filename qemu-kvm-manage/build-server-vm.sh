@@ -169,7 +169,7 @@ echo -e "\n📎 Creating alias '${infra_server_name}' to assist with future SSH 
 
 sed -i "/${ipv4_address}/d" $HOME/.bashrc
 
-echo -e "\nalias ${infra_server_name}=\"ssh -o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ${mgmt_super_user}@${ipv4_address}\"" >> $HOME/.bashrc
+echo -e "alias ${infra_server_name}=\"ssh -o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ${mgmt_super_user}@${ipv4_address}\"" >> $HOME/.bashrc
 
 source $HOME/.bashrc
 

@@ -43,6 +43,7 @@ echo -e "\n⚙️  Invoking ksmanager to create PXE environment For '${qemu_kvm_
 ssh -o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -t ${infra_mgmt_super_username}@${infra_server_ipv4_address} "sudo ksmanager ${qemu_kvm_hostname}" --qemu-kvm | tee -a /tmp/install-vm-logs-"${qemu_kvm_hostname}"
 
 MAC_ADDRESS=$( grep "MAC Address  :"  /tmp/install-vm-logs-"${qemu_kvm_hostname}" | awk -F': ' '{print $2}' )
+IPV4_ADDRESS=$( grep "IPv4 Address :"  /tmp/install-vm-logs-"${qemu_kvm_hostname}" | awk -F': ' '{print $2}' )
 
 if [ -z ${MAC_ADDRESS} ]; then
 	echo -e "\n❌ Something went wrong while executing ksmanager ! "
@@ -51,6 +52,16 @@ if [ -z ${MAC_ADDRESS} ]; then
 fi
 
 mkdir -p /virtual-machines/${qemu_kvm_hostname}
+
+echo -e "\n📎 Creating alias '${qemu_kvm_hostname}' to assist with future SSH logins...\n"
+
+sed -i "/${IPV4_ADDRESS}/d" $HOME/.bashrc
+
+echo -e "alias ${qemu_kvm_hostname}=\"ssh -o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ${infra_mgmt_super_username}@${IPV4_ADDRESS}\"" >> $HOME/.bashrc
+
+source $HOME/.bashrc
+
+echo -e "✅"
 
 echo -e "\n🚀 Starting installation of VM '${qemu_kvm_hostname}'...\n"
 
