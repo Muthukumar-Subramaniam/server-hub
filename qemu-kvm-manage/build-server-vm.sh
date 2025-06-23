@@ -18,6 +18,30 @@ if sudo dmidecode -s system-manufacturer | grep -qi 'QEMU'; then
     exit 1
 fi
 
+echo -e "\n🔍 Checking for SSH public key on local workstation . . ."
+
+SSH_DIR="$HOME/.ssh"
+SSH_PUB_KEY_FILE="$SSH_DIR/id_rsa.pub"
+
+# Ensure ~/.ssh directory exists
+if [ ! -d "$SSH_DIR" ]; then
+    echo -e "\n📁 .ssh directory not found. Creating..."
+    mkdir -p "$SSH_DIR"
+    chmod 700 "$SSH_DIR"
+fi
+
+# Check if SSH public key exists
+if [ ! -f "$SSH_PUB_KEY_FILE" ]; then
+    echo -e "\n❌ SSH key not found on this local workstation."
+    echo -e "\n🔐 Generating a new RSA key pair . . ."
+    ssh-keygen -t rsa -b 4096 -N "" -f "$SSH_DIR/id_rsa" -C "${USER}@$(uname -n)"
+    echo -e "\n✅ New SSH key generated: $SSH_PUB_KEY_FILE"
+else
+    echo -e "\n✅ SSH public key already exists: $SSH_PUB_KEY_FILE"
+fi
+
+ssh_public_key_of_qemu_host_machine=$(cat "${SSH_PUB_KEY_FILE}" )
+
 # Check for virt-install (part of qemu-kvm/libvirt package)
 if ! command -v virt-install &> /dev/null; then
     echo -e "\n❌ virt-install command not found ! Please install and setup qemu-kvm first ! "
@@ -151,6 +175,13 @@ sed -i "s/get_infra_server_name/${infra_server_name}/g" "${KS_FILE}"
 awk -v val="$shadow_password_super_mgmt_user" '
 {
 	gsub(/get_shadow_password_super_mgmt_user/, val)
+}
+1
+' "${KS_FILE}" > "${KS_FILE}"_tmp_ksmanager && mv "${KS_FILE}"_tmp_ksmanager "${KS_FILE}"
+
+awk -v val="$ssh_public_key_of_qemu_host_machine" '
+{
+	gsub(/get_ssh_public_key_of_qemu_host_machine/, val)
 }
 1
 ' "${KS_FILE}" > "${KS_FILE}"_tmp_ksmanager && mv "${KS_FILE}"_tmp_ksmanager "${KS_FILE}"

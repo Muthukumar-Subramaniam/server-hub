@@ -50,22 +50,23 @@
 
 - name: Set authorized_keys for root
   become: true
-  ansible.builtin.copy:
-    dest: /root/.ssh/authorized_keys
-    content: |
-      {{ root_pubkey['content'] | b64decode }}
-      {{ mgmt_user_pubkey['content'] | b64decode }}
+  ansible.builtin.blockinfile:
+    path: /root/.ssh/authorized_keys
+    create: yes
+    mode: '0600'
     owner: root
     group: root
-    mode: '0600'
-
-- name: Set authorized_keys for {{ ansible_env.mgmt_super_user }}
-  become: true
-  ansible.builtin.copy:
-    dest: "/home/{{ ansible_env.mgmt_super_user }}/.ssh/authorized_keys"
-    content: |
+    marker: "# === ssh-pub-keys-handled-by-ansible-playbook-build-server {mark} ==="
+    block: |
       {{ root_pubkey['content'] | b64decode }}
       {{ mgmt_user_pubkey['content'] | b64decode }}
-    owner: "{{ ansible_env.mgmt_super_user }}"
-    group: "{{ ansible_env.mgmt_super_user }}"
+
+- name: Set authorized_keys for {{ ansible_env.mgmt_super_user }}
+  ansible.builtin.blockinfile:
+    path: "/home/{{ ansible_env.mgmt_super_user }}/.ssh/authorized_keys"
+    create: yes
     mode: '0600'
+    marker: "# === ssh-pub-keys-handled-by-ansible-playbook-build-server {mark} ==="
+    block: |
+      {{ root_pubkey['content'] | b64decode }}
+      {{ mgmt_user_pubkey['content'] | b64decode }}
