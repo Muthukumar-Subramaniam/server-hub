@@ -45,4 +45,6 @@ sudo rm -f /virtual-machines/${qemu_kvm_hostname}/${qemu_kvm_hostname}.qcow2 \
            /virtual-machines/${qemu_kvm_hostname}/${qemu_kvm_hostname}_VARS.fd \
            /virtual-machines/${qemu_kvm_hostname}/${qemu_kvm_hostname}.xml
 
+sudo rmdir /virtual-machines/${qemu_kvm_hostname}
+
 echo -e "✅ VM \"$qemu_kvm_hostname\" deleted successfully. \n"

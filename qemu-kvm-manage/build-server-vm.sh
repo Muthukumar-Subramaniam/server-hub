@@ -34,7 +34,7 @@ fi
 if [ ! -f "$SSH_PUB_KEY_FILE" ]; then
     echo -e "\n❌ SSH key not found on this local workstation."
     echo -e "\n🔐 Generating a new RSA key pair . . ."
-    ssh-keygen -t rsa -b 4096 -N "" -f "$SSH_DIR/id_rsa" -C "${USER}@$(uname -n)"
+    ssh-keygen -t rsa -b 4096 -N "" -f "$SSH_DIR/id_rsa" -C "${USER}@$(uname -n)" &>/dev/null
     echo -e "\n✅ New SSH key generated: $SSH_PUB_KEY_FILE"
 else
     echo -e "\n✅ SSH public key already exists: $SSH_PUB_KEY_FILE"
@@ -117,8 +117,8 @@ while true; do
     echo -e "\n❌ Password cannot be empty. Please try again.\n"
     continue
   elif [[ ${#user_password} -lt 8 ]]; then
-    echo -e "\n⚠️  Warning: Password is less than 8 characters. Are you sure you want to proceed? (y/N): \n"
-    read confirm_weak
+    echo -e "\n⚠️  Warning: Password is less than 8 characters ! \n"
+    read -rp "❓ Are you sure you want to proceed? (y/n): " confirm_weak
     if [[ ! "$confirm_weak" =~ ^[Yy]$ ]]; then
       echo -e "\n❌ Aborting. Please enter a stronger password.\n"
       continue

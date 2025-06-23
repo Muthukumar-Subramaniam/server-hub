@@ -22,6 +22,10 @@ $USER ALL=(ALL) NOPASSWD: ALL
 Defaults:$USER !authenticate
 EOF
 
+echo -e "\nRemoving a package that might conflict with QEMU/KVM installation . . .\n"
+
+sudo dnf remove -y cuda
+
 echo -e "\nInstalling required packages for QEMU/KVM . . . \n"
 
 sudo dnf install -y qemu-kvm qemu-img libvirt libvirt-daemon libvirt-daemon-driver-qemu bridge-utils python3-libxml2 python3-libvirt libosinfo python3-gobject gobject-introspection edk2-ovmf 
@@ -30,7 +34,7 @@ echo -e "\nEnabling and starting libvirtd . . . \n"
 sudo systemctl enable --now libvirtd
 sudo systemctl status libvirtd -l --no-pager
 sudo usermod -aG libvirt $USER
-sudo newgrp libvirt
+newgrp libvirt
 
 echo -e "\nCreating /virtual-machines to manage VMs . . . \n"
 sudo mkdir -p /virtual-machines
