@@ -53,13 +53,28 @@ fi
 
 mkdir -p /virtual-machines/${qemu_kvm_hostname}
 
-echo -e "\n📎 Creating alias '${qemu_kvm_hostname}' to assist with future SSH logins...\n"
+echo -e "\n📎 Creating alias '${qemu_kvm_hostname}' to assist with future SSH logins . . .\n"
 
 sed -i "/${IPV4_ADDRESS}/d" $HOME/.bashrc
 
-echo -e "alias ${qemu_kvm_hostname}=\"ssh -o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ${infra_mgmt_super_username}@${IPV4_ADDRESS}\"" >> $HOME/.bashrc
+echo -e "alias ${qemu_kvm_hostname}=\"ssh -o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ${infra_mgmt_super_username}@${IPV4_ADDRESS}\"\n" >> $HOME/.bashrc
 
 source $HOME/.bashrc
+
+echo -e "✅"
+
+echo -e "\n📎 Updating SSH Custom Config for '${qemu_kvm_hostname}' to assist with future SSH logins . . .\n"
+
+SSH_CUSTOM_CONFIG_FILE="$HOME/.ssh/config.custom"
+
+if ! grep -q -E "^Host[[:space:]]+$IPV4_ADDRESS\$" "$SSH_CUSTOM_CONFIG_FILE"; then
+  cat <<EOF >> "$SSH_CUSTOM_CONFIG_FILE"
+Host $IPV4_ADDRESS
+    IdentityFile ~/.ssh/id_rsa
+    ServerAliveInterval 60
+    ServerAliveCountMax 30
+EOF
+fi
 
 echo -e "✅"
 
