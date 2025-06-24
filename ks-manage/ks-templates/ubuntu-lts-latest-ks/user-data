@@ -142,5 +142,5 @@ autoinstall:
     - V_count=1;for v_interface in $(ls /target/etc/systemd/network/ | grep -v eth0);do sed "s/eth-get_mgmt_super_user/eth$V_count/g" /target/etc/netplan/auto-create-int.yaml >/target/etc/netplan/eth$V_count.yaml;V_count=$((V_count+1));done
     - chmod 600 /target/etc/netplan/eth*.yaml
     - rm -rf /target/etc/netplan/auto-create-int.yaml
-    - /target/usr/bin/sed -i 's/^GRUB_CMDLINE_LINUX_DEFAULT=.*/GRUB_CMDLINE_LINUX_DEFAULT="console=ttyS0,115200n8 nomodeset"/' /target/etc/default/grub
+    - /target/usr/bin/sed -i 's/^GRUB_CMDLINE_LINUX_DEFAULT=.*/GRUB_CMDLINE_LINUX_DEFAULT="console=ttyS0 whether_vga_console_is_required nomodeset"/' /target/etc/default/grub
     - curtin in-target --target=/target -- update-grub
