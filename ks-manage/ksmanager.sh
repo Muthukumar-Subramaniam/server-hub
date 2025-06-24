@@ -212,13 +212,33 @@ fn_select_os_distro() {
 # shellcheck disable=SC2021
 ipv4_address=$(host "${kickstart_hostname}.${ipv4_domain}" | cut -d " " -f 4 | tr -d '[[:space:]]')
 
-disk_type_for_the_vm=$(dmidecode -t1 | awk -F: '/Manufacturer/ {
-    manufacturer=tolower($2);
-    gsub(/^ +| +$/, "", manufacturer);
-    if (manufacturer ~ /vmware/) print "nvme0n1";
-    else if (manufacturer ~ /qemu/) print "vda";
+#disk_type_for_the_vm=$(dmidecode -t1 | awk -F: '/Manufacturer/ {
+#    manufacturer=tolower($2);
+#    gsub(/^ +| +$/, "", manufacturer);
+#    if (manufacturer ~ /vmware/) print "nvme0n1";
+#    else if (manufacturer ~ /qemu/) print "vda";
+#}')
+#
+#!/bin/bash
+
+# Detect VM platform
+manufacturer=$(dmidecode -t1 | awk -F: '/Manufacturer/ {
+    gsub(/^ +| +$/, "", $2);
+    print tolower($2)
 }')
 
+# Initialize variables
+disk_type_for_the_vm=""
+whether_vga_console_is_required=""
+
+# Set values based on platform
+if [[ "$manufacturer" == *vmware* ]]; then
+    disk_type_for_the_vm="nvme0n1"
+    whether_vga_console_is_required="console=tty0"
+elif [[ "$manufacturer" == *qemu* ]]; then
+    disk_type_for_the_vm="vda"
+    whether_vga_console_is_required=""
+fi
 
 host_kickstart_dir="${ksmanager_hub_dir}/kickstarts/${kickstart_hostname}.${ipv4_domain}"
 
@@ -291,6 +311,7 @@ fn_set_environment() {
 		sed -i "s/get_mgmt_super_user/${mgmt_super_user}/g" "${working_file}"
 		sed -i "s/get_os_name_and_version/${os_name_and_version}/g" "${working_file}"
 		sed -i "s/get_disk_type_for_the_vm/${disk_type_for_the_vm}/g" "${working_file}"
+		sed -i "s/get_whether_vga_console_is_required/${whether_vga_console_is_required}/g" "${working_file}"
 
 		awk -v val="$shadow_password_super_mgmt_user" '
 		{
