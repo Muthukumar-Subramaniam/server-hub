@@ -424,7 +424,7 @@ Make sure the following are ready:
    - When prompted, enter the password you set during installation
    - A terminal session will open to the infra-server
 
-3. **Run the bootstrap one-liner**:
+3. **Run the below to clone the repo under /server-hub**:
    ```bash
    sudo dnf install git -y; \
    sudo mkdir -p /server-hub; \
