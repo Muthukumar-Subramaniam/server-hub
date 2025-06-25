@@ -1,4 +1,6 @@
 # server-hub
+> ⚠️ **Note:** This repository is live and accessible, but this README documentation is currently under preparation.
+
 A one-stop automation toolkit to set up a central server for managing your home lab.  
 After installation of latest AlmaLinux OS, from the Admin user you have created during the installation run the below.  
 ( Download Link : [AlmaLinux-10-latest-x86_64-dvd.iso](https://repo.almalinux.org/almalinux/10/isos/x86_64/AlmaLinux-10-latest-x86_64-dvd.iso) )  
