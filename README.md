@@ -84,18 +84,67 @@ The toolkit supports automated provisioning for VMs across all **three major Lin
 - ⚙️ **CPU**: 2 vCPUs
 - 💾 **Storage**: 10 GB
 
+# Lab Setup for VMware Workstation :
+---
+## 🌐 VMware Workstation Virtual Network Setup (Clean Lab Mode)
 
+To maintain a deterministic and automation-friendly lab environment, the setup uses **a single custom virtual network** managed entirely by the central infra-server.
 
-Either you can setup lab environment in VMware Workstation or you could utilize QEMU/KVM depending upon your requirement
+### 🔄 Reset Virtual Network Configuration
 
-To Setup the Lab in VMware Workstation :
+1. Open the **Virtual Network Editor** (admin/root privileges required):
+   - **Windows**: Launch VMware Workstation as Administrator → `Edit` → `Virtual Network Editor`
 
-1) Setup your VMware Workstation with proper virtual network adapter settings
-   * Please remove all existing virtual interfaces and just create one vmnet0 interface with NAT configuration and DCHP disabled 
-   * Better choose /22 CIDR private network of your choice and make the first IP as NAT gateway
-   * If in case you are running VMware workstation on Windows, Assign the second IP of the above network as the virtual interface IP.
+2. **Remove all existing VM networks** (`vmnet1`, `vmnet8`, etc.)
 
-2) Download the AlmaLinux-10 latest with above provided link and install your infra server VM.
-   * During installation use 4GB RAM, later you could reduce the RAM size after installation.
-   * Please make sure UEFI is used for the VM instead of BIOS in the advanced settings.
+### ➕ Create `vmnet0` – Clean NAT Network
+
+1. Click **Add Network** → Select **`vmnet0`**
+
+2. Configure the following:
+
+| Setting                    | Value                            |
+|----------------------------|----------------------------------|
+| **Network Type**           | NAT                              |
+| **DHCP (VMware)**          | ❌ Disabled                      |
+| **Subnet IP**              | `10.10.20.0`                     |
+| **Subnet Mask**            | `255.255.252.0` (`/22`)          |
+| **Usable IP Range**        | `10.10.20.1` – `10.10.23.254`    |
+
+> 🧠 This creates a `/22` virtual lab network, managed entirely by your infra-server, with the first few IPs reserved for infrastructure components.
+
+### 🧠 IP Address Management & PXE Boot Strategy
+
+- **Static IPs** are assigned to all VMs by the infra-server during provisioning.
+- The **infra-server runs a DHCP server** used **only for PXE booting**, not for runtime address assignment.
+- After boot/install, each VM configures its static IP permanently.
+- No dynamic or runtime DHCP usage in normal operations.
+
+### 🪟 Windows Host IP Configuration (VMnet0 Only)
+
+For communication between the **Windows host** and the lab VMs:
+
+1. Go to **Control Panel → Network and Internet → Network Connections**
+2. Find the adapter: **`VMware Network Adapter VMnet0`**
+3. Right-click → **Properties**
+4. Select `Internet Protocol Version 4 (TCP/IPv4)` → Click **Properties**
+5. Configure:
+
+   - **IP Address**: `10.10.20.3`  
+   - **Subnet Mask**: `255.255.252.0`  
+   - **Default Gateway**: *(leave blank)*  
+   - **Preferred DNS Server**: *(leave blank)*
+
+> ✅ Once the infra-server is up, it will provide DNS and other services within the lab.
+
+### 📌 IP Layout Summary
+
+| IP Address       | Role                                 |
+|------------------|--------------------------------------|
+| `10.10.20.1`     | VMware NAT gateway (do not assign)   |
+| `10.10.20.2`     | Infra-server (DHCP/PXE/DNS/provisioning) |
+| `10.10.20.3`     | Windows host (static on VMnet0)      |
+
+> 🧪 This configuration gives you full control over VM lifecycle management, PXE booting, DNS, and networking in a clean lab setup — fully automated, predictable, and production-style.
+
 
