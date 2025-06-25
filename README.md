@@ -454,3 +454,10 @@ Make sure the following are ready:
    ```bash
    sudo reboot
 
+6. **After reboot, log in to the server again and run the final playbook to complete the infra-server setup:**
+
+```bash
+cd /server-hub/build-almalinux-server;\
+chmod +x build-server.yaml;\
+./build-server.yaml
+
