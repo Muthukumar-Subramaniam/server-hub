@@ -463,3 +463,22 @@ Make sure the following are ready:
    ./build-server.yaml
    ```
 
+## 🛠️ Managing Your Lab Infrastructure
+
+After completing the setup, you now have access to two key tools that simplify and automate lab management:
+
+### 🔹 `dnsbinder`
+- Manages local DNS zones for your lab domain
+- Lets you add, update, and remove DNS records easily
+- Automatically integrated into PXE and DHCP workflows
+
+### 🔹 `ksmanager`
+- Automates VM provisioning using kickstart or cloud-init
+- Supports multiple OS templates (e.g., AlmaLinux, Ubuntu, openSUSE)
+- Handles static IP assignment and PXE boot flows
+
+> ⚠️ These tools must be run with `sudo` from the **same admin user** used to set up the server. Do **not** run them as root.
+
+---
+
+All your VM deployments and DNS configurations can be managed with these utilities — making your lab environment flexible, reproducible, and easy to control.
