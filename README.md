@@ -532,3 +532,13 @@ To allow your Windows host to resolve domain names managed by the infra-server (
 7. Click **OK** to save all settings and exit.
 
 > ✅ Your Windows machine will now resolve internal lab VM hostnames using the infra-server’s DNS.
+
+🎉 All Done! Your Home Lab on VMware Workstation is Now Live!
+
+You’ve successfully built a fully automated, PXE-driven home lab environment on VMware Workstation — powered by Ansible, custom DNS, and flexible provisioning via kickstart and cloud-init.
+
+From here, spinning up new VMs is effortless:
+
+**Create VM (hardware only) → Note MAC address → Run `ksmanager` from infra-server → Power on VM → Done.** 🚀
+
+Welcome to your own fully-managed datacenter in a box! 🧑‍💻🖥️🧠
