@@ -44,7 +44,7 @@ if [[ -f "$ISO_PATH" ]]; then
   echo -e "📦 ISO already exists: $ISO_PATH\n"
 else
   echo -e "🌐 Downloading ISO from $ISO_URL\n"
-  curl -L -o "$ISO_PATH" "$ISO_URL"
+  wget --continue --output-document="$ISO_PATH" "$ISO_URL"
   sudo chown "${mgmt_super_user}:${mgmt_super_user}" "$ISO_PATH"
   echo -e "\n✅ Download complete and ownership set.\n"
 fi

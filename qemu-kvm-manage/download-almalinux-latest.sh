@@ -19,7 +19,6 @@ if [ -f "$ISO_DIR/$ISO_NAME" ]; then
 	echo -e "\nISO File $ISO_DIR/$ISO_NAME already exists! "
 else
 	echo -e "\nPlease be patient until the $ISO_NAME gets downloaded . . . \n"
-#	curl -fL --retry 3 --output "$ISO_DIR/$ISO_NAME" "$ISO_URL"
 	wget --continue --output-document="$ISO_DIR/$ISO_NAME" "$ISO_URL"
 fi
 
@@ -28,7 +27,6 @@ echo -e "ISO File Path : $ISO_DIR/$ISO_NAME"
 
 # Download signed CHECKSUM file
 echo -e "\nDownloading CHECKSUM to validate $ISO_NAME . . . "
-#curl -fL --retry 3 --output "$ISO_DIR/CHECKSUM" "$CHECKSUM_URL"
 wget --continue --output-document="$ISO_DIR/CHECKSUM" "$CHECKSUM_URL"
 
 # Extract the expected SHA256 checksum for the ISO
