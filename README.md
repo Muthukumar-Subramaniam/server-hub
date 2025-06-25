@@ -259,5 +259,34 @@ Follow these steps to create a custom VM for your lab infra-server using VMware 
   → Click **Close**, then click **Finish** to create the VM  
 🕒 **Note**: Since disk space is pre-provisioned, VMware will take a few moments to create the VM. Please wait until the process completes.
 
+## Post-Creation Tweaks of Infra-Server VM (Edit VM Settings)
 
+After the infra-server VM is created, follow these steps to tweak its settings before booting:
 
+1. **Open the VM Settings:**
+
+   - In **VMware Workstation**, locate your `infra-server` VM in the left pane  
+   - **Right-click** on the VM → Select **Settings**  
+     *(or select the VM and click **Edit virtual machine settings** from the right pane)*
+
+2. **Disable Side Channel Mitigations (for Hyper-V enabled hosts):**
+
+   - Go to the **Options** tab  
+   - Select **Advanced**  
+   - Under **Settings**, ✅ **Check**: `Disable side channel mitigations for Hyper-V enabled hosts`
+
+   > ⚠️ This option improves performance when running VMware Workstation on a **Windows host with Hyper-V enabled**.  
+   > Best suited for lab/test setups — not recommended for production workloads due to reduced CPU-level security mitigations.
+
+3. **Set Firmware Type to UEFI (without Secure Boot):**
+
+   - Still under **Options → Advanced**
+   - Under **Firmware type**:
+     - ✅ Select: **UEFI**
+     - 🔲 Do **not** check: **Enable secure boot**
+
+   > ℹ️ Secure Boot is not required for lab provisioning and may interfere with PXE boot or custom OS installs.
+
+ 4. **Save the Settings:**
+
+   - Click **OK** to save and apply all changes
