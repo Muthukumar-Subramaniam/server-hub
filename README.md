@@ -126,15 +126,20 @@ To maintain a deterministic and automation-friendly lab environment, the setup u
 
 2. Configure the following:
 
-| Setting                    | Value                            |
-|----------------------------|----------------------------------|
-| **Network Type**           | NAT                              |
-| **DHCP (VMware)**          | ❌ Disabled                      |
-| **Subnet IP**              | `10.10.20.0`                     |
-| **Subnet Mask**            | `255.255.252.0` (`/22`)          |
-| **Usable IP Range**        | `10.10.20.1` – `10.10.23.254`    |
+| Setting                            | Value                        |
+|------------------------------------|------------------------------|
+| **Network Type**                   | ✅ NAT                       |
+| **Connect a Host Virtual Adapter** | ✅ Enabled                   |
+| **Use local DHCP**                 | ❌ Disabled                  |
+| **Subnet IP**                      | e.g., `10.10.20.0`           |
+| **Subnet Mask**                    | `255.255.252.0` (`/22`)      |
+
+3. Click the **“NAT Settings”** button  
+   - Set the **Gateway IP** to the **first IP in the subnet**, e.g., `10.10.20.1`
 
 > 🧠 This creates a `/22` virtual lab network, managed entirely by your infra-server, with the first few IPs reserved for infrastructure components.
+> 💡 You can use **any private /22 subnet**, such as `10.0.0.0/22`, `172.16.40.0/22`, or `192.168.50.0/22`.  
+> Just ensure it does **not conflict with your LAN or VPN networks**.
 
 ### 🧠 IP Address Management & PXE Boot Strategy
 
