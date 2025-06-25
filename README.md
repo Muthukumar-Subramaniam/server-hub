@@ -508,3 +508,27 @@ Follow the **same steps as you did for creating the infra-server VM**, with the 
    * The VM will boot over PXE.
    * OS installation and all the configurations will happen automatically.
    
+## 🌐 Configure Windows Host to Use Lab DNS
+
+To allow your Windows host to resolve domain names managed by the infra-server (e.g., guest VM hostnames), update your virtual network adapter settings as follows:
+
+### 🔧 Steps:
+
+1. Open **Network Connections** on Windows  
+   (Press `Win + R`, type `ncpa.cpl`, and press Enter)
+
+2. Right-click on the virtual adapter connected to `VMnet0` and choose **Properties**
+
+3. Select **Internet Protocol Version 4 (TCP/IPv4)** and click **Properties**
+
+4. Click **Advanced → DNS tab**
+
+5. Under **DNS server addresses**, add the IP address of your **infra-server**  
+   (e.g., `10.10.20.2`)
+
+6. Under **DNS suffix for this connection**, add your lab domain  
+   (e.g., `lab.local` or whatever you configured)
+
+7. Click **OK** to save all settings and exit.
+
+> ✅ Your Windows machine will now resolve internal lab VM hostnames using the infra-server’s DNS.
