@@ -394,3 +394,40 @@ After creating and configuring the infra-server VM, follow these steps to instal
 
 > 💿 The AlmaLinux ISO will remain mounted — it's required later for **PXE provisioning** support in your lab environment.
 
+## Post-Installation – Configure Infra-Server with Ansible
+
+> 💡 **Recommended Tool (Windows Only):**  
+> Use the **free edition of [MobaXterm](https://mobaxterm.mobatek.net/download.html)** for SSH access.  
+> It provides a terminal + file browser in one and simplifies connecting to the infra-server.
+
+---
+
+### ✅ Prerequisites
+
+Make sure the following are ready:
+
+- Your infra-server is powered on and reachable (e.g., `10.10.20.2`)
+- You know the admin **UNIX username** (e.g., `muthuks`)
+- The system has internet access
+
+---
+
+### 🚀 Steps to Bootstrap the Server
+
+1. **Open MobaXterm and Create a New SSH Session**:
+   - Click **Session → SSH**
+   - In **Remote Host**, enter the infra-server IP (e.g., `10.10.20.2`)
+   - ✅ Check **Specify Username**, and enter your admin username (e.g., `muthuks`)
+   - Leave port as `22` and click **OK**
+
+2. **Log In**:
+   - When prompted, enter the password you set during installation
+   - A terminal session will open to the infra-server
+
+3. **Run the bootstrap one-liner**:
+   ```bash
+   sudo dnf install git -y; \
+   sudo mkdir -p /server-hub; \
+   sudo chown ${USER}:$(id -g) /server-hub; \
+   git clone https://github.com/Muthukumar-Subramaniam/server-hub.git /server-hub; \
+   cd /server-hub/build-almalinux-server
