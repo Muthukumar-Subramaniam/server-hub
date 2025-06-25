@@ -187,8 +187,6 @@ Before proceeding with creating the infra-server VM, download the latest AlmaLin
 
 Follow these steps to create a custom VM for your lab infra-server using VMware Workstation.
 
----
-
 1. Open **VMware Workstation**
 
 2. Click **Create a New Virtual Machine**
