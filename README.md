@@ -137,6 +137,8 @@ To maintain a deterministic and automation-friendly lab environment, the setup u
 3. Click the **“NAT Settings”** button  
    - Set the **Gateway IP** to the **first IP in the subnet**, e.g., `10.10.20.1`
 
+4. ✅ Once everything is configured and verified, click **Apply** and then **OK** to save the network setup.
+
 > 🧠 This creates a `/22` virtual lab network, managed entirely by your infra-server, with the first few IPs reserved for infrastructure components.
 > 💡 You can use **any private /22 subnet**, such as `10.0.0.0/22`, `172.16.40.0/22`, or `192.168.50.0/22`.  
 > Just ensure it does **not conflict with your LAN or VPN networks**.
