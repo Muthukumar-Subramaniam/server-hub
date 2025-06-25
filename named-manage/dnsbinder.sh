@@ -1,4 +1,8 @@
 #!/bin/bash
+#----------------------------------------------------------------------------------------#
+# If you encounter any issues with this script, or have suggestions or feature requests, #
+# please open an issue at: https://github.com/Muthukumar-Subramaniam/server-hub/issues   #
+#----------------------------------------------------------------------------------------#
 # Define color codes
 MAKE_IT_RED='\033[0;31m'
 MAKE_IT_GREEN='\033[0;32m'

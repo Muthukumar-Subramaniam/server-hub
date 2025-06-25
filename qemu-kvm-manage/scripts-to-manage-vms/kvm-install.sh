@@ -1,4 +1,9 @@
 #!/bin/bash
+#----------------------------------------------------------------------------------------#
+# If you encounter any issues with this script, or have suggestions or feature requests, #
+# please open an issue at: https://github.com/Muthukumar-Subramaniam/server-hub/issues   #
+#----------------------------------------------------------------------------------------#
+
 if [[ "$EUID" -eq 0 ]]; then
     echo -e "\n⛔ Running as root user is not allowed."
     echo -e "\n🔐 This script should be run as a user who has sudo privileges, but *not* using sudo.\n"

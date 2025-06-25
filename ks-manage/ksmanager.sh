@@ -1,4 +1,8 @@
 #!/bin/bash
+#----------------------------------------------------------------------------------------#
+# If you encounter any issues with this script, or have suggestions or feature requests, #
+# please open an issue at: https://github.com/Muthukumar-Subramaniam/server-hub/issues   #
+#----------------------------------------------------------------------------------------#
 
 if [[ "$EUID" -ne 0 ]]; then
 	if [[ "$USER" == "$mgmt_super_user" ]]; then

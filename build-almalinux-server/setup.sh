@@ -1,4 +1,8 @@
 #!/bin/bash
+#----------------------------------------------------------------------------------------#
+# If you encounter any issues with this script, or have suggestions or feature requests, #
+# please open an issue at: https://github.com/Muthukumar-Subramaniam/server-hub/issues   #
+#----------------------------------------------------------------------------------------#
 source /etc/os-release
 almalinux_major_version="${VERSION_ID%%.*}"
 

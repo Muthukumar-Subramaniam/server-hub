@@ -1,4 +1,9 @@
 #!/bin/bash
+#----------------------------------------------------------------------------------------#
+# If you encounter any issues with this script, or have suggestions or feature requests, #
+# please open an issue at: https://github.com/Muthukumar-Subramaniam/server-hub/issues   #
+#----------------------------------------------------------------------------------------#
+
 ISO_DIR="/virtual-machines/iso-files"
 ISO_NAME="AlmaLinux-10-latest-x86_64-dvd.iso"
 
