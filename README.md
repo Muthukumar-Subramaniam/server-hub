@@ -86,6 +86,29 @@ The toolkit supports automated provisioning for VMs across all **three major Lin
 
 # Lab Setup for VMware Workstation :
 ---
+## 💿 Install VMware Workstation Pro 17.5.x on Windows
+
+VMware Workstation Pro is now available for free personal use. Here's how to get it:
+
+### 🔐 1. Register at Broadcom
+
+- Go to: [https://support.broadcom.com](https://support.broadcom.com)
+- Click **Register** (top right)
+- Create an account and verify your email
+
+### ⬇️ 2. Download Workstation Pro
+
+- Visit:  
+  👉 [Download VMware Workstation Pro (Free)](https://support.broadcom.com/group/ecx/productdownloads?subfamily=VMware%20Workstation%20Pro&freeDownloads=true)
+
+- Log in with your Broadcom account
+- Download the Windows installer:  
+  `VMware-Workstation-Full-17.5.x.exe`
+
+### 🛠️ 3. Install
+
+- Run the installer and complete the setup using default options
+
 ## 🌐 VMware Workstation Virtual Network Setup (Clean Lab Mode)
 
 To maintain a deterministic and automation-friendly lab environment, the setup uses **a single custom virtual network** managed entirely by the central infra-server.
