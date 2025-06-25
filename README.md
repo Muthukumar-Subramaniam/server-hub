@@ -434,10 +434,10 @@ Make sure the following are ready:
 
  4. **Now run the initial setup script setup.sh**:
     ```bash
-    chmod +x; \
+    chmod +x setup.sh; \
     ./setup.sh
     ```
-    ### 🔧 What `setup.sh`
+    ### 🔧 What `setup.sh` does?
     The `setup.sh` script prepares the infra-server environment before running the main Ansible playbook. It performs the following:
 
      - Installs Ansible and required Python packages (if not already installed)
