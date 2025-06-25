@@ -139,11 +139,11 @@ For communication between the **Windows host** and the lab VMs:
 
 ### 📌 IP Layout Summary
 
-| IP Address       | Role                                 |
-|------------------|--------------------------------------|
-| `10.10.20.1`     | VMware NAT gateway (do not assign)   |
-| `10.10.20.2`     | Infra-server (DHCP/PXE/DNS/provisioning) |
-| `10.10.20.3`     | Windows host (static on VMnet0)      |
+| IP Address       | Role               |
+|------------------|--------------------|
+| `10.10.20.1`     | VMware NAT gateway |
+| `10.10.20.2`     | Infra-server       |
+| `10.10.20.3`     | Windows host       |
 
 > 🧪 This configuration gives you full control over VM lifecycle management, PXE booting, DNS, and networking in a clean lab setup — fully automated, predictable, and production-style.
 
