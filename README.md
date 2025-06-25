@@ -294,3 +294,103 @@ After the infra-server VM is created, follow these steps to tweak its settings b
  4. **Save the Settings:**
 
    - Click **OK** to save and apply all changes
+
+## Power On Infra-Server VM and Install AlmaLinux 10
+
+After creating and configuring the infra-server VM, follow these steps to install AlmaLinux 10.
+
+### 1. Power On and Boot Installer
+
+- In **VMware Workstation**, select the `infra-server` VM
+- Click **Power on this virtual machine**
+- On the boot screen, select:  
+  ➤ **Install AlmaLinux 10**
+
+### 2. Language Support
+
+- On the first screen, choose your preferred language:
+  - ✅ **English (United States)** or **English (India)**
+- Click **Continue**
+
+> 🧭 This will set the **timezone** and **keyboard layout** by default. You can change them later if required.
+
+### 3. Installation Destination
+
+- Click **Installation Destination**
+- Ensure the correct disk is selected
+- ✅ Use **Automatic Partitioning**
+- Click **Done**
+
+### 4. Disable Kdump
+
+- Click **Kdump**
+- Uncheck **Enable kdump**
+- Click **Done**
+
+> 💡 Disabling kdump frees up memory — useful for resource-constrained lab environments.
+
+### 5. Set Root Password & Create Admin User
+
+#### 🔐 Root Password:
+- Click **Root Password**
+- Enter a **strong password**
+- Use the **same password** as your admin user
+- Click **Done**
+
+#### 👤 Admin User:
+- Click **User Creation**
+- Set:
+  - **Username**: Use your name in **UNIX style** (e.g., `muthuks`)
+  - **Full Name**: Optional (e.g., `Muthukumar Subramaniam`)
+  - ✅ Check **Make this user administrator**
+  - Use the **same password** as root
+- Click **Done**
+
+### 6. Configure Network & Hostname
+
+- Click **Network & Hostname**
+- Enable the network adapter (toggle ON)
+
+#### 🛠️ IPv4 Settings:
+- Click **Configure** → Go to **IPv4 Settings**
+- Set method to `Manual` and enter:
+
+  | Setting      | Value               |
+  |--------------|---------------------|
+  | Address      | `10.10.20.2`        |
+  | Netmask      | `255.255.252.0`     |
+  | Gateway      | `10.10.20.1`        |
+  | DNS Servers  | `8.8.8.8, 8.8.4.4`  |
+
+- Click **Save**
+
+#### 🖥️ Hostname:
+- Set the **Hostname** to match your VM name  
+  → e.g., `infra-server`
+- Click **Done**
+
+### 7. Set Time & Date
+
+- Click **Time & Date**
+- Verify the **timezone** is correctly set based on your location
+  - (e.g., `Asia/Kolkata` or `America/New_York`)
+- Adjust manually if needed using the map or dropdown
+- Click **Done**
+
+### ✅ Final Review
+
+- After completing all above steps, ensure:
+  - No warnings are shown in the summary screen
+  - All fields are properly configured
+
+### ▶️ Begin Installation
+
+- Click **Begin Installation**
+- Wait for the installation process to complete
+
+### 🔄 Reboot
+
+- Once installation is finished, click **Reboot System**
+
+> 💿 The AlmaLinux ISO will remain mounted — it's required later for **PXE provisioning** support in your lab environment.
+
