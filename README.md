@@ -163,7 +163,7 @@ For communication between the **Windows host** and the lab VMs:
    - **IP Address**: `10.10.20.3`  
    - **Subnet Mask**: `255.255.252.0`  
    - **Default Gateway**: *(leave blank)*  
-   - **Preferred DNS Server**: *(leave blank)*
+   - **Preferred DNS Server**: *( leave blank - will update later with infra server VM's IP )*
 
 > ✅ Once the infra-server is up, it will provide DNS and other services within the lab.
 
