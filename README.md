@@ -482,3 +482,29 @@ After completing the setup, you now have access to two key tools that simplify a
 ---
 
 All your VM deployments and DNS configurations can be managed with these utilities — making your lab environment flexible, reproducible, and easy to control.
+
+## 🚀 Deploying VMs Using PXE and `ksmanager`
+
+Once your infra-server is up and configured, you can deploy additional VMs using PXE boot and the `ksmanager` utility.
+
+### 🧩 VM Creation Workflow (PXE-Enabled Guests)
+
+Follow the **same steps as you did for creating the infra-server VM**, with the following differences:
+
+- ❌ **Do not attach a CD/DVD (ISO)**  
+  Remove the CD/DVD device from the hardware list while customizing the VM.
+  
+- 🧠 **The VM will boot via PXE**, and automated OS installation will be handled by the infra-server.
+
+### ⚙️ Provisioning with `ksmanager`
+
+1. **Generate the VM’s MAC address**:
+   - Create the VM and note the **NIC's MAC address** (you can find it under VM settings → Network Adapter).
+  
+2. **Run `ksmanager` as the admin user** on the infra-server:
+   ```bash
+   sudo ksmanager <hostname-of-the-vm>
+3. Power ON the VM
+   * The VM will boot over PXE.
+   * OS installation and all the configurations will happen automatically.
+   
