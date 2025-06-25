@@ -177,4 +177,87 @@ For communication between the **Windows host** and the lab VMs:
 
 > 🧪 This configuration gives you full control over VM lifecycle management, PXE booting, DNS, and networking in a clean lab setup — fully automated, predictable, and production-style.
 
+## Create the Infra-Server VM
+
+Follow these steps to create a custom VM for your lab infra-server using VMware Workstation.
+
+---
+
+1. Open **VMware Workstation**
+
+2. Click **Create a New Virtual Machine**
+
+3. Select **Custom (advanced)** → Click **Next**
+
+4. For **Hardware Compatibility**, choose:  
+   👉 **Workstation 17.5 or later** → Click **Next**
+
+5. At the installation media screen:  
+   - Select: **I will install the operating system later**  
+   → Click **Next**
+
+6. Select guest OS type:  
+   - **Operating System**: `Linux`  
+   - **Version**: `Red Hat Enterprise Linux 9 (64-bit)`  
+   → Click **Next**
+
+7. Enter VM identity:  
+   - **Virtual Machine Name**: `infra-server` *(or any name of your choice)*  
+   - **Location**: *(Leave the default path unchanged)*  
+   → Click **Next**
+
+8. Configure processors:  
+   - **Number of processors**: `2`  
+   - **Number of cores per processor**: `1`  
+   → Click **Next**
+
+9. Configure memory:  
+   - **Memory for this virtual machine**: `4096 MB` (4 GB)  
+   > 💡 You can reduce this to **2 GB** after OS installation is complete.  
+   → Click **Next**
+
+10. Select Network Type:  
+    - Choose: **NAT (Network Address Translation)**  
+    → Click **Next**
+
+11. Select I/O Controller Type:  
+    - Choose: **LSI Logic**  
+    → Click **Next**
+
+12. Select Virtual Disk Type:  
+    - Choose: **NVMe**  
+    → Click **Next**
+
+13. Select a Disk:  
+    - Choose: **Create a new virtual disk**  
+    → Click **Next**
+
+14. Specify Disk Capacity:  
+    - **Maximum disk size**: `30 GB`  
+    - ✅ Check: **Allocate all disk space now**  
+    - ✅ Check: **Store virtual disk as a single file**  
+    → Click **Next**
+
+15. Specify Disk File:  
+    - **Leave the default disk file name as it is**  
+    > 📁 The disk file will be stored in the VM directory selected earlier  
+    → Click **Next**
+
+16. Customize Hardware (before clicking Finish):  
+    - Click **Customize Hardware**
+    - ❌ **Remove**: `USB Controller`
+    - ❌ **Remove**: `Sound Card`
+    - 🖥️ Click on **Display**  
+      - 🔲 **Uncheck**: "Accelerate 3D graphics"
+    - 🌐 Click on **Network Adapter**  
+      - ✅ Select: **Custom: Specific virtual network**  
+      - Choose: **VMnet0 (NAT)**
+    - 💿 Click on **CD/DVD (SATA)**  
+      - Select: **Use ISO image file**  
+      - Browse and select your **AlmaLinux 10 ISO**
+
+→ Click **Close**, then click **Finish** to create the VM
+🕒 **Note**: Since disk space is pre-provisioned, VMware will take a few moments to create the VM. Please wait until the process completes.
+
+
 
