@@ -1,8 +1,11 @@
-# server-hub
+# 🛠️ Server-Hub
 > ⚠️ **Note:** This repository is live and accessible, but this README documentation is currently under preparation.
 
-A one-stop automation toolkit to set up a central server for managing your home lab.  
-After installation of latest AlmaLinux OS, from the Admin user you have created during the installation run the below.  
+**A one-stop automation toolkit to set up a central server for managing your home lab** — whether on **VMware Workstation**, **QEMU/KVM**, or even a **bare-metal physical setup**.
+
+> ⚠️ **DISCLAIMER:** This project is intended for **testing**, **development**, and **experimentation** purposes only.  
+
+
 ( Download Link : [AlmaLinux-10-latest-x86_64-dvd.iso](https://repo.almalinux.org/almalinux/10/isos/x86_64/AlmaLinux-10-latest-x86_64-dvd.iso) )  
 ```
 sudo dnf install git -y; sudo mkdir -p /server-hub; sudo chown ${USER}:$(id -g) /server-hub; git clone https://github.com/Muthukumar-Subramaniam/server-hub.git /server-hub; cd /server-hub
