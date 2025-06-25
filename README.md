@@ -5,8 +5,6 @@
 
 > ⚠️ **DISCLAIMER:** This project is intended for **testing**, **development**, and **experimentation** purposes only.  
 
-
-( Download Link : [AlmaLinux-10-latest-x86_64-dvd.iso](https://repo.almalinux.org/almalinux/10/isos/x86_64/AlmaLinux-10-latest-x86_64-dvd.iso) )  
 ```
 sudo dnf install git -y; sudo mkdir -p /server-hub; sudo chown ${USER}:$(id -g) /server-hub; git clone https://github.com/Muthukumar-Subramaniam/server-hub.git /server-hub; cd /server-hub
 ```
@@ -178,6 +176,14 @@ For communication between the **Windows host** and the lab VMs:
 > 🧪 This configuration gives you full control over VM lifecycle management, PXE booting, DNS, and networking in a clean lab setup — fully automated, predictable, and production-style.
 
 ## Create the Infra-Server VM
+
+Before proceeding with creating the infra-server VM, download the latest AlmaLinux 10 ISO:
+
+🔗 [AlmaLinux-10-latest-x86_64-dvd.iso](https://repo.almalinux.org/almalinux/10/isos/x86_64/AlmaLinux-10-latest-x86_64-dvd.iso)
+
+> 📁 Save this ISO file somewhere accessible — it will be mounted to the VM:
+> - During initial OS installation
+> - And **persistently**, for use in the lab’s **PXE provisioning setup**
 
 Follow these steps to create a custom VM for your lab infra-server using VMware Workstation.
 
