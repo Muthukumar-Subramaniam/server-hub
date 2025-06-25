@@ -256,7 +256,7 @@ Follow these steps to create a custom VM for your lab infra-server using VMware 
       - Select: **Use ISO image file**  
       - Browse and select your **AlmaLinux 10 ISO**
 
-→ Click **Close**, then click **Finish** to create the VM
+  → Click **Close**, then click **Finish** to create the VM  
 🕒 **Note**: Since disk space is pre-provisioned, VMware will take a few moments to create the VM. Please wait until the process completes.
 
 
