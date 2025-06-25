@@ -431,3 +431,25 @@ Make sure the following are ready:
    sudo chown ${USER}:$(id -g) /server-hub; \
    git clone https://github.com/Muthukumar-Subramaniam/server-hub.git /server-hub; \
    cd /server-hub/build-almalinux-server
+
+ 4. **Now run the initial setup script setup.sh**:
+    ```bash
+    chmod +x; \
+    ./setup.sh
+  ### 🔧 What `setup.sh`
+  The `setup.sh` script prepares the infra-server environment before running the main Ansible playbook. It performs the following:
+
+  - Installs Ansible and required Python packages (if not already installed)
+  - Grants passwordless sudo access to the current user
+  - Sets basic environment variables used later by playbooks
+  - Updates `ansible.cfg` with the current user as default
+  - Sets up local DNS using `dnsbinder.sh` and reserves DHCP lease records
+  - Renames network interfaces to traditional `ethX` naming
+  - Disables SELinux for compatibility
+  - Prompts for a reboot once setup is complete
+  > ⚠️ This script **does not configure the infra-server fully** — after reboot, run the `build-server.yaml` Ansible playbook to complete the setup.  
+
+5. **Reboot the system once the above script is completed successfully**:
+   ```bash
+   sudo reboot
+
