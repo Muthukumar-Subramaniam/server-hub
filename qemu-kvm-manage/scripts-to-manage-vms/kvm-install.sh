@@ -72,6 +72,10 @@ echo -e "\n📎 Updating SSH Custom Config for '${qemu_kvm_hostname}' to assist 
 
 SSH_CUSTOM_CONFIG_FILE="$HOME/.ssh/config.custom"
 
+if [[ ! -f "${SSH_CUSTOM_CONFIG_FILE}" ]]; then
+	touch "${SSH_CUSTOM_CONFIG_FILE}"
+fi
+
 if ! grep -q -E "^Host[[:space:]]+$IPV4_ADDRESS\$" "$SSH_CUSTOM_CONFIG_FILE"; then
   cat <<EOF >> "$SSH_CUSTOM_CONFIG_FILE"
 Host $IPV4_ADDRESS

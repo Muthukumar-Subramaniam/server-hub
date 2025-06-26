@@ -211,6 +211,25 @@ source $HOME/.bashrc
 
 echo -e "✅"
 
+echo -e "\n📎 Updating SSH Custom Config for '${infra_server_name}' to assist with future SSH logins . . .\n"
+
+SSH_CUSTOM_CONFIG_FILE="$HOME/.ssh/config.custom"
+
+if [[ ! -f "${SSH_CUSTOM_CONFIG_FILE}" ]]; then
+	touch "${SSH_CUSTOM_CONFIG_FILE}"
+fi
+
+if ! grep -q -E "^Host[[:space:]]+$ipv4_address\$" "$SSH_CUSTOM_CONFIG_FILE"; then
+  cat <<EOF >> "$SSH_CUSTOM_CONFIG_FILE"
+Host $ipv4_address
+    IdentityFile ~/.ssh/id_rsa
+    ServerAliveInterval 60
+    ServerAliveCountMax 30
+EOF
+fi
+
+echo -e "✅"
+
 echo -e "\n🚀 Buckle up ! We are about to view the Infra Server VM (${infra_server_name}) deployment from console ! \n"
 
 sudo virt-install \
