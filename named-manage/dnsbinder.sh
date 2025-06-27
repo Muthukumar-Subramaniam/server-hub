@@ -231,16 +231,23 @@ fn_configure_named_dns_server() {
 		exit
 	fi
 
-	fn_instruct_on_valid_domain_name	
+	if [[ ! -z "${1}" ]]; then
+		v_given_domain="${1}"
+	else
+		fn_instruct_on_valid_domain_name
+	fi
 
 	while :
 	do
-		read -p "Provide the preferred local domain : " v_given_domain 
+		if [[ -z "${v_given_domain}" ]]; then
+			read -p "Provide the preferred local domain : " v_given_domain 
+		fi
 			
 		if [[ "${#v_given_domain}" -le 63 ]] && [[ "${v_given_domain}" =~ ^[[:alnum:]]+([-.][[:alnum:]]+)*(\.[[:alnum:]]+){0,2}\.local$ ]]
 		then
 			break
 		else
+			v_given_domain=""
 			fn_instruct_on_valid_domain_name
 			continue
 		fi
@@ -1714,7 +1721,7 @@ then
 			exit
 			;;
 		--setup)
-			fn_configure_named_dns_server
+			fn_configure_named_dns_server "${2}"
 			exit
 			;;
 		*)
