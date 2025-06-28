@@ -200,6 +200,7 @@ echo    "============================================"
 echo -e "  🌐 IPv4 Address : ${ipv4_address}"
 echo -e "  🌐 IPv4 Netmask : ${ipv4_netmask}"
 echo -e "  🌐 IPv4 Gateway : ${ipv4_gateway}"
+echo -e "  🌐 DNS Domain   : ${local_infra_domain_name}"
 echo    "============================================"
 
 mkdir -p "/virtual-machines/${infra_server_name}"
@@ -239,7 +240,7 @@ echo "$ipv4_address" >/virtual-machines/ipv4-address-address-of-infra-server-vm
 echo "$mgmt_super_user" >/virtual-machines/infra-mgmt-super-username
 echo "$local_infra_domain_name" >/virtual-machines/local_infra_domain_name
 
-echo -e "\n📎 Updating hosts file for ${qemu_kvm_hostname}.${local_infra_domain_name} . . .\n"
+echo -n -e "\n📎 Updating hosts file for ${qemu_kvm_hostname}.${local_infra_domain_name} . . . "
 
 sudo sed -i "/${infra_server_name}.${local_infra_domain_name}/d" /etc/hosts 
 
@@ -247,7 +248,7 @@ echo "${ipv4_address} ${infra_server_name}.${local_infra_domain_name} ${infra_se
 
 echo -e "✅"
 
-echo -e "\n📎 Creating alias '${infra_server_name}' to assist with future SSH logins...\n"
+echo -n -e "\n📎 Creating alias '${infra_server_name}' to assist with future SSH logins . . . "
 
 sed -i "/${infra_server_name}.${local_infra_domain_name}/d" $HOME/.bashrc
 
@@ -257,7 +258,7 @@ source $HOME/.bashrc
 
 echo -e "✅"
 
-echo -e "\n📎 Updating SSH Custom Config for '${infra_server_name}' to assist with future SSH logins . . .\n"
+echo -n -e "\n📎 Updating SSH Custom Config for \'${local_infra_domain_name}\' domain to assist with future SSH logins . . . "
 
 SSH_CUSTOM_CONFIG_FILE="$HOME/.ssh/config.custom"
 
