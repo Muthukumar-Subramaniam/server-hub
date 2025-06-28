@@ -59,7 +59,7 @@ fi
 
 mkdir -p /virtual-machines/${qemu_kvm_hostname}
 
-echo -e "\n📎 Updating hosts file for ${qemu_kvm_hostname}.${local_infra_domain_name} . . .\n"
+echo -n -e "\n📎 Updating hosts file for ${qemu_kvm_hostname}.${local_infra_domain_name} . . . "
 
 sudo sed -i "/${qemu_kvm_hostname}.${local_infra_domain_name}/d" /etc/hosts
 
@@ -67,7 +67,7 @@ echo "${IPV4_ADDRESS} ${qemu_kvm_hostname}.${local_infra_domain_name} ${qemu_kvm
 
 echo -e "✅"
 
-echo -e "\n📎 Creating alias '${qemu_kvm_hostname}' to assist with future SSH logins . . .\n"
+echo -n -e "\n📎 Creating alias '${qemu_kvm_hostname}' to assist with future SSH logins . . . "
 
 sed -i "/${qemu_kvm_hostname}.${local_infra_domain_name}/d" $HOME/.bashrc
 
