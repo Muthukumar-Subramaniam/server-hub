@@ -43,7 +43,9 @@ sed -i "/remote_user/c\remote_user=$USER" ansible.cfg
 
 echo -e "\nSetting up local dns domain with dnsbinder . . .\n"
 
-sudo bash /server-hub/named-manage/dnsbinder.sh --setup
+input_domain_to_dnsbinder=$(sudo bash -c '[[ -f /root/infra_server_on_qemu_kvm_dnsbinder_domain_provided ]] && cat /root/infra_server_on_qemu_kvm_dnsbinder_domain_provided')
+
+sudo bash /server-hub/named-manage/dnsbinder.sh --setup "${input_domain_to_dnsbinder}"
 
 source /etc/environment
 

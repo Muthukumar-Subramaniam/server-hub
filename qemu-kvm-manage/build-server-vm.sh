@@ -149,6 +149,42 @@ salt=$(openssl rand -base64 6)
 # Generate SHA-512 shadow-compatible hash
 shadow_password_super_mgmt_user=$(openssl passwd -6 -salt "$salt" "$user_password")
 
+# Prompt for valid local infra domain
+fn_instruct_on_valid_domain_name() {
+  echo -e "\n📘 \e[1mDomain Name Rules:\e[0m
+  ─────────────────────────────
+  🔹 Only allowed TLD:          \e[1mlocal\e[0m
+  🔹 Max subdomains allowed:    \e[1m2\e[0m
+  🔹 Allowed characters:        Letters (a-z), digits (0-9), and hyphens (-)
+  🔹 Hyphens:                   Cannot be at the start or end of subdomains
+  🔹 Total length:              Must be between \e[1m1\e[0m and \e[1m63\e[0m characters
+  🔹 Format compliance:         Based on \e[3mRFC 1035\e[0m
+
+  💡 \e[1mExamples of valid domain names:\e[0m
+     ▪️ test.local
+     ▪️ test.example.local
+     ▪️ 123-example.local
+     ▪️ test-lab1.local
+     ▪️ 123.example.local
+     ▪️ test1.lab1.local
+     ▪️ test-1.example-1.local
+"
+}
+while true; do
+  echo
+  fn_instruct_on_valid_domain_name
+  echo
+  read -rp "🌐 Enter your local Infra Domain Name [ default : lab.local ] : " local_infra_domain_name
+  if [[ -z "${local_infra_domain_name}" ]]; then
+	  local_infra_domain_name="lab.local"
+  fi
+  if [[ "${#local_infra_domain_name}" -le 63 ]] && [[ "${local_infra_domain_name}" =~ ^[[:alnum:]]+([-.][[:alnum:]]+)*(\.[[:alnum:]]+){0,2}\.local$ ]]
+  then
+	break
+  fi
+done
+
+
 echo -e -n "\n🌐 Capturing network info from QEMU-KVM default network bridge . . . "
 
 qemu_kvm_default_net_info=$(sudo virsh net-dumpxml default)
@@ -176,6 +212,7 @@ sed -i "s/get_ipv4_netmask/${ipv4_netmask}/g" "${KS_FILE}"
 sed -i "s/get_ipv4_gateway/${ipv4_gateway}/g" "${KS_FILE}"
 sed -i "s/get_mgmt_super_user/${mgmt_super_user}/g" "${KS_FILE}"
 sed -i "s/get_infra_server_name/${infra_server_name}/g" "${KS_FILE}"
+sed -i "s/get_local_infra_domain_name/${local_infra_domain_name}/g" "${KS_FILE}"
 
 awk -v val="$shadow_password_super_mgmt_user" '
 {
@@ -200,12 +237,21 @@ echo -e "✅"
 
 echo "$ipv4_address" >/virtual-machines/ipv4-address-address-of-infra-server-vm
 echo "$mgmt_super_user" >/virtual-machines/infra-mgmt-super-username
+echo "$local_infra_domain_name" >/virtual-machines/local_infra_domain_name
+
+echo -e "\n📎 Updating hosts file for ${qemu_kvm_hostname}.${local_infra_domain_name} . . .\n"
+
+sudo sed -i "/${infra_server_name}.${local_infra_domain_name}/d" /etc/hosts 
+
+echo "${ipv4_address} ${infra_server_name}.${local_infra_domain_name} ${infra_server_name}" | sudo tee -a /etc/hosts &>/dev/null 
+
+echo -e "✅"
 
 echo -e "\n📎 Creating alias '${infra_server_name}' to assist with future SSH logins...\n"
 
-sed -i "/${ipv4_address}/d" $HOME/.bashrc
+sed -i "/${infra_server_name}.${local_infra_domain_name}/d" $HOME/.bashrc
 
-echo -e "alias ${infra_server_name}=\"ssh -o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ${mgmt_super_user}@${ipv4_address}\"" >> $HOME/.bashrc
+echo -e "alias ${infra_server_name}=\"ssh -o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ${mgmt_super_user}@${infra_server_name}.${local_infra_domain_name}\"" >> $HOME/.bashrc
 
 source $HOME/.bashrc
 
@@ -219,9 +265,9 @@ if [[ ! -f "${SSH_CUSTOM_CONFIG_FILE}" ]]; then
 	touch "${SSH_CUSTOM_CONFIG_FILE}"
 fi
 
-if ! grep -q -E "^Host[[:space:]]+$ipv4_address\$" "$SSH_CUSTOM_CONFIG_FILE"; then
+if ! grep -q "$local_infra_domain_name" "$SSH_CUSTOM_CONFIG_FILE"; then
   cat <<EOF >> "$SSH_CUSTOM_CONFIG_FILE"
-Host $ipv4_address
+Host *.$local_infra_domain_name
     IdentityFile ~/.ssh/id_rsa
     ServerAliveInterval 60
     ServerAliveCountMax 30

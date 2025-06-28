@@ -22,6 +22,7 @@ fi
 
 infra_server_ipv4_address=$(cat /virtual-machines/ipv4-address-address-of-infra-server-vm)
 infra_mgmt_super_username=$(cat /virtual-machines/infra-mgmt-super-username)
+local_infra_domain_name=$(cat /virtual-machines/local_infra_domain_name)
 
 # Use first argument or prompt for hostname
 if [ -n "$1" ]; then
@@ -58,32 +59,21 @@ fi
 
 mkdir -p /virtual-machines/${qemu_kvm_hostname}
 
-echo -e "\n📎 Creating alias '${qemu_kvm_hostname}' to assist with future SSH logins . . .\n"
+echo -e "\n📎 Updating hosts file for ${qemu_kvm_hostname}.${local_infra_domain_name} . . .\n"
 
-sed -i "/${IPV4_ADDRESS}/d" $HOME/.bashrc
+sudo sed -i "/${qemu_kvm_hostname}.${local_infra_domain_name}/d" /etc/hosts
 
-echo -e "alias ${qemu_kvm_hostname}=\"ssh -o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ${infra_mgmt_super_username}@${IPV4_ADDRESS}\"\n" >> $HOME/.bashrc
-
-source $HOME/.bashrc
+echo "${IPV4_ADDRESS} ${qemu_kvm_hostname}.${local_infra_domain_name} ${qemu_kvm_hostname}" | sudo tee -a /etc/hosts &>/dev/null
 
 echo -e "✅"
 
-echo -e "\n📎 Updating SSH Custom Config for '${qemu_kvm_hostname}' to assist with future SSH logins . . .\n"
+echo -e "\n📎 Creating alias '${qemu_kvm_hostname}' to assist with future SSH logins . . .\n"
 
-SSH_CUSTOM_CONFIG_FILE="$HOME/.ssh/config.custom"
+sed -i "/${qemu_kvm_hostname}.${local_infra_domain_name}/d" $HOME/.bashrc
 
-if [[ ! -f "${SSH_CUSTOM_CONFIG_FILE}" ]]; then
-	touch "${SSH_CUSTOM_CONFIG_FILE}"
-fi
+echo -e "alias ${qemu_kvm_hostname}=\"ssh -o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ${infra_mgmt_super_username}@${qemu_kvm_hostname}.${local_infra_domain_name}\"\n" >> $HOME/.bashrc
 
-if ! grep -q -E "^Host[[:space:]]+$IPV4_ADDRESS\$" "$SSH_CUSTOM_CONFIG_FILE"; then
-  cat <<EOF >> "$SSH_CUSTOM_CONFIG_FILE"
-Host $IPV4_ADDRESS
-    IdentityFile ~/.ssh/id_rsa
-    ServerAliveInterval 60
-    ServerAliveCountMax 30
-EOF
-fi
+source $HOME/.bashrc
 
 echo -e "✅"
 
