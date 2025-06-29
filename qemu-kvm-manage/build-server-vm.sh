@@ -250,11 +250,17 @@ echo -e "✅"
 
 echo -n -e "\n📎 Creating alias '${infra_server_name}' to assist with future SSH logins . . . "
 
-sed -i "/${infra_server_name}.${local_infra_domain_name}/d" $HOME/.bashrc
+touch /virtual-machines/ssh-assist-aliases-for-vms-on-qemu-kvm
 
-echo -e "alias ${infra_server_name}=\"ssh -o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ${mgmt_super_user}@${infra_server_name}.${local_infra_domain_name}\"" >> $HOME/.bashrc
+sed -i "/${infra_server_name}.${local_infra_domain_name}/d" /virtual-machines/ssh-assist-aliases-for-vms-on-qemu-kvm
 
-source $HOME/.bashrc
+echo "alias ${infra_server_name}=\"ssh -o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ${infra_mgmt_super_username}@${infra_server_name}.${local_infra_domain_name}\"" >> /virtual-machines/ssh-assist-aliases-for-vms-on-qemu-kvm
+
+if ! grep -q "ssh-assist-aliases-for-vms-on-qemu-kvm" "${HOME}/.bashrc" ; then
+	echo -e "\nsource /virtual-machines/ssh-assist-aliases-for-vms-on-qemu-kvm" >> "${HOME}/.bashrc"
+fi
+
+source "${HOME}/.bashrc"
 
 echo -e "✅"
 

@@ -69,11 +69,11 @@ echo -e "✅"
 
 echo -n -e "\n📎 Creating alias '${qemu_kvm_hostname}' to assist with future SSH logins . . . "
 
-sed -i "/${qemu_kvm_hostname}.${local_infra_domain_name}/d" $HOME/.bashrc
+sed -i "/${qemu_kvm_hostname}.${local_infra_domain_name}/d" /virtual-machines/ssh-assist-aliases-for-vms-on-qemu-kvm
 
-echo -e "alias ${qemu_kvm_hostname}=\"ssh -o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ${infra_mgmt_super_username}@${qemu_kvm_hostname}.${local_infra_domain_name}\"\n" >> $HOME/.bashrc
+echo "alias ${qemu_kvm_hostname}=\"ssh -o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ${infra_mgmt_super_username}@${qemu_kvm_hostname}.${local_infra_domain_name}\"" >> /virtual-machines/ssh-assist-aliases-for-vms-on-qemu-kvm
 
-source $HOME/.bashrc
+source "${HOME}/.bashrc"
 
 echo -e "✅"
 
