@@ -254,7 +254,7 @@ touch /virtual-machines/ssh-assist-aliases-for-vms-on-qemu-kvm
 
 sed -i "/${infra_server_name}.${local_infra_domain_name}/d" /virtual-machines/ssh-assist-aliases-for-vms-on-qemu-kvm
 
-echo "alias ${infra_server_name}=\"ssh -o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ${infra_mgmt_super_username}@${infra_server_name}.${local_infra_domain_name}\"" >> /virtual-machines/ssh-assist-aliases-for-vms-on-qemu-kvm
+echo "alias ${infra_server_name}=\"ssh -o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ${mgmt_super_user}@${infra_server_name}.${local_infra_domain_name}\"" >> /virtual-machines/ssh-assist-aliases-for-vms-on-qemu-kvm
 
 if ! grep -q "ssh-assist-aliases-for-vms-on-qemu-kvm" "${HOME}/.bashrc" ; then
 	echo -e "\nsource /virtual-machines/ssh-assist-aliases-for-vms-on-qemu-kvm" >> "${HOME}/.bashrc"
