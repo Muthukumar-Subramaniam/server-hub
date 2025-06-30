@@ -5,7 +5,6 @@ autoinstall:
 
   early-commands:
     - echo "ttyS0" >> /etc/securetty
-    - systemctl stop serial-getty@ttyS0.service || true
     - systemctl start serial-getty@ttyS0.service
 
   source:
@@ -43,16 +42,18 @@ autoinstall:
       - cp -p /etc/chrony/chrony.conf /etc/chrony/chrony.conf_bkp_orig
       - sed -i 's/^pool/#pool/g' /etc/chrony/chrony.conf
       - echo 'pool get_ntp_pool_name.get_ipv4_domain iburst' >> /etc/chrony/chrony.conf
-      - [ bash, -c, >
-          if ! get_golden_image_creation_not_requested; then
-            wget -O /etc/systemd/system/golden-image-setup.service http://get_web_server_name.get_ipv4_domain/ksmanager-hub/addons-for-kickstarts/golden-image-setup.service &&
-            wget -O /root/golden-image-setup.sh http://get_web_server_name.get_ipv4_domain/ksmanager-hub/addons-for-kickstarts/golden-image-setup.sh &&
-            ln -s /etc/systemd/system/golden-image-setup.service /etc/systemd/system/multi-user.target.wants/golden-image-setup.service &&
-            wget -O /etc/systemd/system/golden-boot-ubuntu-lts.service http://get_web_server_name.get_ipv4_domain/ksmanager-hub/kickstarts/get_hostname.get_ipv4_domain/golden-boot-ubuntu-lts.service &&
-            wget -O /root/golden-boot-ubuntu-lts.sh http://get_web_server_name.get_ipv4_domain/ksmanager-hub/kickstarts/get_hostname.get_ipv4_domain/golden-boot-ubuntu-lts.sh &&
-            ln -s /etc/systemd/system/golden-boot-ubuntu-lts.service /etc/systemd/system/multi-user.target.wants/golden-boot-ubuntu-lts.service;
-          fi
-        ]
+      - bash -c >
+          {
+            echo "==> Running golden image setup logic";
+            if ! get_golden_image_creation_not_requested; then
+              wget -O /etc/systemd/system/golden-image-setup.service http://get_web_server_name.get_ipv4_domain/ksmanager-hub/addons-for-kickstarts/golden-image-setup.service && \
+              wget -O /root/golden-image-setup.sh http://get_web_server_name.get_ipv4_domain/ksmanager-hub/addons-for-kickstarts/golden-image-setup.sh && \
+              ln -s /etc/systemd/system/golden-image-setup.service /etc/systemd/system/multi-user.target.wants/golden-image-setup.service && \
+              wget -O /etc/systemd/system/golden-boot-ubuntu-lts.service http://get_web_server_name.get_ipv4_domain/ksmanager-hub/kickstarts/get_hostname.get_ipv4_domain/golden-boot-ubuntu-lts.service && \
+              wget -O /root/golden-boot-ubuntu-lts.sh http://get_web_server_name.get_ipv4_domain/ksmanager-hub/kickstarts/get_hostname.get_ipv4_domain/golden-boot-ubuntu-lts.sh && \
+              ln -s /etc/systemd/system/golden-boot-ubuntu-lts.service /etc/systemd/system/multi-user.target.wants/golden-boot-ubuntu-lts.service;
+            fi
+          }
       - reboot
 
   keyboard:
@@ -152,5 +153,5 @@ autoinstall:
     - V_count=1;for v_interface in $(ls /target/etc/systemd/network/ | grep -v eth0);do sed "s/eth-get_mgmt_super_user/eth$V_count/g" /target/etc/netplan/auto-create-int.yaml >/target/etc/netplan/eth$V_count.yaml;V_count=$((V_count+1));done
     - chmod 600 /target/etc/netplan/eth*.yaml
     - rm -rf /target/etc/netplan/auto-create-int.yaml
-    - /target/usr/bin/sed -i 's/^GRUB_CMDLINE_LINUX_DEFAULT=.*/GRUB_CMDLINE_LINUX_DEFAULT="console=ttyS0 get_whether_vga_console_is_required nomodeset"/' /target/etc/default/grub
+    - /target/usr/bin/sed -i 's/^GRUB_CMDLINE_LINUX_DEFAULT=.*/GRUB_CMDLINE_LINUX_DEFAULT="console=ttyS0,115200n8 get_whether_vga_console_is_required nomodeset"/' /target/etc/default/grub
     - curtin in-target --target=/target -- update-grub
