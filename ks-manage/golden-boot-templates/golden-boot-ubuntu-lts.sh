@@ -50,6 +50,8 @@ chmod 600 /etc/netplan/eth0.yaml
 
 mv /etc/netplan/*-cloud-init.yaml /etc/netplan/old/
 
+ssh-keygen -A
+
 touch /root/golden-boot-ubuntu-lts-completed
 
 systemctl disable golden-boot-ubuntu-lts.service 
