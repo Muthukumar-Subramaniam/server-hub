@@ -52,12 +52,12 @@ MAC_ADDRESS=$( grep "MAC Address  :"  /tmp/install-vm-logs-"${qemu_kvm_hostname}
 IPV4_ADDRESS=$( grep "IPv4 Address :"  /tmp/install-vm-logs-"${qemu_kvm_hostname}" | awk -F': ' '{print $2}' | tr -d '[:space:]' )
 OS_DISTRO=$( grep "Requested OS :"  /tmp/install-vm-logs-"${qemu_kvm_hostname}" | awk -F': ' '{print $2}' | tr -d '[:space:]' )
 
-if echo "$OS_FLAVOUR" | grep -qi "almalinux"; then
-    OS_FLAVOUR="almalinux"
-elif echo "$OS_FLAVOUR" | grep -qi "ubuntu"; then
-    OS_FLAVOUR="ubuntu-lts"
-elif echo "$OS_FLAVOUR" | grep -qi "suse"; then
-    OS_FLAVOUR="opensuse-leap"
+if echo "$OS_DISTRO" | grep -qi "almalinux"; then
+    OS_DISTRO="almalinux"
+elif echo "$OS_DISTRO" | grep -qi "ubuntu"; then
+    OS_DISTRO="ubuntu-lts"
+elif echo "$OS_DISTRO" | grep -qi "suse"; then
+    OS_DISTRO="opensuse-leap"
 fi
 
 if [ -z ${MAC_ADDRESS} ]; then
@@ -86,16 +86,16 @@ source "${HOME}/.bashrc"
 
 echo -e "✅"
 
-if [ ! -f /virtual-machines/golden-images-disk-store/${OS_FLAVOUR}-golden-image.qcow2 ]; then
+if [ ! -f /virtual-machines/golden-images-disk-store/${OS_DISTRO}-golden-image.qcow2 ]; then
 	echo -e "\n🚫 Golden Image Disk Not Found ! "
-	echo -e "➡️  Expected at: /virtual-machines/golden-images-disk-store/${OS_FLAVOUR}-golden-image.qcow2"
+	echo -e "➡️  Expected at: /virtual-machines/golden-images-disk-store/${OS_DISTRO}-golden-image.qcow2"
 	echo -e "🛠️ To build the golden image disk, run: \e[1;32mkvm-build-golden-qcow2-disk\e[0m\n"
 	exit
 fi
 
-echo -n -e "\n🚀 Copy golden image disk /virtual-machines/golden-images-disk-store/${OS_FLAVOUR}-golden-image.qcow2 to install '${qemu_kvm_hostname}' . . . "
+echo -n -e "\n🚀 Copy golden image disk /virtual-machines/golden-images-disk-store/${OS_DISTRO}-golden-image.qcow2 to install '${qemu_kvm_hostname}' . . . "
 
-sudo cp -p /virtual-machines/golden-images-disk-store/${OS_FLAVOUR}-golden-image.qcow2 /virtual-machines/${qemu_kvm_hostname}/${qemu_kvm_hostname}.qcow2
+sudo cp -p /virtual-machines/golden-images-disk-store/${OS_DISTRO}-golden-image.qcow2 /virtual-machines/${qemu_kvm_hostname}/${qemu_kvm_hostname}.qcow2
 
 echo -e "✅"
 
