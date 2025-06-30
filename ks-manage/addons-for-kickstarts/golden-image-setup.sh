@@ -25,7 +25,11 @@ echo "Disabling cloud-init (if present)..." | tee -a "$LOG"
 
 # 5. Remove NetworkManager system connections
 echo "Removing NetworkManager system connections..." | tee -a "$LOG"
-rm -f /etc/NetworkManager/system-connections/* 2>>"$LOG"
+if grep -qi "rhel" /etc/os-release; then
+	rm -f /etc/NetworkManager/system-connections/* 2>>"$LOG"
+elif grep -qi "debian" /etc/os-release; then
+	rm -f /etc/netplan/* 2>>"$LOG"
+fi
 
 # 7. Remove systemd-networkd configs
 echo "Removing systemd network configuration files..." | tee -a "$LOG"
