@@ -81,7 +81,8 @@ vm_tool_names=(
   kvm-install-pxe
   kvm-install-golden
   kvm-remove
-  kvm-reimage
+  kvm-reimage-pxe
+  kvm-reimage-golden
   kvm-start
   kvm-stop
   kvm-restart
