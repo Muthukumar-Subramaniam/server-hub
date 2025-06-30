@@ -44,61 +44,75 @@ ksmanager_hub_dir="/var/www/${web_server_name}.${ipv4_domain}/ksmanager-hub"
 
 mkdir -p "${ksmanager_hub_dir}"
 
-while :
-do
-	# shellcheck disable=SC2162
-	if [ -z "${1}" ]
-	then
-		echo -e "\n🚀 Create Kickstart Host Profiles for PXE Boot.\n"
-		echo -e "📝 Points to Keep in Mind While Entering the Hostname:\n"
-    		echo -e "   🔹 Use only lowercase letters, numbers, and hyphens (-).\n   🔹 Also, must not start or end with a hyphen.\n"
-		read -r -p "🖥️ Please enter the hostname for which Kickstarts are required: " kickstart_hostname
-	else
-		kickstart_hostname="${1}"
-	fi
-
-	if [[ ! "${kickstart_hostname}" =~ ^[a-z0-9-]+$ || "${kickstart_hostname}" =~ ^- || "${kickstart_hostname}" =~ -$ ]]; then
-    		echo -e "❌ Invalid hostname ! \n   🔹 Use only lowercase letters, numbers, and hyphens (-).\n   🔹 Also, must not start or end with a hyphen.\n"
-    		exit 1
-	else
-		break
-  	fi
-done
-
-if ! host "${kickstart_hostname}" &>/dev/null
-then
-	echo -e "\n❌ No DNS record found for \"${kickstart_hostname}\".\n"
+fn_check_and_create_host_record() {
 	while :
 	do
-		read -r -p "⌨️  Enter (y) to create a DNS record for \"${kickstart_hostname}\" or (n) to exit: " v_confirmation
-
-		if [[ "${v_confirmation}" == "y" ]]
+		# shellcheck disable=SC2162
+		if [ -z "${1}" ]
 		then
-			echo -e "\n🛠️  Creating the DNS record for \"${kickstart_hostname}\" using the tool '${dnsbinder_script}' . . .\n"
-			"${dnsbinder_script}" -c "${kickstart_hostname}"
-
-			if host "${kickstart_hostname}" &>/dev/null
-			then
-				echo -e "\n⏳ Proceeding further . . .\n"
-				break
-			else
-				echo -e "\n❌ Something went wrong while creating \"${kickstart_hostname}\"!\n"
-				exit 1
-			fi
-
-		elif [[ "${v_confirmation}" == "n" ]]
-		then
-			echo -e "\n🚫 Cancelled — no changes were made.\n"
-			exit
+			echo -e "\n🚀 Create Kickstart Host Profiles for PXE Boot.\n"
+			echo -e "📝 Points to Keep in Mind While Entering the Hostname:\n"
+    			echo -e "   🔹 Use only lowercase letters, numbers, and hyphens (-).\n   🔹 Also, must not start or end with a hyphen.\n"
+			read -r -p "🖥️ Please enter the hostname for which Kickstarts are required: " kickstart_hostname
 		else
-			echo -e "\n⚠️  Invalid input! Please select only (y) or (n).\n"
-			continue
-
+			kickstart_hostname="${1}"
 		fi
+
+		if [[ ! "${kickstart_hostname}" =~ ^[a-z0-9-]+$ || "${kickstart_hostname}" =~ ^- || "${kickstart_hostname}" =~ -$ ]]; then
+    			echo -e "❌ Invalid hostname ! \n   🔹 Use only lowercase letters, numbers, and hyphens (-).\n   🔹 Also, must not start or end with a hyphen.\n"
+    			exit 1
+		else
+			break
+  		fi
 	done
-else
-	echo -e "\n✅ DNS record found for \"${kickstart_hostname}\" ! \n"
-	echo -e "ℹ️  FYI: $(host "${kickstart_hostname}")"
+
+	if ! host "${kickstart_hostname}" &>/dev/null
+	then
+		echo -e "\n❌ No DNS record found for \"${kickstart_hostname}\".\n"
+		while :
+		do
+			read -r -p "⌨️  Enter (y) to create a DNS record for \"${kickstart_hostname}\" or (n) to exit: " v_confirmation
+
+			if [[ "${v_confirmation}" == "y" ]]
+			then
+				echo -e "\n🛠️  Creating the DNS record for \"${kickstart_hostname}\" using the tool '${dnsbinder_script}' . . .\n"
+				"${dnsbinder_script}" -c "${kickstart_hostname}"
+
+				if host "${kickstart_hostname}" &>/dev/null
+				then
+					echo -e "\n⏳ Proceeding further . . .\n"
+					break
+				else
+					echo -e "\n❌ Something went wrong while creating \"${kickstart_hostname}\"!\n"
+					exit 1
+				fi
+
+			elif [[ "${v_confirmation}" == "n" ]]
+			then
+				echo -e "\n🚫 Cancelled — no changes were made.\n"
+				exit
+			else
+				echo -e "\n⚠️  Invalid input! Please select only (y) or (n).\n"
+				continue
+			fi
+		done
+	else
+		echo -e "\n✅ DNS record found for \"${kickstart_hostname}\" ! \n"
+		echo -e "ℹ️  FYI: $(host "${kickstart_hostname}")"
+	fi
+}
+
+golden_image_creation_not_requested=true
+
+for input_arguement in "$@"; do
+    if [[ "$input_arguement" == "--create-golden-image" ]]; then
+	golden_image_creation_not_requested=false
+        break
+    fi
+done
+
+if $golden_image_creation_not_requested; then
+	fn_check_and_create_host_record "${1}"
 fi
 
 # Function to validate MAC address
@@ -142,6 +156,16 @@ fn_get_mac_address() {
 	done
 }
 
+invoked_with_qemu_kvm=false
+for input_arguement in "$@"; do
+    if [[ "$input_arguement" == "--qemu-kvm" ]]; then
+        invoked_with_qemu_kvm=true
+        break
+    fi
+done
+
+fn_check_and_create_mac_if_required() {
+
 echo -e "\n🔍 Looking up MAC address for host \"${kickstart_hostname}\" from mac-address-cache...\n"
 
 if [ ! -f "${ksmanager_hub_dir}"/mac-address-cache ]; then
@@ -154,7 +178,7 @@ then
 	echo -e "\nMAC Address ${mac_address_of_host} found for ${kickstart_hostname} in mac-address-cache! \n" 
 	while :
 	do
-		if [[ "$2" == "--qemu-kvm" ]]; then
+		if $invoked_with_qemu_kvm; then
 			fn_convert_mac_for_grub_cfg
 			break
 		fi
@@ -183,8 +207,7 @@ then
 	done
 else
 	echo -e "\nℹ️  MAC address for \"${kickstart_hostname}\" not found in mac-address-cache.\n"
-	# Check if second argument is --qemu-kvm
-	if [[ "$2" == "--qemu-kvm" ]]; then
+	if $invoked_with_qemu_kvm; then
 		echo -e "\n⚙️  Generating MAC address for the QEMU/KVM VM \"${kickstart_hostname}\"...\n"
 		mac_address_of_host=$(printf '52:54:00:%02x:%02x:%02x\n' $((RANDOM%256)) $((RANDOM%256)) $((RANDOM%256)))
 		fn_convert_mac_for_grub_cfg
@@ -194,6 +217,11 @@ else
 		fn_convert_mac_for_grub_cfg
 		fn_cache_the_mac
 	fi
+fi
+}
+
+if $golden_image_creation_not_requested; then
+	fn_check_and_create_mac_if_required
 fi
 
 fn_select_os_distro() {
@@ -211,19 +239,6 @@ fn_select_os_distro() {
 	* ) echo -e "\n❌ Invalid option! 🔁 Please try again."; fn_select_os_distro ;;
     esac
 }
-
-
-# shellcheck disable=SC2021
-ipv4_address=$(host "${kickstart_hostname}.${ipv4_domain}" | cut -d " " -f 4 | tr -d '[[:space:]]')
-
-#disk_type_for_the_vm=$(dmidecode -t1 | awk -F: '/Manufacturer/ {
-#    manufacturer=tolower($2);
-#    gsub(/^ +| +$/, "", manufacturer);
-#    if (manufacturer ~ /vmware/) print "nvme0n1";
-#    else if (manufacturer ~ /qemu/) print "vda";
-#}')
-#
-#!/bin/bash
 
 # Detect VM platform
 manufacturer=$(dmidecode -t1 | awk -F: '/Manufacturer/ {
@@ -244,11 +259,17 @@ elif [[ "$manufacturer" == *qemu* ]]; then
     whether_vga_console_is_required=""
 fi
 
-host_kickstart_dir="${ksmanager_hub_dir}/kickstarts/${kickstart_hostname}.${ipv4_domain}"
+fn_create_host_kickstart_dir() {
+	# shellcheck disable=SC2021
+	ipv4_address=$(host "${kickstart_hostname}.${ipv4_domain}" | cut -d " " -f 4 | tr -d '[[:space:]]')
+	host_kickstart_dir="${ksmanager_hub_dir}/kickstarts/${kickstart_hostname}.${ipv4_domain}"
+	mkdir -p "${host_kickstart_dir}"
+	rm -rf "${host_kickstart_dir}"/*
+}
 
-mkdir -p "${host_kickstart_dir}"
-
-rm -rf "${host_kickstart_dir}"/*
+if $golden_image_creation_not_requested; then
+	fn_create_host_kickstart_dir
+fi
 
 fn_select_os_distro
 
@@ -258,20 +279,38 @@ if [[ "${os_distribution}" == "almalinux" ]]; then
 		fn_select_os_distro
 	fi
 	os_name_and_version=$(grep AlmaLinux /var/www/${web_server_name}.${ipv4_domain}/almalinux-latest/.discinfo)
+	if ! $golden_image_creation_not_requested; then
+		fn_check_and_create_host_record "almalinux-golden-image"
+		fn_check_and_create_mac_if_required
+		fn_create_host_kickstart_dir
+	fi
 	rsync -a -q "${ksmanager_main_dir}"/ks-templates/almalinux-latest-ks.cfg "${host_kickstart_dir}"/ 
+	rsync -a -q "${ksmanager_main_dir}"/golden-boot-templates/golden-boot-almalinux.{service,sh} "${host_kickstart_dir}"/ 
 elif [[ "${os_distribution}" == "ubuntu" ]]; then
 	if [ ! -f /var/lib/tftpboot/ubuntu-lts-latest/vmlinuz ]; then
 		echo -e "\n⚠️  It seems Ubuntu-LTS is not yet configured for the PXE-boot environment.\n🔄 Please try some other distro.\n"
 		fn_select_os_distro
 	fi
 	os_name_and_version=$(awk -F'LTS' '{print $1 "LTS"}' /var/www/${web_server_name}.${ipv4_domain}/ubuntu-lts-latest/.disk/info)
+	if ! $golden_image_creation_not_requested; then
+		fn_check_and_create_host_record "ubuntu-lts-golden-image"
+		fn_check_and_create_mac_if_required
+		fn_create_host_kickstart_dir
+	fi
 	rsync -a -q --delete "${ksmanager_main_dir}"/ks-templates/ubuntu-lts-latest-ks "${host_kickstart_dir}"/
+	rsync -a -q "${ksmanager_main_dir}"/golden-boot-templates/golden-boot-ubuntu-lts.{service,sh} "${host_kickstart_dir}"/ 
 elif [[ "${os_distribution}" == "opensuse" ]]; then
 	if [ ! -f /var/lib/tftpboot/opensuse-leap-latest/linux ]; then
 		echo -e "\n⚠️  It seems OpenSUSE Leap is not yet configured for the PXE-boot environment.\n🔄 Please try some other distro.\n"
 		fn_select_os_distro
 	fi
+	if ! $golden_image_creation_not_requested; then
+		fn_check_and_create_host_record "opensuse-leap-golden-image"
+		fn_check_and_create_mac_if_required
+		fn_create_host_kickstart_dir
+	fi
 	rsync -a -q "${ksmanager_main_dir}"/ks-templates/opensuse-leap-latest-autoinst.xml "${host_kickstart_dir}"/ 
+	rsync -a -q "${ksmanager_main_dir}"/golden-boot-templates/golden-boot-opensuse-leap.{service,sh} "${host_kickstart_dir}"/ 
 fi
 
 echo -e "\n⚙️  Generating kickstart profile and GRUB configs for PXE boot of VM '${kickstart_hostname}'...\n"
@@ -283,6 +322,10 @@ rsync -a -q /etc/pki/tls/certs/"${web_server_name}.${ipv4_domain}-apache-selfsig
 rsync -a -q "/home/${mgmt_super_user}/.ssh/authorized_keys" "${ksmanager_hub_dir}"/addons-for-kickstarts/
 
 chmod +r "${ksmanager_hub_dir}"/addons-for-kickstarts/authorized_keys
+
+mkdir -p "${ksmanager_hub_dir}"/golden-boot-mac-configs
+
+rsync -a -q "${ksmanager_main_dir}"/golden-boot-templates/network-config-for-mac-address "${ksmanager_hub_dir}"/golden-boot-mac-configs/network-config-"${grub_cfg_mac_address}"
 
 # shellcheck disable=SC2044
 escape_sed_replacement() {
@@ -309,13 +352,14 @@ fn_set_environment() {
 		sed -i "s/get_ntp_pool_name/${ntp_pool_name}/g" "${working_file}"
 		sed -i "s/get_web_server_name/${web_server_name}/g" "${working_file}" 
 		sed -i "s/get_win_hostname/${win_hostname}/g" "${working_file}"
-		sed -i "s/get_tftp_server_name/${tftp_server_name}.ms.local/g" "${working_file}"
+		sed -i "s/get_tftp_server_name/${tftp_server_name}.${ipv4_domain}/g" "${working_file}"
 		sed -i "s/get_rhel_activation_key/${rhel_activation_key}/g" "${working_file}"
 		sed -i "s/get_time_of_last_update/${time_of_last_update}/g" "${working_file}"
 		sed -i "s/get_mgmt_super_user/${mgmt_super_user}/g" "${working_file}"
 		sed -i "s/get_os_name_and_version/${os_name_and_version}/g" "${working_file}"
 		sed -i "s/get_disk_type_for_the_vm/${disk_type_for_the_vm}/g" "${working_file}"
 		sed -i "s/get_whether_vga_console_is_required/${whether_vga_console_is_required}/g" "${working_file}"
+	 	sed -i "s/get_golden_image_creation_not_requested/$golden_image_creation_not_requested/g" "${working_file}"
 
 		awk -v val="$shadow_password_super_mgmt_user" '
 		{
@@ -356,6 +400,8 @@ fi
 fn_set_environment "/var/lib/tftpboot/grub.cfg-01-${grub_cfg_mac_address}"
 
 fn_set_environment "/var/lib/tftpboot/grub.cfg"
+
+fn_set_environment "${ksmanager_hub_dir}"/golden-boot-mac-configs/network-config-"${grub_cfg_mac_address}"
 
 chown -R ${mgmt_super_user}:${mgmt_super_user}  "${ksmanager_hub_dir}"
 

@@ -77,7 +77,9 @@ echo -n -e "\n⚙️  Creating custom tools to manage QEMU/KVM . . . "
 scripts_directory="/server-hub/qemu-kvm-manage/scripts-to-manage-vms"
 system_bin_directory="/bin"
 vm_tool_names=(
-  kvm-install
+  kvm-build-golden-qcow2-disk
+  kvm-install-pxe
+  kvm-install-golden
   kvm-remove
   kvm-reimage
   kvm-start
