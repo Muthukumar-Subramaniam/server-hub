@@ -29,6 +29,7 @@ if grep -qi "rhel" /etc/os-release; then
 	rm -f /etc/NetworkManager/system-connections/* 2>>"$LOG"
 elif grep -qi "debian" /etc/os-release; then
 	rm -f /etc/netplan/* 2>>"$LOG"
+	mv /etc/netplan/old/*-cloud-init.yaml /etc/netplan/ 2>>"$LOG"
 fi
 
 # 7. Remove systemd-networkd configs

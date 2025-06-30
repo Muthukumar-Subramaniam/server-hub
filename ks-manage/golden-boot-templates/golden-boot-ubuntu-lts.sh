@@ -36,17 +36,19 @@ network:
     ethernets:
         eth0:
             dhcp4: false
-            addresses: ["${IPv4_ADDRESS}"/"${IPv4_CIDR}"]
+            addresses: [${IPv4_ADDRESS}/${IPv4_CIDR}]
             routes:
               - to: default
-                via: "${IPv4_GATEWAY}"
+                via: ${IPv4_GATEWAY}
                 on-link: true
             nameservers:
-              addresses: ["${IPv4_DNS_SERVER}"]
-              search: ["${IPv4_DNS_DOMAIN}"]
+              addresses: [${IPv4_DNS_SERVER}]
+              search: [${IPv4_DNS_DOMAIN}]
 EOF
 
 chmod 600 /etc/netplan/eth0.yaml
+
+mv /etc/netplan/*-cloud-init.yaml /etc/netplan/old/
 
 touch /root/golden-boot-ubuntu-lts-completed
 
