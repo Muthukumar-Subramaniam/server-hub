@@ -34,4 +34,4 @@ if ! sudo virsh list --all | awk '{print $2}' | grep -Fxq "$qemu_kvm_hostname"; 
 fi
 
 /server-hub/qemu-kvm-manage/scripts-to-manage-vms/kvm-remove.sh "$qemu_kvm_hostname"
-/server-hub/qemu-kvm-manage/scripts-to-manage-vms/kvm-install.sh "$qemu_kvm_hostname"
+/server-hub/qemu-kvm-manage/scripts-to-manage-vms/kvm-install-golden.sh "$qemu_kvm_hostname"
