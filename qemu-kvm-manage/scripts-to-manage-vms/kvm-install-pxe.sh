@@ -37,11 +37,11 @@ if sudo virsh list --all | awk '{print $2}' | grep -Fxq "$qemu_kvm_hostname"; th
     echo "❌ VM \"$qemu_kvm_hostname\" exists already."
     echo "⚠️  Either do one of the following:"
     echo "   ➤ Remove the VM using 'kvm-remove', then try again."
-    echo "   ➤ Re-image the VM using 'kvm-reimage'."
+    echo "   ➤ Re-image the VM using 'kvm-reimage-golden' or 'kvm-reimage-pxe'."
     exit 1
 fi
 
-echo -e "\n⚙️  Invoking ksmanager to create PXE environment For '${qemu_kvm_hostname}' . . .\n"
+echo -e "\n⚙️  Invoking ksmanager to create PXE environment for '${qemu_kvm_hostname}' . . .\n"
 
 
 >/tmp/install-vm-logs-"${qemu_kvm_hostname}"

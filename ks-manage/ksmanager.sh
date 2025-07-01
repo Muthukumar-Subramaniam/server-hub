@@ -113,6 +113,7 @@ done
 
 if $golden_image_creation_not_requested; then
 	fn_check_and_create_host_record "${1}"
+	ipv4_address=$(host "${kickstart_hostname}.${ipv4_domain}" | cut -d " " -f 4 | tr -d '[[:space:]]')
 fi
 
 # Function to validate MAC address
@@ -164,6 +165,14 @@ for input_arguement in "$@"; do
     fi
 done
 
+invoked_with_golden_image=false
+for input_arguement in "$@"; do
+    if [[ "$input_arguement" == "--golden-image" ]]; then
+        invoked_with_golden_image=true
+        break
+    fi
+done
+
 fn_check_and_create_mac_if_required() {
 
 echo -e "\n🔍 Looking up MAC address for host \"${kickstart_hostname}\" from mac-address-cache...\n"
@@ -172,7 +181,7 @@ if [ ! -f "${ksmanager_hub_dir}"/mac-address-cache ]; then
 	touch  "${ksmanager_hub_dir}"/mac-address-cache
 fi
 
-if grep ^"${kickstart_hostname} " "${ksmanager_hub_dir}"/mac-address-cache &>>/dev/null
+if grep ^"${kickstart_hostname} " "${ksmanager_hub_dir}"/mac-address-cache &>/dev/null
 then
 	mac_address_of_host=$(grep ^"${kickstart_hostname} " "${ksmanager_hub_dir}"/mac-address-cache | cut -d " " -f 2 )
 	echo -e "\nMAC Address ${mac_address_of_host} found for ${kickstart_hostname} in mac-address-cache! \n" 
@@ -260,15 +269,15 @@ elif [[ "$manufacturer" == *qemu* ]]; then
 fi
 
 fn_create_host_kickstart_dir() {
-	# shellcheck disable=SC2021
-	ipv4_address=$(host "${kickstart_hostname}.${ipv4_domain}" | cut -d " " -f 4 | tr -d '[[:space:]]')
 	host_kickstart_dir="${ksmanager_hub_dir}/kickstarts/${kickstart_hostname}.${ipv4_domain}"
 	mkdir -p "${host_kickstart_dir}"
 	rm -rf "${host_kickstart_dir}"/*
 }
 
 if $golden_image_creation_not_requested; then
-	fn_create_host_kickstart_dir
+	if ! $invoked_with_golden_image; then
+		fn_create_host_kickstart_dir
+	fi
 fi
 
 fn_select_os_distro
@@ -281,11 +290,14 @@ if [[ "${os_distribution}" == "almalinux" ]]; then
 	os_name_and_version=$(grep AlmaLinux /var/www/${web_server_name}.${ipv4_domain}/almalinux-latest/.discinfo)
 	if ! $golden_image_creation_not_requested; then
 		fn_check_and_create_host_record "almalinux-golden-image"
+		ipv4_address=$(host "${kickstart_hostname}.${ipv4_domain}" | cut -d " " -f 4 | tr -d '[[:space:]]')
 		fn_check_and_create_mac_if_required
 		fn_create_host_kickstart_dir
 	fi
-	rsync -a -q "${ksmanager_main_dir}"/ks-templates/almalinux-latest-ks.cfg "${host_kickstart_dir}"/ 
-	rsync -a -q "${ksmanager_main_dir}"/golden-boot-templates/golden-boot-almalinux.{service,sh} "${host_kickstart_dir}"/ 
+	if ! $invoked_with_golden_image; then
+		rsync -a -q "${ksmanager_main_dir}"/ks-templates/almalinux-latest-ks.cfg "${host_kickstart_dir}"/ 
+		rsync -a -q "${ksmanager_main_dir}"/golden-boot-templates/golden-boot-almalinux.{service,sh} "${host_kickstart_dir}"/ 
+	fi
 elif [[ "${os_distribution}" == "ubuntu" ]]; then
 	if [ ! -f /var/lib/tftpboot/ubuntu-lts-latest/vmlinuz ]; then
 		echo -e "\n⚠️  It seems Ubuntu-LTS is not yet configured for the PXE-boot environment.\n🔄 Please try some other distro.\n"
@@ -294,11 +306,14 @@ elif [[ "${os_distribution}" == "ubuntu" ]]; then
 	os_name_and_version=$(awk -F'LTS' '{print $1 "LTS"}' /var/www/${web_server_name}.${ipv4_domain}/ubuntu-lts-latest/.disk/info)
 	if ! $golden_image_creation_not_requested; then
 		fn_check_and_create_host_record "ubuntu-lts-golden-image"
+		ipv4_address=$(host "${kickstart_hostname}.${ipv4_domain}" | cut -d " " -f 4 | tr -d '[[:space:]]')
 		fn_check_and_create_mac_if_required
 		fn_create_host_kickstart_dir
 	fi
-	rsync -a -q --delete "${ksmanager_main_dir}"/ks-templates/ubuntu-lts-latest-ks "${host_kickstart_dir}"/
-	rsync -a -q "${ksmanager_main_dir}"/golden-boot-templates/golden-boot-ubuntu-lts.{service,sh} "${host_kickstart_dir}"/ 
+	if ! $invoked_with_golden_image; then
+		rsync -a -q --delete "${ksmanager_main_dir}"/ks-templates/ubuntu-lts-latest-ks "${host_kickstart_dir}"/
+		rsync -a -q "${ksmanager_main_dir}"/golden-boot-templates/golden-boot-ubuntu-lts.{service,sh} "${host_kickstart_dir}"/ 
+	fi
 elif [[ "${os_distribution}" == "opensuse" ]]; then
 	if [ ! -f /var/lib/tftpboot/opensuse-leap-latest/linux ]; then
 		echo -e "\n⚠️  It seems OpenSUSE Leap is not yet configured for the PXE-boot environment.\n🔄 Please try some other distro.\n"
@@ -306,26 +321,38 @@ elif [[ "${os_distribution}" == "opensuse" ]]; then
 	fi
 	if ! $golden_image_creation_not_requested; then
 		fn_check_and_create_host_record "opensuse-leap-golden-image"
+		ipv4_address=$(host "${kickstart_hostname}.${ipv4_domain}" | cut -d " " -f 4 | tr -d '[[:space:]]')
 		fn_check_and_create_mac_if_required
 		fn_create_host_kickstart_dir
 	fi
-	rsync -a -q "${ksmanager_main_dir}"/ks-templates/opensuse-leap-latest-autoinst.xml "${host_kickstart_dir}"/ 
-	rsync -a -q "${ksmanager_main_dir}"/golden-boot-templates/golden-boot-opensuse-leap.{service,sh} "${host_kickstart_dir}"/ 
+	if ! $invoked_with_golden_image; then
+		rsync -a -q "${ksmanager_main_dir}"/ks-templates/opensuse-leap-latest-autoinst.xml "${host_kickstart_dir}"/ 
+		rsync -a -q "${ksmanager_main_dir}"/golden-boot-templates/golden-boot-opensuse-leap.{service,sh} "${host_kickstart_dir}"/ 
+	fi
 fi
 
-echo -e "\n⚙️  Generating kickstart profile and GRUB configs for PXE boot of VM '${kickstart_hostname}'...\n"
+if ! $invoked_with_golden_image; then
 
-rsync -a -q --delete "${ksmanager_main_dir}"/addons-for-kickstarts/ "${ksmanager_hub_dir}"/addons-for-kickstarts/
+	echo -e "\n⚙️  Generating kickstart profile and GRUB configs for PXE boot of VM '${kickstart_hostname}'...\n"
 
-rsync -a -q /etc/pki/tls/certs/"${web_server_name}.${ipv4_domain}-apache-selfsigned.crt" "${ksmanager_hub_dir}"/addons-for-kickstarts/
+	rsync -a -q --delete "${ksmanager_main_dir}"/addons-for-kickstarts/ "${ksmanager_hub_dir}"/addons-for-kickstarts/
 
-rsync -a -q "/home/${mgmt_super_user}/.ssh/authorized_keys" "${ksmanager_hub_dir}"/addons-for-kickstarts/
+	rsync -a -q /etc/pki/tls/certs/"${web_server_name}.${ipv4_domain}-apache-selfsigned.crt" "${ksmanager_hub_dir}"/addons-for-kickstarts/
 
-chmod +r "${ksmanager_hub_dir}"/addons-for-kickstarts/authorized_keys
+	rsync -a -q "/home/${mgmt_super_user}/.ssh/authorized_keys" "${ksmanager_hub_dir}"/addons-for-kickstarts/
 
-mkdir -p "${ksmanager_hub_dir}"/golden-boot-mac-configs
+	chmod +r "${ksmanager_hub_dir}"/addons-for-kickstarts/authorized_keys
 
-rsync -a -q "${ksmanager_main_dir}"/golden-boot-templates/network-config-for-mac-address "${ksmanager_hub_dir}"/golden-boot-mac-configs/network-config-"${grub_cfg_mac_address}"
+	mkdir -p "${ksmanager_hub_dir}"/golden-boot-mac-configs
+fi
+
+if $invoked_with_golden_image; then
+
+	echo -e "\n⚙️  Generating network configs for golden boot installation of VM '${kickstart_hostname}'...\n"
+
+	rsync -a -q "${ksmanager_main_dir}"/golden-boot-templates/network-config-for-mac-address "${ksmanager_hub_dir}"/golden-boot-mac-configs/network-config-"${grub_cfg_mac_address}"
+
+fi
 
 # shellcheck disable=SC2044
 escape_sed_replacement() {
@@ -383,25 +410,29 @@ fn_set_environment() {
 	fi
 }
 
+if ! $invoked_with_golden_image; then
 
-fn_set_environment "${host_kickstart_dir}"
+	fn_set_environment "${host_kickstart_dir}"
 
-if [[ "${os_distribution}" == "almalinux" ]]; then
-	rsync -a -q "${ksmanager_main_dir}"/grub-template-almalinux-auto.cfg  /var/lib/tftpboot/grub.cfg-01-"${grub_cfg_mac_address}"
-	rsync -a -q "${ksmanager_main_dir}"/grub-template-almalinux-manual.cfg /var/lib/tftpboot/grub.cfg
-elif [[ "${os_distribution}" == "ubuntu" ]]; then
-	rsync -a -q "${ksmanager_main_dir}"/grub-template-ubuntu-lts-auto.cfg  /var/lib/tftpboot/grub.cfg-01-"${grub_cfg_mac_address}"
-	rsync -a -q "${ksmanager_main_dir}"/grub-template-ubuntu-lts-manual.cfg /var/lib/tftpboot/grub.cfg
-elif [[ "${os_distribution}" == "opensuse" ]]; then
-	rsync -a -q "${ksmanager_main_dir}"/grub-template-opensuse-leap-auto.cfg  /var/lib/tftpboot/grub.cfg-01-"${grub_cfg_mac_address}"
-	rsync -a -q "${ksmanager_main_dir}"/grub-template-opensuse-leap-manual.cfg /var/lib/tftpboot/grub.cfg
+	if [[ "${os_distribution}" == "almalinux" ]]; then
+		rsync -a -q "${ksmanager_main_dir}"/grub-template-almalinux-auto.cfg  /var/lib/tftpboot/grub.cfg-01-"${grub_cfg_mac_address}"
+		rsync -a -q "${ksmanager_main_dir}"/grub-template-almalinux-manual.cfg /var/lib/tftpboot/grub.cfg
+	elif [[ "${os_distribution}" == "ubuntu" ]]; then
+		rsync -a -q "${ksmanager_main_dir}"/grub-template-ubuntu-lts-auto.cfg  /var/lib/tftpboot/grub.cfg-01-"${grub_cfg_mac_address}"
+		rsync -a -q "${ksmanager_main_dir}"/grub-template-ubuntu-lts-manual.cfg /var/lib/tftpboot/grub.cfg
+	elif [[ "${os_distribution}" == "opensuse" ]]; then
+		rsync -a -q "${ksmanager_main_dir}"/grub-template-opensuse-leap-auto.cfg  /var/lib/tftpboot/grub.cfg-01-"${grub_cfg_mac_address}"
+		rsync -a -q "${ksmanager_main_dir}"/grub-template-opensuse-leap-manual.cfg /var/lib/tftpboot/grub.cfg
+	fi
+
+	fn_set_environment "/var/lib/tftpboot/grub.cfg-01-${grub_cfg_mac_address}"
+
+	fn_set_environment "/var/lib/tftpboot/grub.cfg"
 fi
 
-fn_set_environment "/var/lib/tftpboot/grub.cfg-01-${grub_cfg_mac_address}"
-
-fn_set_environment "/var/lib/tftpboot/grub.cfg"
-
-fn_set_environment "${ksmanager_hub_dir}"/golden-boot-mac-configs/network-config-"${grub_cfg_mac_address}"
+if $invoked_with_golden_image; then
+	fn_set_environment "${ksmanager_hub_dir}"/golden-boot-mac-configs/network-config-"${grub_cfg_mac_address}"
+fi
 
 chown -R ${mgmt_super_user}:${mgmt_super_user}  "${ksmanager_hub_dir}"
 
@@ -414,13 +445,19 @@ echo -e "  🌐  IPv4 Gateway : ${ipv4_gateway}"
 echo -e "  🌐  IPv4 Network : ${ipv4_network_cidr}"
 echo -e "  📡  IPv4 DNS     : ${ipv4_nameserver}"
 echo -e "  🌍  Domain Name  : ${ipv4_domain}"
-echo -e "  📁  TFTP Server  : ${tftp_server_name}.${ipv4_domain}"
 echo -e "  ⏰  NTP Pool     : ${ntp_pool_name}.${ipv4_domain}"
 echo -e "  🌐  Web Server   : ${web_server_name}.${ipv4_domain}"
-echo -e "  📂  KS Local     : ${host_kickstart_dir}"
-echo -e "  🔗  KS Web       : https://${host_kickstart_dir#/var/www/}"
+if ! $invoked_with_golden_image; then
+	echo -e "  📁  TFTP Server  : ${tftp_server_name}.${ipv4_domain}"
+	echo -e "  📂  KS Local     : ${host_kickstart_dir}"
+	echo -e "  🔗  KS Web       : https://${host_kickstart_dir#/var/www/}"
+fi
 echo -e "  💿  Requested OS : ${os_name_and_version}"
 
-echo -e "\n✅ All done! You can proceed to PXE boot the host '${kickstart_hostname}'.\n"
+if ! $invoked_with_golden_image; then
+	echo -e "\n✅ All done! You can proceed with installation of the host '${kickstart_hostname}' using PXE boot.\n"
+else
+	echo -e "\n✅ All done! You can proceed with installation of the host '${kickstart_hostname}' using golden image.\n"
+fi
 
 exit
