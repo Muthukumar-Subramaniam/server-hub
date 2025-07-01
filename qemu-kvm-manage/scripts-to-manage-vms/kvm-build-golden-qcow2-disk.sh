@@ -58,7 +58,6 @@ sudo virt-install \
   --boot loader=/usr/share/edk2/ovmf/OVMF_CODE.fd,\
 nvram.template=/usr/share/edk2/ovmf/OVMF_VARS.fd,\
 nvram=/virtual-machines/golden-images-disk-store/${qemu_kvm_hostname}_VARS.fd,menu=on \
-  --pxe \
 
 sudo virsh destroy "${qemu_kvm_hostname}" 2>/dev/null
 sudo virsh undefine "${qemu_kvm_hostname}" --nvram 2>/dev/null

@@ -319,6 +319,7 @@ elif [[ "${os_distribution}" == "opensuse" ]]; then
 		echo -e "\n⚠️  It seems OpenSUSE Leap is not yet configured for the PXE-boot environment.\n🔄 Please try some other distro.\n"
 		fn_select_os_distro
 	fi
+	os_name_and_version=$(awk -F ' = ' '/^\[release\]/{f=1; next} /^\[/{f=0} f && /^(name|version)/ {gsub(/^[ \t]+/, "", $2); printf "%s ", $2} END{print ""}' /var/www/${web_server_name}.${ipv4_domain}/opensuse-leap-latest/.treeinfo)
 	if ! $golden_image_creation_not_requested; then
 		fn_check_and_create_host_record "opensuse-leap-golden-image"
 		ipv4_address=$(host "${kickstart_hostname}.${ipv4_domain}" | cut -d " " -f 4 | tr -d '[[:space:]]')

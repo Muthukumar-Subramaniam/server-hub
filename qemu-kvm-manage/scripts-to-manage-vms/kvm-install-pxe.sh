@@ -94,7 +94,6 @@ sudo virt-install \
   --boot loader=/usr/share/edk2/ovmf/OVMF_CODE.fd,\
 nvram.template=/usr/share/edk2/ovmf/OVMF_VARS.fd,\
 nvram=/virtual-machines/${qemu_kvm_hostname}/${qemu_kvm_hostname}_VARS.fd,menu=on \
-  --pxe \
 
 if sudo virsh list | grep -q "${qemu_kvm_hostname}"; then
     echo -e "\n✅ Successfully installed the VM ${qemu_kvm_hostname} ! \n"

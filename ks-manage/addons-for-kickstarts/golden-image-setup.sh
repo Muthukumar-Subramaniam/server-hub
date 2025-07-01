@@ -30,6 +30,12 @@ if grep -qi "rhel" /etc/os-release; then
 elif grep -qi "debian" /etc/os-release; then
 	rm -f /etc/netplan/* 2>>"$LOG"
 	mv /etc/netplan/old/*-cloud-init.yaml /etc/netplan/ 2>>"$LOG"
+elif grep -qi "suse" /etc/os-release; then
+cat << EOF > /etc/sysconfig/network/ifcfg-eth0
+BOOTPROTO='dhcp'
+STARTMODE='auto'
+ZONE='public'
+EOF
 fi
 
 # 7. Remove systemd-networkd configs

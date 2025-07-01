@@ -593,7 +593,6 @@
         <service>systemd-pstore</service>
         <service>systemd-remount-fs</service>
         <service>vgauthd</service>
-        <service>vmtoolsd</service>
       </enable>
     </services>
   </services-manager>
