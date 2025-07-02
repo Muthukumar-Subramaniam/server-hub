@@ -1,11 +1,11 @@
 [Unit]
-Description=Golden Boot Initialization for AlmaLinux
+Description=Golden Boot Initialization for Red Hat Based Distro
 After=network-online.target systemd-user-sessions.service
 Wants=network-online.target
 
 [Service]
 Type=oneshot
-ExecStart=/bin/bash /root/golden-boot-almalinux.sh
+ExecStart=/bin/bash /root/golden-boot-redhat-based.sh
 RemainAfterExit=true
 
 [Install]

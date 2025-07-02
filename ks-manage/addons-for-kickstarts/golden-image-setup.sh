@@ -1,5 +1,5 @@
 #!/bin/bash
-# AlmaLinux Golden Image Preparation Script
+#Golden Image Preparation Script
 if [ -f /root/golden-image-setup-completed ]; then
 	exit
 fi

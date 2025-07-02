@@ -1,5 +1,5 @@
 #!/bin/bash
-if [ -f /root/golden-boot-almalinux-completed ]; then
+if [ -f /root/golden-boot-rocky-completed ]; then
 	exit
 fi
 
@@ -56,8 +56,8 @@ done
 
 /bin/rm -rf /etc/NetworkManager/system-connections/orig-during-install
 
-touch /root/golden-boot-almalinux-completed
+touch /root/golden-boot-rocky-completed
 
-systemctl disable golden-boot-almalinux.service 
+systemctl disable golden-boot-rocky.service 
 
 reboot

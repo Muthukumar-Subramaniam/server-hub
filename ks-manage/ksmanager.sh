@@ -235,16 +235,22 @@ fi
 
 fn_select_os_distro() {
     echo -e "\n📦 Please select the OS distribution to install: \n"
-    echo -e "  1️⃣  AlmaLinux Latest"
-    echo -e "  2️⃣  Ubuntu Server LTS Latest"
-    echo -e "  3️⃣  openSUSE Leap Latest\n"
+    echo -e "  1)  AlmaLinux"
+    echo -e "  2)  Ubuntu Server LTS"
+    echo -e "  3)  Rocky"
+    echo -e "  4)  CentOS Stream"
+    echo -e "  5)  OracleLinux"
+    echo -e "  6)  openSUSE Leap Latest\n"
 
     read -p "⌨️  Enter option number (default: AlmaLinux): " os_distribution
 
     case "${os_distribution}" in
         1 | "" ) os_distribution="almalinux" ;;
-        2 )      os_distribution="ubuntu" ;;
-        3 )      os_distribution="opensuse" ;;
+        2 )      os_distribution="ubuntu-lts" ;;
+        3 )      os_distribution="rocky" ;;
+        4 )      os_distribution="centos-stream" ;;
+        5 )      os_distribution="oraclelinux" ;;
+        6 )      os_distribution="opensuse-leap" ;;
 	* ) echo -e "\n❌ Invalid option! 🔁 Please try again."; fn_select_os_distro ;;
     esac
 }
@@ -282,53 +288,49 @@ fi
 
 fn_select_os_distro
 
-if [[ "${os_distribution}" == "almalinux" ]]; then
-	if [ ! -f /var/lib/tftpboot/almalinux-latest/vmlinuz ]; then
-		echo -e "\n⚠️  It seems AlmaLinux is not yet configured for the PXE-boot environment.\n🔄 Please try some other distro.\n"
-		fn_select_os_distro
+if [[ "${os_distribution}" == "opensuse-leap" ]]; then
+	kernel_file_name="linux"
+else
+	kernel_file_name="vmlinuz"
+fi
+
+while [ ! -f "/var/lib/tftpboot/${os_distribution}-latest/${kernel_file_name}" ]; do
+	echo -e "\n⚠️  It seems ${os_distribution} is not yet configured for the PXE-boot environment.\n🔄 Please try some other distro.\n"
+	fn_select_os_distro
+done
+
+if [[ "${os_distribution}" == "ubuntu-lts" ]]; then
+	os_name_and_version=$(awk -F'LTS' '{print $1 "LTS"}' "/var/www/${web_server_name}.${ipv4_domain}/${os_distribution}-latest/.disk/info")
+elif [[ "${os_distribution}" == "opensuse-leap" ]]; then
+	os_name_and_version=$(awk -F ' = ' '/^\[release\]/{f=1; next} /^\[/{f=0} f && /^(name|version)/ {gsub(/^[ \t]+/, "", $2); printf "%s ", $2} END{print ""}' "/var/www/${web_server_name}.${ipv4_domain}/${os_distribution}-latest/.treeinfo")
+else
+	redhat_based_distro_name="${os_distribution}"
+	os_name_and_version=$(grep -i "${os_distribution}" "/var/www/${web_server_name}.${ipv4_domain}/${os_distribution}-latest/.discinfo")
+fi
+
+if ! $golden_image_creation_not_requested; then
+	fn_check_and_create_host_record "${os_distribution}-golden-image"
+	ipv4_address=$(host "${kickstart_hostname}.${ipv4_domain}" | cut -d " " -f 4 | tr -d '[[:space:]]')
+	fn_check_and_create_mac_if_required
+	fn_create_host_kickstart_dir
+fi
+
+if ! $invoked_with_golden_image; then
+	if [[ "${os_distribution}" == "opensuse-leap" ]]; then
+		rsync -a -q "${ksmanager_main_dir}/ks-templates/${os_distribution}-latest-autoinst.xml" "${host_kickstart_dir}"/ 
+	elif [[ "${os_distribution}" == "ubuntu-lts" ]]; then 
+		rsync -a -q --delete "${ksmanager_main_dir}/ks-templates/${os_distribution}-latest-ks" "${host_kickstart_dir}"/
+	else
+		rsync -a -q "${ksmanager_main_dir}/ks-templates/redhat-based-latest-ks.cfg" "${host_kickstart_dir}"/ 
 	fi
-	os_name_and_version=$(grep AlmaLinux /var/www/${web_server_name}.${ipv4_domain}/almalinux-latest/.discinfo)
 	if ! $golden_image_creation_not_requested; then
-		fn_check_and_create_host_record "almalinux-golden-image"
-		ipv4_address=$(host "${kickstart_hostname}.${ipv4_domain}" | cut -d " " -f 4 | tr -d '[[:space:]]')
-		fn_check_and_create_mac_if_required
-		fn_create_host_kickstart_dir
-	fi
-	if ! $invoked_with_golden_image; then
-		rsync -a -q "${ksmanager_main_dir}"/ks-templates/almalinux-latest-ks.cfg "${host_kickstart_dir}"/ 
-		rsync -a -q "${ksmanager_main_dir}"/golden-boot-templates/golden-boot-almalinux.{service,sh} "${host_kickstart_dir}"/ 
-	fi
-elif [[ "${os_distribution}" == "ubuntu" ]]; then
-	if [ ! -f /var/lib/tftpboot/ubuntu-lts-latest/vmlinuz ]; then
-		echo -e "\n⚠️  It seems Ubuntu-LTS is not yet configured for the PXE-boot environment.\n🔄 Please try some other distro.\n"
-		fn_select_os_distro
-	fi
-	os_name_and_version=$(awk -F'LTS' '{print $1 "LTS"}' /var/www/${web_server_name}.${ipv4_domain}/ubuntu-lts-latest/.disk/info)
-	if ! $golden_image_creation_not_requested; then
-		fn_check_and_create_host_record "ubuntu-lts-golden-image"
-		ipv4_address=$(host "${kickstart_hostname}.${ipv4_domain}" | cut -d " " -f 4 | tr -d '[[:space:]]')
-		fn_check_and_create_mac_if_required
-		fn_create_host_kickstart_dir
-	fi
-	if ! $invoked_with_golden_image; then
-		rsync -a -q --delete "${ksmanager_main_dir}"/ks-templates/ubuntu-lts-latest-ks "${host_kickstart_dir}"/
-		rsync -a -q "${ksmanager_main_dir}"/golden-boot-templates/golden-boot-ubuntu-lts.{service,sh} "${host_kickstart_dir}"/ 
-	fi
-elif [[ "${os_distribution}" == "opensuse" ]]; then
-	if [ ! -f /var/lib/tftpboot/opensuse-leap-latest/linux ]; then
-		echo -e "\n⚠️  It seems OpenSUSE Leap is not yet configured for the PXE-boot environment.\n🔄 Please try some other distro.\n"
-		fn_select_os_distro
-	fi
-	os_name_and_version=$(awk -F ' = ' '/^\[release\]/{f=1; next} /^\[/{f=0} f && /^(name|version)/ {gsub(/^[ \t]+/, "", $2); printf "%s ", $2} END{print ""}' /var/www/${web_server_name}.${ipv4_domain}/opensuse-leap-latest/.treeinfo)
-	if ! $golden_image_creation_not_requested; then
-		fn_check_and_create_host_record "opensuse-leap-golden-image"
-		ipv4_address=$(host "${kickstart_hostname}.${ipv4_domain}" | cut -d " " -f 4 | tr -d '[[:space:]]')
-		fn_check_and_create_mac_if_required
-		fn_create_host_kickstart_dir
-	fi
-	if ! $invoked_with_golden_image; then
-		rsync -a -q "${ksmanager_main_dir}"/ks-templates/opensuse-leap-latest-autoinst.xml "${host_kickstart_dir}"/ 
-		rsync -a -q "${ksmanager_main_dir}"/golden-boot-templates/golden-boot-opensuse-leap.{service,sh} "${host_kickstart_dir}"/ 
+		if [[ -z "${redhat_based_distro_name}" ]]; then
+			rsync -a -q "${ksmanager_main_dir}/golden-boot-templates/golden-boot-${os_distribution}.service" "${host_kickstart_dir}"/ 
+			rsync -a -q "${ksmanager_main_dir}/golden-boot-templates/golden-boot-${os_distribution}.sh" "${host_kickstart_dir}"/ 
+		else
+			rsync -a -q "${ksmanager_main_dir}/golden-boot-templates/golden-boot-redhat-based.service" "${host_kickstart_dir}"/ 
+			rsync -a -q "${ksmanager_main_dir}/golden-boot-templates/golden-boot-redhat-based.sh" "${host_kickstart_dir}"/ 
+		fi
 	fi
 fi
 
@@ -388,6 +390,7 @@ fn_set_environment() {
 		sed -i "s/get_disk_type_for_the_vm/${disk_type_for_the_vm}/g" "${working_file}"
 		sed -i "s/get_whether_vga_console_is_required/${whether_vga_console_is_required}/g" "${working_file}"
 	 	sed -i "s/get_golden_image_creation_not_requested/$golden_image_creation_not_requested/g" "${working_file}"
+	 	sed -i "s/get_redhat_based_distro_name/$redhat_based_distro_name/g" "${working_file}"
 
 		awk -v val="$shadow_password_super_mgmt_user" '
 		{
@@ -415,15 +418,14 @@ if ! $invoked_with_golden_image; then
 
 	fn_set_environment "${host_kickstart_dir}"
 
-	if [[ "${os_distribution}" == "almalinux" ]]; then
-		rsync -a -q "${ksmanager_main_dir}"/grub-template-almalinux-auto.cfg  /var/lib/tftpboot/grub.cfg-01-"${grub_cfg_mac_address}"
-		rsync -a -q "${ksmanager_main_dir}"/grub-template-almalinux-manual.cfg /var/lib/tftpboot/grub.cfg
-	elif [[ "${os_distribution}" == "ubuntu" ]]; then
-		rsync -a -q "${ksmanager_main_dir}"/grub-template-ubuntu-lts-auto.cfg  /var/lib/tftpboot/grub.cfg-01-"${grub_cfg_mac_address}"
-		rsync -a -q "${ksmanager_main_dir}"/grub-template-ubuntu-lts-manual.cfg /var/lib/tftpboot/grub.cfg
-	elif [[ "${os_distribution}" == "opensuse" ]]; then
-		rsync -a -q "${ksmanager_main_dir}"/grub-template-opensuse-leap-auto.cfg  /var/lib/tftpboot/grub.cfg-01-"${grub_cfg_mac_address}"
-		rsync -a -q "${ksmanager_main_dir}"/grub-template-opensuse-leap-manual.cfg /var/lib/tftpboot/grub.cfg
+	if [[ -z "${redhat_based_distro_name}" ]]; then
+
+		rsync -a -q "${ksmanager_main_dir}/grub-template-${os_distribution}-auto.cfg"  "/var/lib/tftpboot/grub.cfg-01-${grub_cfg_mac_address}"
+		rsync -a -q "${ksmanager_main_dir}/grub-template-${os_distribution}-manual.cfg" "/var/lib/tftpboot/grub.cfg"
+
+	else
+		rsync -a -q "${ksmanager_main_dir}/grub-template-redhat-based-auto.cfg"  "/var/lib/tftpboot/grub.cfg-01-${grub_cfg_mac_address}"
+		rsync -a -q "${ksmanager_main_dir}/grub-template-redhat-based-manual.cfg" "/var/lib/tftpboot/grub.cfg"
 	fi
 
 	fn_set_environment "/var/lib/tftpboot/grub.cfg-01-${grub_cfg_mac_address}"
