@@ -145,7 +145,7 @@ fn_cache_the_mac() {
 fn_get_mac_address() {
 	while :
 	do
-		echo -e "\n⌨️  Enter the MAC address of the VM \"${kickstart_hostname}\": "
+		echo -n -e "\n⌨️  Enter the MAC address of the VM \"${kickstart_hostname}\" : "
 		read mac_address_of_host
     		# Call the function to validate the MAC address
     		if fn_validate_mac "${mac_address_of_host}"
