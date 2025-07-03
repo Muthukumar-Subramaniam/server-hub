@@ -46,7 +46,7 @@ echo -e "\n🚀 Starting installation of VM '${qemu_kvm_hostname}' to create gol
 sudo virt-install \
   --name ${qemu_kvm_hostname} \
   --features acpi=on,apic=on \
-  --memory 2048 \
+  --memory 4096 \
   --vcpus 2 \
   --disk path=/virtual-machines/golden-images-disk-store/${qemu_kvm_hostname}.qcow2,size=20,bus=virtio,boot.order=1 \
   --os-variant almalinux9 \
