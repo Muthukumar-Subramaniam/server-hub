@@ -310,7 +310,7 @@ else
 	elif [[ "${os_distribution}" == "oraclelinux" ]]; then
 		os_name_and_version=$(grep -i "oracle" "/var/www/${web_server_name}.${ipv4_domain}/${os_distribution}-latest/.discinfo")
 	else
-		os_name_and_version=$(grep -i "oracle" "/var/www/${web_server_name}.${ipv4_domain}/${os_distribution}-latest/.discinfo")
+		os_name_and_version=$(grep -i "${os_distribution}" "/var/www/${web_server_name}.${ipv4_domain}/${os_distribution}-latest/.discinfo")
 	fi
 fi
 
