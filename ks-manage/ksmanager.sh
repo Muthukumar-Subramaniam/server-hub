@@ -305,7 +305,13 @@ elif [[ "${os_distribution}" == "opensuse-leap" ]]; then
 	os_name_and_version=$(awk -F ' = ' '/^\[release\]/{f=1; next} /^\[/{f=0} f && /^(name|version)/ {gsub(/^[ \t]+/, "", $2); printf "%s ", $2} END{print ""}' "/var/www/${web_server_name}.${ipv4_domain}/${os_distribution}-latest/.treeinfo")
 else
 	redhat_based_distro_name="${os_distribution}"
-	os_name_and_version=$(grep -i "${os_distribution}" "/var/www/${web_server_name}.${ipv4_domain}/${os_distribution}-latest/.discinfo")
+	if [[ "${os_distribution}" == "centos-stream" ]]; then
+		os_name_and_version=$(grep -i "centos" "/var/www/${web_server_name}.${ipv4_domain}/${os_distribution}-latest/.discinfo")
+	elif [[ "${os_distribution}" == "oraclelinux" ]]; then
+		os_name_and_version=$(grep -i "oracle" "/var/www/${web_server_name}.${ipv4_domain}/${os_distribution}-latest/.discinfo")
+	else
+		os_name_and_version=$(grep -i "oracle" "/var/www/${web_server_name}.${ipv4_domain}/${os_distribution}-latest/.discinfo")
+	fi
 fi
 
 if ! $golden_image_creation_not_requested; then

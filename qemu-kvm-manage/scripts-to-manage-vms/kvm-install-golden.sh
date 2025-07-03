@@ -54,6 +54,12 @@ OS_DISTRO=$( grep "Requested OS :"  /tmp/install-vm-logs-"${qemu_kvm_hostname}" 
 
 if echo "$OS_DISTRO" | grep -qi "almalinux"; then
     OS_DISTRO="almalinux"
+elif echo "$OS_DISTRO" | grep -qi "centos"; then
+    OS_DISTRO="centos-stream"
+elif echo "$OS_DISTRO" | grep -qi "rocky"; then
+    OS_DISTRO="rocky"
+elif echo "$OS_DISTRO" | grep -qi "oracle"; then
+    OS_DISTRO="oraclelinux"
 elif echo "$OS_DISTRO" | grep -qi "ubuntu"; then
     OS_DISTRO="ubuntu-lts"
 elif echo "$OS_DISTRO" | grep -qi "suse"; then
