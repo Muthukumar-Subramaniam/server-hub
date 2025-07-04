@@ -8,7 +8,7 @@
 
 ## 🖥️ Automated VM Provisioning and Home Lab Management
 
-### 🧠 Central infra Server OS
+### 🧠 Central Infra Server VM's OS
 
 The central infra server runs on **AlmaLinux 10** by default.  
 You can also customize it to use any **Red Hat-compatible distribution**, such as:
