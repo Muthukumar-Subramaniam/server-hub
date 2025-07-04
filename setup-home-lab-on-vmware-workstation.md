@@ -458,7 +458,7 @@ To allow your Windows host to resolve domain names managed by the infra-server (
 🎉 All Done! Your Home Lab on VMware Workstation is Now Live!
 ---
 
-You’ve successfully built a fully automated, PXE-driven home lab environment on VMware Workstation — powered by Ansible, custom DNS, and flexible provisioning via kickstart and cloud-init.
+You’ve successfully built a fully automated, PXE-driven home lab environment on VMware Workstation.
 
 From here, spinning up new VMs is effortless:
 
