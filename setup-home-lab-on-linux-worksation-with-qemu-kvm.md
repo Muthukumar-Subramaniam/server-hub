@@ -118,7 +118,7 @@ kvm-remove                    # Remove/delete a VM
 The above tools invokes below custom tools from the infra server :
 
 - **dnsbinder** – For dynamic DNS management of your local domain
-- **ksmanager** – For Kickstart & PXE-based provisioning
+- **ksmanager** – PXE & Golden-Image based OS provisioning of VMs using Kickstarts
 
 ---
 
