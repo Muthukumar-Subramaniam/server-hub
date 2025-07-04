@@ -1,6 +1,5 @@
 # 🛠️ Server-Hub
 ---
-> ⚠️ **Note:** This repository is live and accessible, but this README documentation is currently under preparation.
 
 **A one-stop automation toolkit to set up a central server for managing your home lab** — whether on **VMware Workstation**, **QEMU/KVM**, or even a **bare-metal physical setup**.
 
