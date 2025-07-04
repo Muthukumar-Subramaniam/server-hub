@@ -6,10 +6,7 @@
 
 > ⚠️ **DISCLAIMER:** This project is intended for **testing**, **development**, and **experimentation** purposes only.  
 
-```
-sudo dnf install git -y; sudo mkdir -p /server-hub; sudo chown ${USER}:$(id -g) /server-hub; git clone https://github.com/Muthukumar-Subramaniam/server-hub.git /server-hub; cd /server-hub
-```
-## 🖥️ OS & Provisioning Support
+## 🖥️ Automated VM Provisioning and Home Lab Management
 
 ### 🧠 Central infra Server OS
 
