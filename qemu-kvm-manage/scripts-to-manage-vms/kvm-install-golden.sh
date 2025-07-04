@@ -60,6 +60,8 @@ elif echo "$OS_DISTRO" | grep -qi "rocky"; then
     OS_DISTRO="rocky"
 elif echo "$OS_DISTRO" | grep -qi "oracle"; then
     OS_DISTRO="oraclelinux"
+elif echo "$OS_DISTRO" | grep -qi "Red Hat"; then
+    OS_DISTRO="rhel"
 elif echo "$OS_DISTRO" | grep -qi "ubuntu"; then
     OS_DISTRO="ubuntu-lts"
 elif echo "$OS_DISTRO" | grep -qi "suse"; then
