@@ -29,8 +29,8 @@ The toolkit supports automated provisioning for VMs across all **three major Lin
 |------------------|-----------------------------------------------|-------------------------------|--------------------------|
 | Red Hat-based    | AlmaLinux                                      | Kickstart                     | ✅ Included by default   |
 |                  | Rocky, Oracle Linux, RHEL, CentOS Stream       | Kickstart                     | 🔧 Customizable          |
-| Debian-based     | Ubuntu LTS                                     | Cloud-init (`cloud-config`)   | ✅ Included by default   |
-| SUSE-based       | openSUSE Leap                                  | AutoYaST                      | ✅ Included by default   |
+| Debian-based     | Ubuntu LTS                                     | Cloud-init (`cloud-config`)   | 🔧 Customizable
+| SUSE-based       | openSUSE Leap                                  | AutoYaST                      | 🔧 Customizable|
 
 > 🧪 This toolkit is designed for lab environments that require provisioning and managing heterogeneous Linux distributions for testing, experimentation, and development.
 
