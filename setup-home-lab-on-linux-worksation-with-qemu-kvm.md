@@ -123,7 +123,10 @@ The above tools invokes below custom tools from the infra server :
 
 ---
 
-## Done!
+🎉 All Done! Your Home Lab on QEMU/KVM is Now Live!
+---
 
-You now have a complete, script-driven, and automated lab environment with QEMU/KVM.
-Provision, reimage, destroy, and manage VMs with ease. Happy hacking!
+You’ve successfully built a fully automated home lab environment on QEMU/KVM.
+
+Welcome to your own fully-managed datacenter in a box! 🧑‍💻🖥️🧠
+
