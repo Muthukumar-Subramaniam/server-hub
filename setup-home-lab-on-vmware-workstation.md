@@ -1,4 +1,4 @@
-# VMware-Workstation based Home-Lab Setup on Windows-PC
+# VMware-Workstation based Home-Lab Setup on Windows
 
 This guide walks you through setting up a fully functional VM provisioning lab using VMware Workstation and tools from the [server-hub](https://github.com/Muthukumar-Subramaniam/server-hub) repository.
 
