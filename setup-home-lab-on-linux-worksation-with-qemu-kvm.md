@@ -103,6 +103,7 @@ kvm-build-golden-qcow2-disk   # Create golden qcow2 base image
 kvm-install-golden            # Deploy VM using golden image
 kvm-reimage-golden            # Reinstall VM using golden image
 kvm-install-pxe               # Deploy VM using PXE
+kvm-reimage-pxe               # Reinstall VM using PXE
 kvm-list                      # List all managed VMs
 kvm-console                   # Connect to VM via serial console
 kvm-start                     # Start a VM
