@@ -1,4 +1,4 @@
-# QEMU/KVM based Home-Lab Setup on Linux-Workstation
+# Setup QEMU/KVM based Home-Lab on Linux-Workstation
 
 This guide walks you through setting up a fully functional VM provisioning lab using QEMU/KVM and tools from the [server-hub](https://github.com/Muthukumar-Subramaniam/server-hub) repository.
 
