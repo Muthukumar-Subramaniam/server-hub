@@ -236,21 +236,23 @@ fi
 fn_select_os_distro() {
     echo -e "\n📦 Please select the OS distribution to install: \n"
     echo -e "  1)  AlmaLinux"
-    echo -e "  2)  Ubuntu Server LTS"
-    echo -e "  3)  Rocky"
+    echo -e "  2)  Rocky Linux"
+    echo -e "  3)  OracleLinux"
     echo -e "  4)  CentOS Stream"
-    echo -e "  5)  OracleLinux"
-    echo -e "  6)  openSUSE Leap Latest\n"
+    echo -e "  5)  Red Hat Enterprise Linux"
+    echo -e "  6)  Ubuntu Server LTS"
+    echo -e "  7)  openSUSE Leap Latest\n"
 
     read -p "⌨️  Enter option number (default: AlmaLinux): " os_distribution
 
     case "${os_distribution}" in
         1 | "" ) os_distribution="almalinux" ;;
-        2 )      os_distribution="ubuntu-lts" ;;
-        3 )      os_distribution="rocky" ;;
+        2 )      os_distribution="rocky" ;;
+        3 )      os_distribution="oraclelinux" ;;
         4 )      os_distribution="centos-stream" ;;
-        5 )      os_distribution="oraclelinux" ;;
-        6 )      os_distribution="opensuse-leap" ;;
+        5 )      os_distribution="rhel" ;;
+        6 )      os_distribution="ubuntu-lts" ;;
+        7 )      os_distribution="opensuse-leap" ;;
 	* ) echo -e "\n❌ Invalid option! 🔁 Please try again."; fn_select_os_distro ;;
     esac
 }
@@ -309,6 +311,8 @@ else
 		os_name_and_version=$(grep -i "centos" "/var/www/${web_server_name}.${ipv4_domain}/${os_distribution}-latest/.discinfo")
 	elif [[ "${os_distribution}" == "oraclelinux" ]]; then
 		os_name_and_version=$(grep -i "oracle" "/var/www/${web_server_name}.${ipv4_domain}/${os_distribution}-latest/.discinfo")
+	elif [[ "${os_distribution}" == "rhel" ]]; then
+		os_name_and_version=$(grep -i "Red Hat" "/var/www/${web_server_name}.${ipv4_domain}/${os_distribution}-latest/.discinfo")
 	else
 		os_name_and_version=$(grep -i "${os_distribution}" "/var/www/${web_server_name}.${ipv4_domain}/${os_distribution}-latest/.discinfo")
 	fi
