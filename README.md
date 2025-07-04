@@ -41,15 +41,15 @@ The toolkit supports automated provisioning for VMs across all **three major Lin
 
 > These are **minimum** recommended values. Feel free to **increase** based on your use case and workload.
 
-#### 🔹 Infra-Server (Central Controller)
+#### 🔹 Central Infra Server VM
 - 🧠 **Memory**: 2 GB RAM
 - ⚙️ **CPU**: 2 vCPUs
 - 💾 **Storage**: 30 GB
 
-#### 🔸 VM Instances (Provisioned Guests)
+#### 🔸 Provisioned VMs
 - 🧠 **Memory**: 2 GB RAM
 - ⚙️ **CPU**: 2 vCPUs
-- 💾 **Storage**: 10 GB
+- 💾 **Storage**: 20 GB
 
 ---
 ## [Click Here to Setup QEMU/KVM based Home-Lab on Linux-Workstation](setup-home-lab-on-linux-worksation-with-qemu-kvm.md)
