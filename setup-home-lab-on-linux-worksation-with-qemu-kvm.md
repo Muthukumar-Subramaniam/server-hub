@@ -24,7 +24,7 @@ cd /server-hub/qemu-kvm-manage/
 
 ---
 
-## Step 3 – Build a New Server VM
+## Step 3 – Build a New Infra Server VM
 
 ```bash
 ./build-server-vm.sh
@@ -32,25 +32,28 @@ cd /server-hub/qemu-kvm-manage/
 
 ---
 
-## Step 4 – SSH Into the Deployed Server VM
+## Step 4 – SSH Into the Deployed Infra Server VM
 
 Use the auto-created SSH alias.
 
-If your server name is `serve`, you can connect by simply running:
+If your server name is `server`, you can connect by simply running:
 
 ```bash
-serve
+server
 ```
 
-If you get `command not found`, reload your shell environment:
+If you get `command not found`, reload your shell environment and try again:
 
 ```bash
 source ~/.bashrc
 ```
+```
+server
+```
 
 ---
 
-## Step 5 – Inside the Server VM: Clone `server-hub` Again
+## Step 5 – Inside the Infra Server VM: Clone `server-hub` Again
 
 ```bash
 sudo dnf install git -y
@@ -80,7 +83,7 @@ sudo reboot
 
 ## Step 8 – Finalize VM Configuration After Reboot
 
-Log in again and run:
+Log in again and run the ansible playbook to configure all the services with infra server :
 
 ```bash
 cd /server-hub/build-almalinux-server/
@@ -91,9 +94,9 @@ Your lab setup is now **ready**!
 
 ---
 
-## Available VM Management Tools on the Workstation
+## Available VM Management Tools on the Linux Workstation
 
-Once setup is complete, your workstation will have the following tools:
+Once setup is complete, your Linux Workstation will have the following tools:
 
 ```bash
 kvm-build-golden-qcow2-disk   # Create golden qcow2 base image
@@ -110,14 +113,12 @@ kvm-remove                    # Remove/delete a VM
 
 ---
 
-## Tools Behind the Scenes
+## Custom Tools Behind the Scenes
 
-This setup uses:
+The above tools invokes below custom tools from the infra server :
 
-- **dnsbinder** – For dynamic DNS entry management
+- **dnsbinder** – For dynamic DNS management of your local domain
 - **ksmanager** – For Kickstart & PXE-based provisioning
-
-These tools are automatically invoked from the custom scripts provided.
 
 ---
 
