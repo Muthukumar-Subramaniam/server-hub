@@ -233,15 +233,38 @@ if $golden_image_creation_not_requested; then
 	fn_check_and_create_mac_if_required
 fi
 
+fn_check_distro_availability() {
+	local os_distribution="${1}"
+	if [[ "${os_distribution}" == "opensuse-leap" ]]; then
+		kernel_file_name="linux"
+	else
+		kernel_file_name="vmlinuz"
+	fi
+
+	if [[ ! -f "/var/lib/tftpboot/${os_distribution}-latest/${kernel_file_name}" ]]; then
+		echo '[Not-Ready]'
+	else
+		echo '[Ready]'
+	fi
+}
+
+almalinux_os_availability=$(fn_check_distro_availability "almalinux")
+rocky_os_availability=$(fn_check_distro_availability "rocky")
+oraclelinux_os_availability=$(fn_check_distro_availability "oraclelinux")
+centos_stream_os_availability=$(fn_check_distro_availability "centos-stream")
+rhel_os_availability=$(fn_check_distro_availability "rhel")
+ubuntu_lts_os_availability=$(fn_check_distro_availability "ubuntu-lts")
+opensuse_leap_os_availability=$(fn_check_distro_availability "opensuse-leap")
+
 fn_select_os_distro() {
     echo -e "\n📦 Please select the OS distribution to install: \n"
-    echo -e "  1)  AlmaLinux"
-    echo -e "  2)  Rocky Linux"
-    echo -e "  3)  OracleLinux"
-    echo -e "  4)  CentOS Stream"
-    echo -e "  5)  Red Hat Enterprise Linux"
-    echo -e "  6)  Ubuntu Server LTS"
-    echo -e "  7)  openSUSE Leap Latest\n"
+    echo -e "  1)  AlmaLinux                ${almalinux_os_availability}"
+    echo -e "  2)  Rocky Linux              ${rocky_os_availability}"
+    echo -e "  3)  OracleLinux              ${oraclelinux_os_availability}"
+    echo -e "  4)  CentOS Stream            ${centos_stream_os_availability}"
+    echo -e "  5)  Red Hat Enterprise Linux ${rhel_os_availability}"
+    echo -e "  6)  Ubuntu Server LTS        ${ubuntu_lts_os_availability}"
+    echo -e "  7)  openSUSE Leap Latest     ${opensuse_leap_os_availability}\n"
 
     read -p "⌨️  Enter option number (default: AlmaLinux): " os_distribution
 

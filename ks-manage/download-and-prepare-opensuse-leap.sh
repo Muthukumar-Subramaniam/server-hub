@@ -16,8 +16,8 @@ TFTP_DIR="/var/lib/tftpboot/opensuse-leap-latest"
 FSTAB="/etc/fstab"
 
 # 2. Download ISO (skip if already exists)
-ISO_FILE="openSUSE-Leap-15.6-DVD-x86_64-Media.iso"
-ISO_URL="https://download.opensuse.org/distribution/leap/15.6/iso/openSUSE-Leap-15.6-DVD-x86_64-Media.iso"
+ISO_FILE="Leap-16.0-offline-installer-x86_64.install.iso"
+ISO_URL="https://download.opensuse.org/distribution/leap/16.0/offline/Leap-16.0-offline-installer-x86_64.install.iso"
 ISO_PATH="${ISO_DIR}/${ISO_FILE}"
 
 echo -e "📁 Ensuring ISO directory exists..."
