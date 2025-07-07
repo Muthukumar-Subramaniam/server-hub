@@ -320,7 +320,8 @@ else
 fi
 
 while [ ! -f "/var/lib/tftpboot/${os_distribution}-latest/${kernel_file_name}" ]; do
-	echo -e "\n⚠️  It seems ${os_distribution} is not yet configured for the PXE-boot environment.\n🔄 Please try some other distro.\n"
+	echo -e "\n⚠️  It seems ${os_distribution} is not yet prepared for the PXE-boot environment. 🔄 Please try some other distro."
+	echo -e "⚠️  ( OR ) Please utilize the tool 'prepare-distro-for-ksmanager' to prepare the distro ${os_distribution} for PXE-boot environment .\n"
 	fn_select_os_distro
 done
 

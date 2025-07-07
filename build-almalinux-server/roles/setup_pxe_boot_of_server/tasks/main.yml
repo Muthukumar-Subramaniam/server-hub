@@ -100,6 +100,13 @@
     dest: /usr/bin/ksmanager
     state: link
 
+- name: Create command sym-link prepare-distro-for-ksmanager
+  become: true
+  file:
+    src: /server-hub/ks-manage/prepare-distro-for-ksmanager.sh
+    dest: /usr/bin/prepare-distro-for-ksmanager
+    state: link
+
 #- name: Create command sym-link almalinux-repo-sync
 #  become: true
 #  file:
