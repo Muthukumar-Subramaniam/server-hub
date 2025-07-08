@@ -13,14 +13,14 @@ spec:
         app: nginx-busybox
     spec:
       containers:
-        - name: nginx
+        - name: nginx-web-server
           image: nginx:latest
           ports:
             - containerPort: 80
           volumeMounts:
             - name: html-volume
               mountPath: /usr/share/nginx/html
-        - name: busybox
+        - name: busybox-swiss-army-knife
           image: busybox
           command: ["/bin/sh", "-c"]
           args:

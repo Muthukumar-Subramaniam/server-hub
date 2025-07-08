@@ -1,7 +1,7 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: web-app-deployment
+  name: web-app
   labels:
     app: web-app
 spec:
@@ -15,7 +15,7 @@ spec:
         app: web-app
     spec:
       containers:
-      - name: web-app
+      - name: apache-web-server
         image: httpd:latest
         ports:
         - containerPort: 80
@@ -23,7 +23,7 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: web-app-service
+  name: web-app
 spec:
   selector:
     app: web-app
