@@ -49,6 +49,22 @@ sudo bash /server-hub/named-manage/dnsbinder.sh --setup "${input_domain_to_dnsbi
 
 source /etc/environment
 
+echo -e "\nSetting motd . . .\n"
+
+cat << EOF | sudo tee /etc/motd &>/dev/null
++-------------------------------------------------------------+
+|               Welcome to your Lab Infra Server              |
++-------------------------------------------------------------+
+| This host provisions and manages all lab hosts.             |
+| All essential services for your lab environment run here.   |
+| It is critical to the lab — please handle with care.        |
+| Automation toolkits are available to manage the lab.        |
++-------------------------------------------------------------+
+| Have a bug report, suggestion, or query? Drop it here:      |
+| https://github.com/Muthukumar-Subramaniam/server-hub/issues |
++-------------------------------------------------------------+
+EOF
+
 echo -e "\nReserve Records for DHCP lease DNS . . .\n"
 
 for IP in $(seq 201 254)
