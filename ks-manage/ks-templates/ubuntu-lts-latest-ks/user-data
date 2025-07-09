@@ -42,6 +42,7 @@ autoinstall:
       - cp -p /etc/chrony/chrony.conf /etc/chrony/chrony.conf_bkp_orig
       - sed -i 's/^pool/#pool/g' /etc/chrony/chrony.conf
       - echo 'pool get_ntp_pool_name.get_ipv4_domain iburst' >> /etc/chrony/chrony.conf
+      - wget -O /etc/motd http://get_web_server_name.get_ipv4_domain/ksmanager-hub/addons-for-kickstarts/motd.txt
       - get_golden_image_creation_not_requested || wget -O /etc/systemd/system/golden-image-setup.service http://get_web_server_name.get_ipv4_domain/ksmanager-hub/addons-for-kickstarts/golden-image-setup.service
       - get_golden_image_creation_not_requested || wget -O /root/golden-image-setup.sh http://get_web_server_name.get_ipv4_domain/ksmanager-hub/addons-for-kickstarts/golden-image-setup.sh
       - get_golden_image_creation_not_requested || ln -s /etc/systemd/system/golden-image-setup.service /etc/systemd/system/multi-user.target.wants/golden-image-setup.service
