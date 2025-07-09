@@ -16,26 +16,7 @@
     <loader_type>grub2-efi</loader_type>
   </bootloader>
   <firewall t="map">
-    <default_zone>public</default_zone>
-    <enable_firewall t="boolean">true</enable_firewall>
-    <log_denied_packets>off</log_denied_packets>
-    <start_firewall t="boolean">true</start_firewall>
-    <zones t="list">
-      <zone t="map">
-        <description>For use in public areas. You do not trust the other computers on networks to not harm your computer. Only selected incoming connections are accepted.</description>
-        <interfaces t="list"/>
-        <masquerade t="boolean">false</masquerade>
-        <name>public</name>
-        <ports t="list"/>
-        <protocols t="list"/>
-        <services t="list">
-          <service>dhcpv6-client</service>
-          <service>ssh</service>
-        </services>
-        <short>Public</short>
-        <target>default</target>
-      </zone>
-    </zones>
+    <enable_firewall t="boolean">false</enable_firewall>
   </firewall>
   <general t="map">
     <mode t="map">
