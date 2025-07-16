@@ -7,7 +7,7 @@ data:
   nginx-custom.conf: |
     server {
         listen       80;
-        server_name  k8s-app-nginx k8s-app-nginx.ms.local;
+        server_name  k8s-app-nginx k8s-app-nginx.lab.local;
         location / {
             root   /usr/share/nginx/html;
             autoindex on;

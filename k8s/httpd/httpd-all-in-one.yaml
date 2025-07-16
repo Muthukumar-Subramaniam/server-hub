@@ -6,7 +6,7 @@ metadata:
 data:
   my-httpd-custom.conf: |
     <VirtualHost *:80>
-      ServerName k8s-app-httpd.ms.local
+      ServerName k8s-app-httpd.lab.local
       ServerAlias k8s-app-httpd
       DocumentRoot "/usr/local/apache2/htdocs"
       <Directory "/usr/local/apache2/htdocs">
