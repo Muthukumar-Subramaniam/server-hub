@@ -274,7 +274,7 @@ fi
 
 if ! grep -q "$local_infra_domain_name" "$SSH_CUSTOM_CONFIG_FILE"; then
   cat <<EOF >> "$SSH_CUSTOM_CONFIG_FILE"
-Host *.$local_infra_domain_name
+Host *.${local_infra_domain_name} ${ipv4_address}
     IdentityFile ~/.ssh/id_rsa
     ServerAliveInterval 60
     ServerAliveCountMax 30
