@@ -137,7 +137,9 @@ sudo firewall-cmd --permanent --zone=trusted --add-source=< cluster mgmt network
 sudo firewall-cmd --reload
 ```
 
-### Step 9) Configure Control Plane ( Steps Specific only for Control Plane node )
+### ⚠️ Step 9) Configure Control Plane (Run this ONLY on the Control Plane node)
+> **🚨 CAUTION:** This step must be executed ONLY on the control plane node.  
+> Running it on a worker node may break the cluster configuration.
 ----
 ```
 sudo systemctl enable --now kubelet.service && sudo systemctl status kubelet.service --no-pager
