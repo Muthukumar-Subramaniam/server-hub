@@ -201,6 +201,16 @@ kubectl get pods -A -o wide --watch
 ```
 kubectl get nodes -o wide
 ```
+### Optional Step 12) Put a worker role label for worker nodes for identification
+```
+for var_k8s_node in $(kubectl get nodes --no-headers | grep -i -v 'control-plane' | awk '{ print $1 }')
+do
+		kubectl label node "${var_k8s_node}" node-role.kubernetes.io/worker-
+done
+```
+```
+kubectl get nodes -o wide
+```
 ## Now the cluster is ready for deployments if all nodes are in ready state.
 
 ### Addons for the Cluster for Networking and Storage needs
