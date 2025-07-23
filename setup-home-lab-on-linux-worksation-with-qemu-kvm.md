@@ -23,7 +23,13 @@ cd /server-hub/qemu-kvm-manage/
 ```
 
 ---
+## Setp 3 - Run below script to download latest AlmaLinux ISO
 
+```bash
+./download-almalinux-latest.sh
+```
+
+---
 ## Step 3 – Build a New Infra Server VM
 
 ```bash
