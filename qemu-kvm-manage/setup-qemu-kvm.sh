@@ -34,13 +34,12 @@ sudo dnf remove -y cuda
 
 echo -e "\n📦 Installing required packages for QEMU/KVM . . . \n"
 
-sudo dnf install -y qemu-kvm qemu-img libvirt libvirt-daemon libvirt-daemon-driver-qemu bridge-utils python3-libxml2 python3-libvirt libosinfo python3-gobject gobject-introspection edk2-ovmf 
+sudo dnf install -y qemu-kvm qemu-img libvirt libvirt-daemon libvirt-daemon-driver-qemu python3-libxml2 python3-libvirt libosinfo python3-gobject gobject-introspection edk2-ovmf 
 
 echo -e "\n🔌 Enabling and starting libvirtd . . . \n"
 sudo systemctl enable --now libvirtd
 sudo systemctl status libvirtd -l --no-pager
 sudo usermod -aG libvirt $USER
-newgrp libvirt
 
 echo -n -e "\n📁 Creating /virtual-machines to manage VMs . . . "
 sudo mkdir -p /virtual-machines
