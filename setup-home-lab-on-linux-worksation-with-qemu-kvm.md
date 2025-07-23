@@ -30,7 +30,7 @@ cd /server-hub/qemu-kvm-manage/
 ```
 
 ---
-## Step 3 – Build a New Infra Server VM
+## Step 4 – Build a New Infra Server VM
 
 ```bash
 ./build-server-vm.sh
@@ -38,7 +38,7 @@ cd /server-hub/qemu-kvm-manage/
 
 ---
 
-## Step 4 – SSH Into the Deployed Infra Server VM
+## Step 5 – SSH Into the Deployed Infra Server VM
 
 Use the auto-created SSH alias.
 
@@ -59,7 +59,7 @@ server
 
 ---
 
-## Step 5 – Inside the Infra Server VM: Clone `server-hub` Again
+## Step 6 – Inside the Infra Server VM: Clone `server-hub` Again
 
 ```bash
 sudo dnf install git -y
@@ -71,7 +71,7 @@ cd /server-hub/build-almalinux-server/
 
 ---
 
-## Step 6 – Run Setup Script
+## Step 7 – Run Setup Script
 
 ```bash
 ./setup.sh
@@ -79,7 +79,7 @@ cd /server-hub/build-almalinux-server/
 
 ---
 
-## Step 7 – Reboot the Server VM
+## Step 8 – Reboot the Server VM
 
 ```bash
 sudo reboot
@@ -87,7 +87,7 @@ sudo reboot
 
 ---
 
-## Step 8 – Finalize VM Configuration After Reboot
+## Step 9 – Finalize VM Configuration After Reboot
 
 Log in again and run the ansible playbook to configure all the services with infra server :
 
