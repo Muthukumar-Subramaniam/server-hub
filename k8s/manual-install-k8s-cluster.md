@@ -148,6 +148,9 @@ sudo systemctl enable --now kubelet.service && sudo systemctl status kubelet.ser
 sudo kubeadm config images pull
 ```
 ```
+k8s_pod_network_cidr="10.8.0.0/22" # Pod Network of your choice
+```
+```
 sudo kubeadm init --pod-network-cidr="${k8s_pod_network_cidr}"
 ```
 ```
