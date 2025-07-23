@@ -24,6 +24,7 @@ cd /server-hub/qemu-kvm-manage/
 
 ---
 ## Setp 3 - Run below script to download latest AlmaLinux ISO
+( This will take sometime depending on your network speed )
 
 ```bash
 ./download-almalinux-latest.sh
