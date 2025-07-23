@@ -127,6 +127,7 @@ The above tools invokes below custom tools from the infra server :
 
 - **dnsbinder** – For dynamic DNS management of your local domain
 - **ksmanager** – PXE & Golden-Image based OS provisioning of VMs using Kickstarts
+- **prepare-distro-for-ksmanager** - To download and prepare various linux distros supported by ksmanager
 
 ---
 
