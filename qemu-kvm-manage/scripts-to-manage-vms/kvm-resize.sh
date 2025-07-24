@@ -108,10 +108,10 @@ resize_vm_memory() {
             continue
         fi
 
-        if ! (( vm_mem_gib != 0 && (vm_mem_gib & (vm_mem_gib - 1)) == 0 )); then
-            echo -e "\n❌ VM memory size must be a power of 2 (2, 4, 8...)\n"
+	if (( vm_mem_gib < 2 || (vm_mem_gib & (vm_mem_gib - 1)) != 0 )); then
+    	    echo -e "\n❌ VM memory size must be a power of 2 (2, 4, 8...)\n"
             continue
-        fi
+	fi
 
         if (( vm_mem_gib >= host_mem_gib )); then
             echo -e "\n❌ VM memory size must be less than host memory ${host_mem_gib} GiB\n"
