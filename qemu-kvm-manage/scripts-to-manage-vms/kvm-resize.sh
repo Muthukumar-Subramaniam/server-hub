@@ -35,7 +35,7 @@ fi
 
 fn_shutdown_or_poweroff() {
     echo -e "\n⚠️  VM '$qemu_kvm_hostname' is still Running ! "
-    echo "   Select any of the below options to proceed further.\n"
+    echo -e "    Select any of the below options to proceed further.\n"
     echo "	1) Try Graceful Shutdown"
     echo "	2) Force Power Off"
     echo -e "	q) Quit\n"
@@ -73,7 +73,7 @@ fn_shutdown_or_poweroff() {
 	    echo -e "✅ VM '$qemu_kvm_hostname' is stopped successfully. \n"
             ;;
         q)
-            echo -e "\n👋 Quitting without any action."
+            echo -e "\n👋 Quitting without any action.\n"
             exit 0
             ;;
         *)
@@ -235,7 +235,7 @@ while true; do
         2) resize_vm_cpu;exit;;
         3) resize_vm_disk;exit;;
         q)
-            echo -e "\n👋 Exiting VM Resize tool without any changes.\n"
+            echo -e "\n👋 Quitting without any action.\n"
             exit 0
             ;;
         *) echo -e "\n❌ Invalid option ! \n" ;;
