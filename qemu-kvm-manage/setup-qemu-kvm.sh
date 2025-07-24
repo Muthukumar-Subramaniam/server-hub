@@ -85,6 +85,7 @@ vm_tool_names=(
   kvm-start
   kvm-stop
   kvm-restart
+  kvm-resize
   kvm-console
   kvm-list
 )

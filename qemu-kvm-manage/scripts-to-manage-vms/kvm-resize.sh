@@ -37,7 +37,7 @@ fn_shutdown_or_poweroff() {
     echo -e "\n⚠️  VM is still Running! Select any of the below options to proceed further.\n"
     echo "  1) Try Graceful Shutdown"
     echo "  2) Force Power Off"
-    echo -e "  3) Quit\n"
+    echo -e "  q) Quit\n"
 
     read -rp "Enter your choice [1-3]: " selected_choice
 
@@ -62,7 +62,7 @@ fn_shutdown_or_poweroff() {
                 echo -e "\n✅ VM has been shut down successfully, Proceeding further."
             else
                 echo -e "\n❌ SSH connection issue with ${qemu_kvm_hostname}.${local_infra_domain_name}.\n❌ Cannot perform graceful shutdown.\n"
-		fn_shutdown_or_poweroff
+		exit 1
             fi
             ;;
         2)
@@ -71,7 +71,7 @@ fn_shutdown_or_poweroff() {
 	    sleep 1
 	    echo -e "✅ VM '$qemu_kvm_hostname' is stopped successfully. \n"
             ;;
-        3)
+        q)
             echo -e "\n👋 Quitting without any action."
             exit 0
             ;;
@@ -81,12 +81,7 @@ fn_shutdown_or_poweroff() {
     esac
 }
 
-# Check if VM exists in 'virsh list'
-if ! sudo virsh list  | awk '{print $2}' | grep -Fxq "$qemu_kvm_hostname"; then
-    echo -e "✅ VM '$qemu_kvm_hostname' is not Running, Proceeding further. \n"
-else
-    fn_shutdown_or_poweroff
-fi
+
 
 resize_vm_memory() {
     host_mem_kib=$(grep MemTotal /proc/meminfo | awk '{print $2}')
@@ -225,6 +220,13 @@ while true; do
     echo -e "  q) Quit\n"
 
     read -rp "Enter your choice : " resize_choice
+
+    # Check if VM is running in 'virsh list'
+    if ! sudo virsh list  | awk '{print $2}' | grep -Fxq "$qemu_kvm_hostname"; then
+        echo -e "✅ VM '$qemu_kvm_hostname' is not Running, Proceeding further. \n"
+    else
+        fn_shutdown_or_poweroff
+    fi
 
     case "$resize_choice" in
         1) resize_vm_memory;exit;;
