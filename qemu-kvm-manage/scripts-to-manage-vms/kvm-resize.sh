@@ -222,16 +222,18 @@ while true; do
     read -rp "Enter your choice : " resize_choice
 
     # Check if VM is running in 'virsh list'
-    if ! sudo virsh list  | awk '{print $2}' | grep -Fxq "$qemu_kvm_hostname"; then
-        echo -e "✅ VM '$qemu_kvm_hostname' is not Running, Proceeding further. \n"
-    else
-        fn_shutdown_or_poweroff
-    fi
+    fn_check_vm_power_state() {
+    	if ! sudo virsh list  | awk '{print $2}' | grep -Fxq "$qemu_kvm_hostname"; then
+        	echo -e "✅ VM '$qemu_kvm_hostname' is not Running, Proceeding further. \n"
+    	else
+        	fn_shutdown_or_poweroff
+    	fi
+    }
 
     case "$resize_choice" in
-        1) resize_vm_memory;exit;;
-        2) resize_vm_cpu;exit;;
-        3) resize_vm_disk;exit;;
+        1) fn_check_vm_power_state;resize_vm_memory;exit;;
+        2) fn_check_vm_power_state;resize_vm_cpu;exit;;
+        3) fn_check_vm_power_state;resize_vm_disk;exit;;
         q) echo -e "\n👋 Quitting without any action.\n";exit;;
         *) echo -e "\n❌ Invalid option ! \n" ;;
     esac
