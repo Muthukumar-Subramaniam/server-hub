@@ -74,15 +74,13 @@ fn_shutdown_or_poweroff() {
             ;;
         q)
             echo -e "\n👋 Quitting without any action.\n"
-            exit 0
+            exit
             ;;
         *)
             echo "❌ Invalid option. Please choose between 1 and 3."
             ;;
     esac
 }
-
-
 
 resize_vm_memory() {
     host_mem_kib=$(grep MemTotal /proc/meminfo | awk '{print $2}')
@@ -215,7 +213,7 @@ resize_vm_disk() {
 
 while true; do
     echo -e "\n🛠️  Resize Resource of VM '$qemu_kvm_hostname' "
-    echo -e "   Select an option.\n"
+    echo -e "    Select an option.\n"
     echo "	1) Resize Memory"
     echo "	2) Resize CPU"
     echo "	3) Resize Disk"
@@ -234,10 +232,7 @@ while true; do
         1) resize_vm_memory;exit;;
         2) resize_vm_cpu;exit;;
         3) resize_vm_disk;exit;;
-        q)
-            echo -e "\n👋 Quitting without any action.\n"
-            exit 0
-            ;;
+        q) echo -e "\n👋 Quitting without any action.\n";exit;;
         *) echo -e "\n❌ Invalid option ! \n" ;;
     esac
 done
