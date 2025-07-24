@@ -49,7 +49,7 @@ fn_shutdown_or_poweroff() {
             local_infra_domain_name=$(cat /virtual-machines/local_infra_domain_name)
 	    echo -e "\n🔍 Checking SSH connectivity to ${qemu_kvm_hostname}.${local_infra_domain_name} . . ."
             if nc -zw5 "${qemu_kvm_hostname}.${local_infra_domain_name}" 22; then
-                echo "\n🔗 SSH connectivity seems to be fine. Initiating graceful shutdown . . .\n"
+                echo -e "\n🔗 SSH connectivity seems to be fine. Initiating graceful shutdown . . .\n"
                 ssh -o LogLevel=QUIET \
                     -o StrictHostKeyChecking=no \
                     -o UserKnownHostsFile=/dev/null \
