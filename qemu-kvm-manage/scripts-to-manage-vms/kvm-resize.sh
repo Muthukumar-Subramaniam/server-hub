@@ -118,11 +118,11 @@ resize_vm_memory() {
             continue
         fi
 
-        vm_mem_mib=$(( vm_mem_gib * 1024 ))
+        vm_mem_kib=$(( vm_mem_gib * 1024 * 1024 ))
         echo -e "\n📐 Updating memory size of VM to ${vm_mem_gib} GiB . . .\n"
 
-        sudo virsh setmaxmem "$qemu_kvm_hostname" "$vm_mem_mib" --config && \
-        sudo virsh setmem "$qemu_kvm_hostname" "$vm_mem_mib" --config && \
+        sudo virsh setmaxmem "$qemu_kvm_hostname" "$vm_mem_kib" --config && \
+        sudo virsh setmem "$qemu_kvm_hostname" "$vm_mem_kib" --config && \
         echo -e "\n✅ VM memory updated to ${vm_mem_gib} GiB, Proceeding to power on the VM."
 	sudo virsh start "${qemu_kvm_hostname}" 2>/dev/null
 	echo -e "✅ VM \"$qemu_kvm_hostname\" is started successfully after Memory resize. \n"
