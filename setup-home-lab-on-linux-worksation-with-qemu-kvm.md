@@ -116,6 +116,7 @@ kvm-console                   # Connect to VM via serial console
 kvm-start                     # Start a VM
 kvm-stop                      # Stop a VM
 kvm-restart                   # Restart a VM
+kvm-resize                    # Resize Memory,CPU or Disk of a VM
 kvm-remove                    # Remove/delete a VM
 ```
 
