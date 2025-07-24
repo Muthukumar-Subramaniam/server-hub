@@ -29,7 +29,7 @@ fi
 
 # Check if VM exists in 'virsh list --all'
 if ! sudo virsh list --all | awk '{print $2}' | grep -Fxq "$qemu_kvm_hostname"; then
-    echo "❌ Error: VM \"$qemu_kvm_hostname\" does not exist."
+    echo "❌ Error: VM '$qemu_kvm_hostname' does not exist."
     exit 1
 fi
 
@@ -69,7 +69,7 @@ fn_shutdown_or_poweroff() {
             echo -e "\n⚡ Forcing power off . . ."
 	    sudo virsh destroy "${qemu_kvm_hostname}" &>/dev/null
 	    sleep 1
-	    echo -e "✅ VM \"$qemu_kvm_hostname\" is stopped successfully. \n"
+	    echo -e "✅ VM '$qemu_kvm_hostname' is stopped successfully. \n"
             ;;
         3)
             echo -e "\n👋 Quitting without any action."
@@ -162,6 +162,7 @@ resize_vm_cpu() {
         fi
 
         echo -e "\n🔧 Updating vCPUs of VM '${qemu_kvm_hostname}' to ${new_vcpus_of_vm}  . . .\n"
+        sudo virsh setvcpus "$qemu_kvm_hostname" "$new_vcpus_of_vm" --maximum --config && \
         sudo virsh setvcpus "$qemu_kvm_hostname" "$new_vcpus_of_vm" --config && \
         echo -e "\n✅ vCPU count updated to $new_vcpus_of_vm, Proceeding to power on the VM.\n"
 	sudo virsh start "${qemu_kvm_hostname}" 2>/dev/null
