@@ -59,18 +59,25 @@ EOF
 sudo chmod +x /bin/virt-install
 echo -e "✅"
 
-echo -n -e "\n🛜 Setting up custom bridge network virbr0 for QEMU/KVM . . . "
 virsh_network_name="default"
 virsh_network_definition="virbr0.xml"
-run_virsh_cmd() {
-    sudo virsh "$@" &>/dev/null
-}
-run_virsh_cmd net-destroy "$virsh_network_name"
-run_virsh_cmd net-undefine "$virsh_network_name"
-run_virsh_cmd net-define "$virsh_network_definition"
-run_virsh_cmd net-start "$virsh_network_name"
-run_virsh_cmd net-autostart "$virsh_network_name"
-echo -e "✅"
+ipv4_virbr0=$(grep -oP "<ip address='\K[^']+" "$virsh_network_definition")
+
+if ( ip link show virbr0 &>/dev/null && ip addr show virbr0 | grep -q "$ipv4_virbr0" ); then
+    echo "✅ virbr0 already has IP $ipv4_virbr0 — skipping task."
+else
+    echo -n -e "\n🛜 Setting up custom bridge network virbr0 for QEMU/KVM . . . "
+    # your network setup logic here
+    run_virsh_cmd() {
+        sudo virsh "$@" &>/dev/null
+    }
+    run_virsh_cmd net-destroy "$virsh_network_name"
+    run_virsh_cmd net-undefine "$virsh_network_name"
+    run_virsh_cmd net-define "$virsh_network_definition"
+    run_virsh_cmd net-start "$virsh_network_name"
+    run_virsh_cmd net-autostart "$virsh_network_name"
+    echo -e "✅"
+fi
 
 echo -n -e "\n⚙️  Creating custom tools to manage QEMU/KVM . . . "
 scripts_directory="/server-hub/qemu-kvm-manage/scripts-to-manage-vms"

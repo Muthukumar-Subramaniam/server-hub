@@ -34,12 +34,13 @@ if ! sudo virsh list --all | awk '{print $2}' | grep -Fxq "$qemu_kvm_hostname"; 
 fi
 
 fn_shutdown_or_poweroff() {
-    echo -e "\n⚠️  VM is still Running! Select any of the below options to proceed further.\n"
-    echo "  1) Try Graceful Shutdown"
-    echo "  2) Force Power Off"
-    echo -e "  q) Quit\n"
+    echo -e "\n⚠️  VM '$qemu_kvm_hostname' is still Running ! "
+    echo "   Select any of the below options to proceed further.\n"
+    echo "	1) Try Graceful Shutdown"
+    echo "	2) Force Power Off"
+    echo -e "	q) Quit\n"
 
-    read -rp "Enter your choice [1-3]: " selected_choice
+    read -rp "Enter your choice : " selected_choice
 
     case "$selected_choice" in
         1)
@@ -213,11 +214,12 @@ resize_vm_disk() {
 }
 
 while true; do
-    echo -e "\n🛠️  Resize VM Resources. Select an option.\n"
-    echo "  1) Resize Memory"
-    echo "  2) Resize CPU"
-    echo "  3) Resize Disk"
-    echo -e "  q) Quit\n"
+    echo -e "\n🛠️  Resize Resource of VM '$qemu_kvm_hostname' "
+    echo -e "   Select an option.\n"
+    echo "	1) Resize Memory"
+    echo "	2) Resize CPU"
+    echo "	3) Resize Disk"
+    echo -e "	q) Quit\n"
 
     read -rp "Enter your choice : " resize_choice
 
