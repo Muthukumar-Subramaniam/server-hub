@@ -55,7 +55,7 @@ fn_shutdown_or_poweroff() {
                     "${infra_mgmt_super_username}@${qemu_kvm_hostname}.${local_infra_domain_name}" \
                     "sudo shutdown -h now"
 
-                echo -e "\n⏳ Waiting for VM \'{qemu_kvm_hostname}\' to shut down . . ."
+                echo -e "\n⏳ Waiting for VM '${qemu_kvm_hostname}' to shut down . . ."
                 while sudo virsh list | awk '{print $2}' | grep -Fxq "$qemu_kvm_hostname"; do
                     sleep 1
                 done
@@ -120,10 +120,9 @@ resize_vm_memory() {
 
         vm_mem_kib=$(( vm_mem_gib * 1024 * 1024 ))
         echo -e "\n📐 Updating memory size of VM to ${vm_mem_gib} GiB . . .\n"
-
         sudo virsh setmaxmem "$qemu_kvm_hostname" "$vm_mem_kib" --config && \
         sudo virsh setmem "$qemu_kvm_hostname" "$vm_mem_kib" --config && \
-        echo -e "\n✅ VM memory updated to ${vm_mem_gib} GiB, Proceeding to power on the VM."
+        echo -e "✅ VM memory updated to ${vm_mem_gib} GiB, Proceeding to power on the VM.\n"
 	sudo virsh start "${qemu_kvm_hostname}" 2>/dev/null
 	echo -e "✅ VM '${qemu_kvm_hostname}' is started successfully after Memory resize. \n"
         break
@@ -135,7 +134,7 @@ resize_vm_cpu() {
     host_cpu_count=$(nproc)
 
     echo -e "\n🧠 Host logical CPUs : $host_cpu_count"
-    echo "🧾 Current vCPUs of VM \'${qemu_kvm_hostname}\' : $current_vcpus_of_vm"
+    echo "🧾 Current vCPUs of VM '${qemu_kvm_hostname}' : $current_vcpus_of_vm"
     echo -e "📌 Allowed values: Powers of 2 — e.g., 2, 4, 8... up to ${host_cpu_count}\n"
 
     while true; do
@@ -164,7 +163,7 @@ resize_vm_cpu() {
         echo -e "\n🔧 Updating vCPUs of VM '${qemu_kvm_hostname}' to ${new_vcpus_of_vm}  . . .\n"
         sudo virsh setvcpus "$qemu_kvm_hostname" "$new_vcpus_of_vm" --maximum --config && \
         sudo virsh setvcpus "$qemu_kvm_hostname" "$new_vcpus_of_vm" --config && \
-        echo -e "\n✅ vCPU count updated to $new_vcpus_of_vm, Proceeding to power on the VM.\n"
+        echo -e "✅ vCPU count updated to $new_vcpus_of_vm, Proceeding to power on the VM.\n"
 	sudo virsh start "${qemu_kvm_hostname}" 2>/dev/null
 	echo -e "✅ VM '$qemu_kvm_hostname' is started successfully after vCPU resize. \n"
         break
