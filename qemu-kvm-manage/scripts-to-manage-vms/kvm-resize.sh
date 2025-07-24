@@ -83,7 +83,7 @@ fn_shutdown_or_poweroff() {
 
 # Check if VM exists in 'virsh list'
 if ! sudo virsh list  | awk '{print $2}' | grep -Fxq "$qemu_kvm_hostname"; then
-    echo -e "✅ VM \"$qemu_kvm_hostname\" is not Running, Proceeding further. \n"
+    echo -e "✅ VM '$qemu_kvm_hostname' is not Running, Proceeding further. \n"
 else
     fn_shutdown_or_poweroff
 fi
@@ -97,7 +97,7 @@ resize_vm_memory() {
     current_vm_mem_gib=$(( current_mem_kib / 1024 / 1024 ))
 
     echo -e "\n🖥️ Memory of Host Machine : ${host_mem_gib} GiB"
-    echo "📦 Memory of VM \'${qemu_kvm_hostname}\' : ${current_vm_mem_gib} GiB"
+    echo "📦 Memory of VM '${qemu_kvm_hostname}' : ${current_vm_mem_gib} GiB"
     echo -e "📌 Allowed sizes: Powers of 2 — e.g., 2, 4, 8... but less than ${host_mem_gib} GiB\n"
 
     while true; do
@@ -125,7 +125,7 @@ resize_vm_memory() {
         sudo virsh setmem "$qemu_kvm_hostname" "$vm_mem_kib" --config && \
         echo -e "\n✅ VM memory updated to ${vm_mem_gib} GiB, Proceeding to power on the VM."
 	sudo virsh start "${qemu_kvm_hostname}" 2>/dev/null
-	echo -e "✅ VM \"$qemu_kvm_hostname\" is started successfully after Memory resize. \n"
+	echo -e "✅ VM '${qemu_kvm_hostname}' is started successfully after Memory resize. \n"
         break
     done
 }
@@ -161,11 +161,11 @@ resize_vm_cpu() {
             continue
         fi
 
-        echo -e "\n🔧 Updating vCPUs of VM \'${qemu_kvm_hostname}\' to ${new_vcpus_of_vm}  . . .\n"
+        echo -e "\n🔧 Updating vCPUs of VM '${qemu_kvm_hostname}' to ${new_vcpus_of_vm}  . . .\n"
         sudo virsh setvcpus "$qemu_kvm_hostname" "$new_vcpus_of_vm" --config && \
         echo -e "\n✅ vCPU count updated to $new_vcpus_of_vm, Proceeding to power on the VM.\n"
 	sudo virsh start "${qemu_kvm_hostname}" 2>/dev/null
-	echo -e "✅ VM \"$qemu_kvm_hostname\" is started successfully after vCPU resize. \n"
+	echo -e "✅ VM '$qemu_kvm_hostname' is started successfully after vCPU resize. \n"
         break
     done
 }
@@ -181,7 +181,7 @@ resize_vm_disk() {
 
     current_disk_gib=$(sudo qemu-img info "${vm_qcow2_disk_path}" | grep "virtual size" | grep -o '[0-9]\+ GiB' | cut -d' ' -f1)
 
-    echo -e "\n📏 Current disk size of VM \'${qemu_kvm_hostname}\' : ${current_disk_gib} GiB\n"
+    echo -e "\n📏 Current disk size of VM '${qemu_kvm_hostname}' : ${current_disk_gib} GiB\n"
     echo -e "📌 Allowed sizes for increase: Steps of 5 GiB — e.g., 5, 10, 15... upto 50 GiB\n"
 
     while true; do
@@ -205,12 +205,12 @@ resize_vm_disk() {
         echo "📂 Growing disk by ${grow_size_gib} GiB . . ."
         if sudo qemu-img resize "$vm_qcow2_disk_path" +${grow_size_gib}G; then
 	    total_vm_disk_size=$(( current_disk_gib + grow_size_gib ))
-            echo -e "\n✅ Disk of VM \'${qemu_kvm_hostname}\' resized to ${total_vm_disk_size} GiB, Proceeding to power on the VM."
+            echo -e "\n✅ Disk of VM '${qemu_kvm_hostname}' resized to ${total_vm_disk_size} GiB, Proceeding to power on the VM."
             echo -e "📌 Expand filesystem inside VM after boot.\n"
 	    sudo virsh start "${qemu_kvm_hostname}" 2>/dev/null
-	    echo -e "✅ VM \"$qemu_kvm_hostname\" is started successfully after disk resize. \n"
+	    echo -e "✅ VM '$qemu_kvm_hostname' is started successfully after disk resize. \n"
         else
-            echo -e "\n❌ Disk resize of VM \'${qemu_kvm_hostname}\' failed ! \n"
+            echo -e "\n❌ Disk resize of VM '${qemu_kvm_hostname}' failed ! \n"
 	    exit 1
         fi
         break
@@ -227,9 +227,9 @@ while true; do
     read -rp "Enter your choice : " resize_choice
 
     case "$resize_choice" in
-        1) resize_vm_memory ;;
-        2) resize_vm_cpu ;;
-        3) resize_vm_disk ;;
+        1) resize_vm_memory;exit;;
+        2) resize_vm_cpu;exit;;
+        3) resize_vm_disk;exit;;
         q)
             echo -e "\n👋 Exiting VM Resize tool without any changes.\n"
             exit 0
