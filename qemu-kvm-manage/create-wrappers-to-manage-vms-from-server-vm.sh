@@ -37,12 +37,12 @@ if ! grep -q "${get_user_host_ssh_pub_key}" ~/.ssh/authorized_keys;then
 fi
 
 for FILENAME in $(ls "${scripts_location_to_manage_vms}" | sed "s/.sh//g"); do
-cat << EOF >"${temp_dir_to_create_wrapper_scripts}/${FILENAME}"
+cat > "${temp_dir_to_create_wrapper_scripts}/${FILENAME}" << EOF
 #!/bin/bash
 ssh -o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ${kvm_host_admin_user}@${kvm_host_ipv4_address} "${FILENAME} \$1"
 exit
 EOF
 
-rsync -az -e "ssh $SSH_OPTS" "$temp_dir_to_create_wrapper_scripts" ${infra_mgmt_super_username}@${infra_server_ipv4_address}:"
+rsync -az -e "ssh $SSH_OPTS" "$temp_dir_to_create_wrapper_scripts" ${infra_mgmt_super_username}@${infra_server_ipv4_address}:
 
 ssh ${SSH_OPTS} ${infra_mgmt_super_username}@${infra_server_ipv4_address} "chmod +x -R scripts-to-manage-vms && sudo rsync scripts-to-manage-vms/ /bin/"
