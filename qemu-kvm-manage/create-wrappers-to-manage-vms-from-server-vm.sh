@@ -32,7 +32,7 @@ SSH_OPTS="-o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/d
 
 get_user_host_ssh_pub_key=$(ssh ${SSH_OPTS} ${infra_mgmt_super_username}@${infra_server_ipv4_address} "cat .ssh/id_rsa.pub" | cut -d " " -f3)
 
-if ! grep -q "${get_user_host_ssh_pub_key}" ~/.ssh/authorized_keys;then
+if ! grep -q "${get_user_host_ssh_pub_key}" ~/.ssh/authorized_keys; then
 	ssh ${SSH_OPTS} ${infra_mgmt_super_username}@${infra_server_ipv4_address} "cat .ssh/id_rsa.pub" >> ~/.ssh/authorized_keys
 fi
 
@@ -42,6 +42,7 @@ cat > "${temp_dir_to_create_wrapper_scripts}/${FILENAME}" << EOF
 ssh -o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ${kvm_host_admin_user}@${kvm_host_ipv4_address} "${FILENAME} \$1"
 exit
 EOF
+done
 
 rsync -az -e "ssh $SSH_OPTS" "$temp_dir_to_create_wrapper_scripts" ${infra_mgmt_super_username}@${infra_server_ipv4_address}:
 
