@@ -36,6 +36,8 @@ if ! grep -q "${get_user_host_ssh_pub_key}" ~/.ssh/authorized_keys; then
 	ssh ${SSH_OPTS} ${infra_mgmt_super_username}@${infra_server_ipv4_address} "cat .ssh/id_rsa.pub" >> ~/.ssh/authorized_keys
 fi
 
+mkdir -p "${temp_dir_to_create_wrapper_scripts}"
+
 for FILENAME in $(ls "${scripts_location_to_manage_vms}" | sed "s/.sh//g"); do
 cat > "${temp_dir_to_create_wrapper_scripts}/${FILENAME}" << EOF
 #!/bin/bash
