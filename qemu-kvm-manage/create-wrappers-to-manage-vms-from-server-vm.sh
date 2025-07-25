@@ -27,5 +27,9 @@ kvm_host_admin_user="$USER"
 scripts_location_to_manage_vms="/server-hub/qemu-kvm-manage/scripts-to-manage-vms"
 temp_dir_to_create_wrapper_scripts="/tmp/scripts-to-manage-vms"
 
-ssh -o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ${infra_mgmt_super_username}@${infra_server_ipv4_address} "cat .ssh/id_rsa.pub"
+get_user_host_ssh_pub_key=$(ssh -o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ${infra_mgmt_super_username}@${infra_server_ipv4_address} "cat .ssh/id_rsa.pub" | cut -d " " -f3)
+
+if ! grep -q "${get_user_host_ssh_pub_key}" ~/.ssh/authorized_keys;then
+	ssh -o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ${infra_mgmt_super_username}@${infra_server_ipv4_address} "cat .ssh/id_rsa.pub" >> ~/.ssh/authorized_keys
+fi
 
