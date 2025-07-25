@@ -48,4 +48,4 @@ done
 
 rsync -az -e "ssh $SSH_OPTS" "$temp_dir_to_create_wrapper_scripts" ${infra_mgmt_super_username}@${infra_server_ipv4_address}:
 
-ssh ${SSH_OPTS} ${infra_mgmt_super_username}@${infra_server_ipv4_address} "chmod +x -R scripts-to-manage-vms && sudo rsync scripts-to-manage-vms/ /bin/"
+ssh ${SSH_OPTS} ${infra_mgmt_super_username}@${infra_server_ipv4_address} "chmod +x -R scripts-to-manage-vms;sudo rsync -az scripts-to-manage-vms/* /bin/"
