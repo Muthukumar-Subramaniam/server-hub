@@ -54,6 +54,8 @@ ssh ${SSH_OPTS} ${infra_mgmt_super_username}@${infra_server_ipv4_address} "chmod
 rm -rf "$temp_dir_to_create_wrapper_scripts"
 echo "[ok]"
 
-echo "Now you can manage KVM host's ( $(uname -n ) ) QEMU/KVM environment from your infra server VM itself ! "
-echo "CLI Tools to manage KVM VMs : $(ls "${scripts_location_to_manage_vms}" | sed "s/.sh//g")"
-echo
+echo -e "\nNow you can manage QEMU/KVM environment from your infra server VM itself ! \n"
+echo "CLI Tools to manage KVM VMs : "
+echo "-----------------------------"
+ls "${scripts_location_to_manage_vms}" | sed "s/.sh//g"
+echo "-----------------------------"
