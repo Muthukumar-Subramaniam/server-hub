@@ -30,22 +30,30 @@ virsh_network_definition="/server-hub/qemu-kvm-manage/virbr0.xml"
 kvm_host_ipv4_address=$(grep -oP "<ip address='\K[^']+" "$virsh_network_definition")
 SSH_OPTS="-o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
 
+echo -n "[STEP] Authorize SSH public key of infra server VM . . . "
 get_user_host_ssh_pub_key=$(ssh ${SSH_OPTS} ${infra_mgmt_super_username}@${infra_server_ipv4_address} "cat .ssh/id_rsa.pub" | cut -d " " -f3)
-
 if ! grep -q "${get_user_host_ssh_pub_key}" ~/.ssh/authorized_keys; then
 	ssh ${SSH_OPTS} ${infra_mgmt_super_username}@${infra_server_ipv4_address} "cat .ssh/id_rsa.pub" >> ~/.ssh/authorized_keys
 fi
+echo "[ok]"
 
+echo -n "[STEP] Generating wrapper scripts to manage KVM VMs . . . "
 mkdir -p "${temp_dir_to_create_wrapper_scripts}"
-
 for FILENAME in $(ls "${scripts_location_to_manage_vms}" | sed "s/.sh//g"); do
 cat > "${temp_dir_to_create_wrapper_scripts}/${FILENAME}" << EOF
 #!/bin/bash
-ssh -o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ${kvm_host_admin_user}@${kvm_host_ipv4_address} "${FILENAME} \$1"
+ssh ${SSH_OPTS} -t ${kvm_host_admin_user}@${kvm_host_ipv4_address} "${FILENAME} \${1}"
 exit
 EOF
 done
+echo "[ok]"
 
+echo -n "[STEP] Syncing wrapper scripts to infra server VM . . . "
 rsync -az -e "ssh $SSH_OPTS" "$temp_dir_to_create_wrapper_scripts" ${infra_mgmt_super_username}@${infra_server_ipv4_address}:
+ssh ${SSH_OPTS} ${infra_mgmt_super_username}@${infra_server_ipv4_address} "chmod +x -R scripts-to-manage-vms;sudo rsync -az scripts-to-manage-vms/* /bin/ && rm -rf scripts-to-manage-vms"
+rm -rf "$temp_dir_to_create_wrapper_scripts"
+echo "[ok]"
 
-ssh ${SSH_OPTS} ${infra_mgmt_super_username}@${infra_server_ipv4_address} "chmod +x -R scripts-to-manage-vms;sudo rsync -az scripts-to-manage-vms/* /bin/"
+echo "Now you can manage KVM host's ( $(uname -n ) ) QEMU/KVM environment from your infra server VM itself ! "
+echo "CLI Tools to manage KVM VMs : $(ls "${scripts_location_to_manage_vms}" | sed "s/.sh//g")"
+echo
