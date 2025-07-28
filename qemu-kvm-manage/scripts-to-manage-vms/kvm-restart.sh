@@ -25,6 +25,13 @@ if [ -n "$1" ]; then
     qemu_kvm_hostname="$1"
 else
     read -rp "⌨️ Please enter the Hostname of the VM to be restarted : " qemu_kvm_hostname
+    if [[ -n "${KVM_TOOL_EXECUTED_FROM:-}" && "${KVM_TOOL_EXECUTED_FROM}" == "${qemu_kvm_hostname}" ]]; then
+	echo -e "\n❌ This operation is not allowed to avoid self-referential KVM actions that could destabilize the infra server."
+    	echo -e "⚠️  Note:"
+	echo -e "  🔹 You are running a KVM management related action for the lab infra server from the infra server itself."
+	echo -e "  🔹If you still need to perform this operation, you need to do this from the Linux workstation running the QEMU/KVM setup.\n"
+	exit 1
+    fi
 fi
 
 # Check if VM exists in 'virsh list --all'
