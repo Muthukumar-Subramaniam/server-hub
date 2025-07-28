@@ -13,7 +13,7 @@ fi
 # Check if we're inside a QEMU guest
 if sudo dmidecode -s system-manufacturer | grep -qi 'QEMU'; then
     echo "❌❌❌  FATAL: WRONG PLACE, BUDDY! ❌❌❌"
-    echo -e "\n⚠️  Note:"
+    echo -e "\n⚠️ Note:"
     echo -e "  🔹 This script is meant to be run on the *host* system managing QEMU/KVM VMs."
     echo -e "  🔹 You’re currently inside a QEMU guest VM, which makes absolutely no sense.\n"
     echo "💥 ABORTING EXECUTION 💥"
@@ -27,9 +27,9 @@ else
     read -rp "⌨️ Please enter the Hostname of the VM to be started : " qemu_kvm_hostname
     if [[ -n "${KVM_TOOL_EXECUTED_FROM:-}" && "${KVM_TOOL_EXECUTED_FROM}" == "${qemu_kvm_hostname}" ]]; then
 	echo -e "\n❌ This operation is not allowed to avoid self-referential KVM actions that could destabilize the infra server."
-    	echo -e "⚠️  Note:"
+    	echo -e "⚠️ Note:"
 	echo -e "  🔹 You are running a KVM management related action for the lab infra server from the infra server itself."
-	echo -e "  🔹If you still need to perform this operation, you need to do this from the Linux workstation running the QEMU/KVM setup.\n"
+	echo -e "  🔹 If you still need to perform this operation, you need to do this from the Linux workstation running the QEMU/KVM setup.\n"
 	exit 1
     fi
 fi
