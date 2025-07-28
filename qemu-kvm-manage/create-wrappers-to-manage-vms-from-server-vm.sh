@@ -46,9 +46,9 @@ cat > "${temp_dir_to_create_wrapper_scripts}/${FILENAME}" << EOF
 #!/bin/bash
 if [[ "\${1}" == "\$(hostname -s)" ]]; then
 	echo -e "\n❌ This operation is not allowed to avoid self-referential KVM actions that could destabilize the infra server."
-    	echo -e "⚠️  Note:"
+    	echo -e "⚠️ Note:"
 	echo -e "  🔹 You are running a KVM management related action for the lab infra server from the infra server itself."
-	echo -e "  🔹If you still need to perform this operation, you need to do this from the Linux workstation running the QEMU/KVM setup.\n"
+	echo -e "  🔹 If you still need to perform this operation, you need to do this from the Linux workstation running the QEMU/KVM setup.\n"
 	exit 1
 fi
 INFRA_SERVER_NAME="\$(hostname -s)"
