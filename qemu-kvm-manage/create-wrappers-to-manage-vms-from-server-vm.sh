@@ -49,6 +49,7 @@ if [[ "\${1}" == "\$(hostname -s)" ]]; then
     	echo -e "⚠️  Note:"
 	echo -e "  🔹 You are running a KVM management related action for the lab infra server from the infra server itself."
 	echo -e "  🔹If you still need to perform this operation, you need to do this from the Linux workstation running the QEMU/KVM setup.\n"
+	exit 1
 fi
 INFRA_SERVER_NAME="\$(hostname -s)"
 ssh ${SSH_OPTS} -t ${kvm_host_admin_user}@${kvm_host_ipv4_address} "export KVM_TOOL_EXECUTED_FROM="\${INFRA_SERVER_NAME}";${FILENAME} \${1}"
