@@ -216,6 +216,7 @@ resize_vm_disk() {
             echo -e "\n🛠️ Attempting to re-size root file system of VM '$qemu_kvm_hostname' . . ."
 	    infra_mgmt_super_username=$(cat /virtual-machines/infra-mgmt-super-username)
             local_infra_domain_name=$(cat /virtual-machines/local_infra_domain_name)
+	    SSH_TARGET_HOST="${qemu_kvm_hostname}.${local_infra_domain_name}"
 	    MAX_SSH_WAIT_SECONDS=120
             SSH_RETRY_INTERVAL_SECONDS=5
             echo -n -e "\n⏳ Waiting up to $MAX_SSH_WAIT_SECONDS seconds for SSH connection on $SSH_TARGET_HOST . . . "
