@@ -241,7 +241,7 @@ resize_vm_disk() {
             rsync -az -e "ssh $SSH_OPTS" "${fs_resize_scipt}" "${infra_mgmt_super_username}@${SSH_TARGET_HOST}:${TMP_SCRIPT}"
             ssh $SSH_OPTS -t ${infra_mgmt_super_username}@${SSH_TARGET_HOST} "sudo bash ${TMP_SCRIPT} localhost && rm -f ${TMP_SCRIPT}"
 	    echo -e "\n✅ Remote execution of rootfs-extender utility completed on ${SSH_TARGET_HOST}.\n"
-	    echo -e "✅ Successfully extended disk size of ${SSH_TARGET_HOST} to ${total_vm_disk_size} GiB also the root file system.\n"
+	    echo -e "✅ Successfully extended the size of OS disk and the root filesystem of ${SSH_TARGET_HOST} to ${total_vm_disk_size} GiB.\n"
         else
             echo -e "\n❌ Disk resize of VM '${qemu_kvm_hostname}' failed ! \n"
 	    exit 1
