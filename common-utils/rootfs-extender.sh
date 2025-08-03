@@ -19,18 +19,12 @@ fi
 # Remote execution logic
 # ----------------------
 if [[ "$REMOTE_HOST" != "localhost" ]]; then
-    CURRENT_SSH_USER=""
-    if [[ ! -n "${ROOTFS_EXTENDER_TOOL_EXECUTED_BY}" ]]; then
-	CURRENT_SSH_USER="${ROOTFS_EXTENDER_TOOL_EXECUTED_BY}"
-    else
-    	echo -n "[INFO] Checking SSH connectivity to $REMOTE_HOST . . . "
-    	if ! ssh $SSH_OPTS "$REMOTE_HOST" "true" >/dev/null 2>&1; then
-        	echo -e "\n[ERROR] SSH connection to $REMOTE_HOST failed. Ensure SSH access works."
-        	exit 1
-    	fi
-    	echo "[ok]"
+    echo -n "[INFO] Checking SSH connectivity to $REMOTE_HOST . . . "
+    if ! ssh $SSH_OPTS "$REMOTE_HOST" "true" >/dev/null 2>&1; then
+    	echo -e "\n[ERROR] SSH connection to $REMOTE_HOST failed. Ensure SSH access works."
+     	exit 1
     fi
-
+    echo "[ok]"
     rsync -az -e "ssh $SSH_OPTS" "$SCRIPT_LOCATION" "${CURRENT_SSH_USER}@$REMOTE_HOST:$TMP_SCRIPT"
     ssh $SSH_OPTS -t "${CURRENT_SSH_USER}@$REMOTE_HOST" "sudo bash $TMP_SCRIPT localhost && rm -f $TMP_SCRIPT"
 

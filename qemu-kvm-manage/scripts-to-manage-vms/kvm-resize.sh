@@ -219,12 +219,12 @@ resize_vm_disk() {
 	    SSH_TARGET_HOST="${qemu_kvm_hostname}.${local_infra_domain_name}"
 	    MAX_SSH_WAIT_SECONDS=120
             SSH_RETRY_INTERVAL_SECONDS=5
+            SSH_OPTS="-o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
             echo -n -e "\n⏳ Waiting up to $MAX_SSH_WAIT_SECONDS seconds for SSH connection on $SSH_TARGET_HOST . . . "
             ssh_start_time=$(date +%s)
             while true; do
               sleep "$SSH_RETRY_INTERVAL_SECONDS"
-	      echo "infra user ${infra_mgmt_super_username}"
-              if ssh -o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=5  "${infra_mgmt_super_username}@${SSH_TARGET_HOST}" "true" &>/dev/null; then
+              if ssh $SSH_OPTS ConnectTimeout=5  "${infra_mgmt_super_username}@${SSH_TARGET_HOST}" "true" &>/dev/null; then
                 echo "[SSH-Active]"
                 break
               fi
@@ -237,8 +237,11 @@ resize_vm_disk() {
               fi
             done
             echo -e "\n🛠️ Executing rootfs-extender utility on $SSH_TARGET_HOST . . . "
-	    export ROOTFS_EXTENDER_TOOL_EXECUTED_BY="${infra_mgmt_super_username}"
-	    ${fs_resize_scipt} "${SSH_TARGET_HOST}"
+	    TMP_SCRIPT="/tmp/rootfs-extender.sh"
+            rsync -az -e $SSH_OPTS "${fs_resize_scipt}" "${infra_mgmt_super_username}@${SSH_TARGET_HOST}:${TMP_SCRIPT}"
+            ssh $SSH_OPTS -t "${infra_mgmt_super_username}@${SSH_TARGET_HOST}" "sudo bash ${TMP_SCRIPT} localhost && rm -f ${TMP_SCRIPT}"
+	    echo -e "\n✅ Remote execution of rootfs-extender utility completed on ${SSH_TARGET_HOST}.\n"
+	    echo -e "✅ Successfully extended disk size of ${SSH_TARGET_HOST} to ${total_vm_disk_size} GiB also the root file system.\n"
         else
             echo -e "\n❌ Disk resize of VM '${qemu_kvm_hostname}' failed ! \n"
 	    exit 1
