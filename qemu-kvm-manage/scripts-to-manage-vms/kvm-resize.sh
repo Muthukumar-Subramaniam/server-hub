@@ -173,6 +173,8 @@ resize_vm_cpu() {
 
 resize_vm_disk() {
 
+    fs_resize_scipt="/server-hub/common-utils/rootfs-extender.sh"
+
     vm_qcow2_disk_path="/virtual-machines/${qemu_kvm_hostname}/${qemu_kvm_hostname}.qcow2"
 
     if [ ! -f "$vm_qcow2_disk_path" ]; then
@@ -207,9 +209,33 @@ resize_vm_disk() {
         if sudo qemu-img resize "$vm_qcow2_disk_path" +${grow_size_gib}G; then
 	    total_vm_disk_size=$(( current_disk_gib + grow_size_gib ))
             echo -e "\n✅ Disk of VM '${qemu_kvm_hostname}' resized to ${total_vm_disk_size} GiB, Proceeding to power on the VM."
-            echo -e "📌 Expand filesystem inside VM after boot.\n"
+
 	    sudo virsh start "${qemu_kvm_hostname}" 2>/dev/null
-	    echo -e "✅ VM '$qemu_kvm_hostname' is started successfully after disk resize. \n"
+	    echo -e "✅ VM '$qemu_kvm_hostname' is started successfully after disk resize."
+
+            echo -e "\n🛠️ Attempting to re-size root file system of VM '$qemu_kvm_hostname' . . ."
+	    infra_mgmt_super_username=$(cat /virtual-machines/infra-mgmt-super-username)
+            local_infra_domain_name=$(cat /virtual-machines/local_infra_domain_name)
+	    MAX_SSH_WAIT_SECONDS=120
+            SSH_RETRY_INTERVAL_SECONDS=5
+            echo -n -e "\n⏳ Waiting up to $MAX_SSH_WAIT_SECONDS seconds for SSH connection on $SSH_TARGET_HOST . . . "
+            ssh_start_time=$(date +%s)
+            while true; do
+              sleep "$SSH_RETRY_INTERVAL_SECONDS"
+              if ssh -o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=5  "${infra_mgmt_super_username}@${SSH_TARGET_HOST}" "true" &>/dev/null; then
+                echo "[SSH-Active]"
+                break
+              fi
+              ssh_current_time=$(date +%s)
+              ssh_elapsed_time=$((ssh_current_time - ssh_start_time))
+              if [ "$ssh_elapsed_time" -ge "$MAX_SSH_WAIT_SECONDS" ]; then
+                echo -e "\n❌ Timed out waiting for SSH after $MAX_SSH_WAIT_SECONDS seconds."
+            	echo -e "📌 Execute rootfs-extender utility manually from $SSH_TARGET_HOST once booted.\n"
+                exit 1
+              fi
+            done
+            echo -e "\n🛠️ Executing rootfs-extender utility on $SSH_TARGET_HOST . . . "
+	    ${fs_resize_scipt} "${SSH_TARGET_HOST}"
         else
             echo -e "\n❌ Disk resize of VM '${qemu_kvm_hostname}' failed ! \n"
 	    exit 1
