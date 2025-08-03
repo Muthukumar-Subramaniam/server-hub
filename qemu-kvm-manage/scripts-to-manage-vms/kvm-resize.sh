@@ -224,7 +224,7 @@ resize_vm_disk() {
             ssh_start_time=$(date +%s)
             while true; do
               sleep "$SSH_RETRY_INTERVAL_SECONDS"
-              if ssh "$SSH_OPTS" "${infra_mgmt_super_username}@${SSH_TARGET_HOST}" "true" &>/dev/null; then
+              if ssh $SSH_OPTS ${infra_mgmt_super_username}@${SSH_TARGET_HOST} "true" &>/dev/null; then
                 echo "[SSH-Active]"
                 break
               fi
@@ -238,8 +238,8 @@ resize_vm_disk() {
             done
             echo -e "\n🛠️ Executing rootfs-extender utility on $SSH_TARGET_HOST . . . "
 	    TMP_SCRIPT="/tmp/rootfs-extender.sh"
-            rsync -az -e $SSH_OPTS "${fs_resize_scipt}" "${infra_mgmt_super_username}@${SSH_TARGET_HOST}:${TMP_SCRIPT}"
-            ssh $SSH_OPTS -t "${infra_mgmt_super_username}@${SSH_TARGET_HOST}" "sudo bash ${TMP_SCRIPT} localhost && rm -f ${TMP_SCRIPT}"
+            rsync -az -e $SSH_OPTS ${fs_resize_scipt} ${infra_mgmt_super_username}@${SSH_TARGET_HOST}:${TMP_SCRIPT}
+            ssh $SSH_OPTS -t ${infra_mgmt_super_username}@${SSH_TARGET_HOST} "sudo bash ${TMP_SCRIPT} localhost && rm -f ${TMP_SCRIPT}"
 	    echo -e "\n✅ Remote execution of rootfs-extender utility completed on ${SSH_TARGET_HOST}.\n"
 	    echo -e "✅ Successfully extended disk size of ${SSH_TARGET_HOST} to ${total_vm_disk_size} GiB also the root file system.\n"
         else
