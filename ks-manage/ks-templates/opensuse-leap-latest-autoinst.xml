@@ -296,6 +296,8 @@
 	/usr/bin/get_golden_image_creation_not_requested || /usr/bin/wget -O /etc/systemd/system/golden-boot-opensuse-leap.service http://get_web_server_name.get_ipv4_domain/ksmanager-hub/kickstarts/get_hostname.get_ipv4_domain/golden-boot-opensuse-leap.service
 	/usr/bin/get_golden_image_creation_not_requested || /usr/bin/wget -O /root/golden-boot-opensuse-leap.sh http://get_web_server_name.get_ipv4_domain/ksmanager-hub/kickstarts/get_hostname.get_ipv4_domain/golden-boot-opensuse-leap.sh
 	/usr/bin/get_golden_image_creation_not_requested || /usr/bin/ln -s /etc/systemd/system/golden-boot-opensuse-leap.service /etc/systemd/system/multi-user.target.wants/golden-boot-opensuse-leap.service
+	local_lab_info=$(/usr/bin/echo 'get_ipv4_domain' | /usr/bin/sed "s/\./-/g")
+	/usr/bin/echo -e "Host *.get_ipv4_domain\n  StrictHostKeyChecking no\n  UserKnownHostsFile /dev/null\n  LogLevel QUIET" > /etc/ssh/ssh_config.d/999-${local_lab_info}.conf
         ]]></source>
       </script>
     </post-scripts>

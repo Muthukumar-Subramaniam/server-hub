@@ -278,6 +278,9 @@ Host *.${local_infra_domain_name} ${ipv4_address}
     IdentityFile ~/.ssh/id_rsa
     ServerAliveInterval 60
     ServerAliveCountMax 30
+    StrictHostKeyChecking no
+    UserKnownHostsFile /dev/null
+    LogLevel QUIET
 EOF
 fi
 

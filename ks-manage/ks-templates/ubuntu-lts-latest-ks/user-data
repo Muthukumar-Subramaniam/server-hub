@@ -49,6 +49,7 @@ autoinstall:
       - get_golden_image_creation_not_requested || wget -O /etc/systemd/system/golden-boot-ubuntu-lts.service http://get_web_server_name.get_ipv4_domain/ksmanager-hub/kickstarts/get_hostname.get_ipv4_domain/golden-boot-ubuntu-lts.service
       - get_golden_image_creation_not_requested || wget -O /root/golden-boot-ubuntu-lts.sh http://get_web_server_name.get_ipv4_domain/ksmanager-hub/kickstarts/get_hostname.get_ipv4_domain/golden-boot-ubuntu-lts.sh
       - get_golden_image_creation_not_requested || ln -s /etc/systemd/system/golden-boot-ubuntu-lts.service /etc/systemd/system/multi-user.target.wants/golden-boot-ubuntu-lts.service
+      - local_lab_info=$(echo 'get_ipv4_domain' | /usr/bin/sed "s/\./-/g") && /usr/bin/echo -e "Host *.get_ipv4_domain\n  StrictHostKeyChecking no\n  UserKnownHostsFile /dev/null\n  LogLevel QUIET" > /etc/ssh/ssh_config.d/999-${local_lab_info}.conf
       - reboot
 
   keyboard:
