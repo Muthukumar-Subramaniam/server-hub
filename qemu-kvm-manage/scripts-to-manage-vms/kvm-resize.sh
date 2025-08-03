@@ -237,6 +237,7 @@ resize_vm_disk() {
               fi
             done
             echo -e "\n🛠️ Executing rootfs-extender utility on $SSH_TARGET_HOST . . . "
+	    export ROOTFS_EXTENDER_TOOL_EXECUTED_BY="${infra_mgmt_super_username}"
 	    ${fs_resize_scipt} "${SSH_TARGET_HOST}"
         else
             echo -e "\n❌ Disk resize of VM '${qemu_kvm_hostname}' failed ! \n"
