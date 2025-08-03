@@ -223,6 +223,7 @@ resize_vm_disk() {
             ssh_start_time=$(date +%s)
             while true; do
               sleep "$SSH_RETRY_INTERVAL_SECONDS"
+	      echo "infra user ${infra_mgmt_super_username}"
               if ssh -o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o ConnectTimeout=5  "${infra_mgmt_super_username}@${SSH_TARGET_HOST}" "true" &>/dev/null; then
                 echo "[SSH-Active]"
                 break
