@@ -25,8 +25,8 @@ if [[ "$REMOTE_HOST" != "localhost" ]]; then
      	exit 1
     fi
     echo "[ok]"
-    rsync -az -e "ssh $SSH_OPTS" "$SCRIPT_LOCATION" $REMOTE_HOST:$TMP_SCRIPT"
-    ssh $SSH_OPTS -t $REMOTE_HOST" "sudo bash $TMP_SCRIPT localhost && rm -f $TMP_SCRIPT"
+    rsync -az -e "ssh $SSH_OPTS" "$SCRIPT_LOCATION" "$REMOTE_HOST:$TMP_SCRIPT"
+    ssh $SSH_OPTS -t "$REMOTE_HOST" "sudo bash $TMP_SCRIPT localhost && rm -f $TMP_SCRIPT"
 
     echo "[INFO] Remote execution of rootfs-extender utility completed on $REMOTE_HOST."
     exit 0
