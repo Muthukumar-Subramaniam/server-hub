@@ -145,7 +145,7 @@ prepare_ubuntu() {
     echo "🧹 Please cleanup first using: $0 --cleanup $distro"
     exit 1
   fi
-  local latest_lts=$(curl -s "https://cdimage.ubuntu.com/releases/" | grep -oP 'href="\K(2[0-9]|[3-9][0-9])(?:\.04(?:\.\d+)?)?(?=/")' | grep -P '^([0-9]{2})\.04(\.\d+)?$' | awk -F. 'int($1) % 2 == 0' | sort -Vr | head -n1)
+  local latest_lts=$(curl -s https://cdimage.ubuntu.com/releases/ | sed -n 's/.*href="\([0-9][0-9]\.04\(\.[0-9][0-9]*\)\?\)\/".*/\1/p' | awk -F. '$1 % 2 == 0 { print }' | sort -V | tail -n1)
   local iso_file="ubuntu-${latest_lts}-live-server-amd64.iso"
   local iso_url="https://releases.ubuntu.com/${latest_lts}/${iso_file}"
   prepare_iso "$distro" "$iso_file" "$iso_url" "casper/vmlinuz" "casper/initrd"
@@ -284,14 +284,11 @@ case "$MODE" in
     case "$DISTRO" in
       almalinux)       cleanup_distro "almalinux" "AlmaLinux-10-latest-x86_64-dvd.iso" ;;
       rocky)           cleanup_distro "rocky" "Rocky-10-latest-x86_64-dvd.iso" ;;
-      oraclelinux)     cleanup_distro "oraclelinux" "OracleLinux-R10-U0-x86_64-dvd.iso" ;;
+      oraclelinux)     cleanup_distro "oraclelinux" "OracleLinux-*-x86_64-dvd.iso" ;;
       centos-stream)   cleanup_distro "centos-stream" "CentOS-Stream-10-latest-x86_64-dvd.iso" ;;
-      rhel)            cleanup_distro "rhel" "rhel-10.0-x86_64-dvd.iso" ;;
-      ubuntu-lts)
-        latest_lts=$(curl -s https://cdimage.ubuntu.com/releases/ | grep -oP 'href="\K(2[0-9]{2}\.04(?:\.\d+)?)' | sort -Vr | head -n1)
-        cleanup_distro "ubuntu-lts" "ubuntu-${latest_lts}-live-server-amd64.iso"
-        ;;
-      opensuse-leap)   cleanup_distro "opensuse-leap" "openSUSE-Leap-15.6-DVD-x86_64-Media.iso" ;;
+      rhel)            cleanup_distro "rhel" "rhel-*-x86_64-dvd.iso" ;;
+      ubuntu-lts)      cleanup_distro "ubuntu-lts" "ubuntu-*-live-server-amd64.iso" ;;
+      opensuse-leap)   cleanup_distro "opensuse-leap" "openSUSE-Leap-*-DVD-x86_64-Media.iso" ;;
       *)
         echo "❌ Unknown distro: $DISTRO"
         exit 1
