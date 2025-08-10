@@ -165,9 +165,7 @@ cleanup_distro() {
     exit 1
   fi
 
-  if [[ -n "$iso_path" && -f "$iso_path" ]]; then
-    sudo rm -f "$iso_path"
-  fi
+  sudo rm -f $iso_path
 
   if [[ -n "$mount_dir" && -d "$mount_dir" ]]; then
     sudo umount -l "$mount_dir" || true
