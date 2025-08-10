@@ -3,15 +3,16 @@
 <profile xmlns="http://www.suse.com/1.0/yast2ns" xmlns:config="http://www.suse.com/1.0/configns">
   <bootloader t="map">
     <global t="map">
-      <append>console=ttyS0,115200n8 splash=silent preempt=full mitigations=auto quiet security=apparmor</append>
+      <append>splash=silent preempt=full mitigations=auto quiet security=apparmor</append>
       <cpu_mitigations>auto</cpu_mitigations>
-      <gfxmode>text</gfxmode>
+      <gfxmode>auto</gfxmode>
       <hiddenmenu>false</hiddenmenu>
       <os_prober>false</os_prober>
       <secure_boot>false</secure_boot>
       <update_nvram>true</update_nvram>
-      <terminal>serial</terminal>
+      <terminal>gfxterm</terminal>
       <timeout t="integer">8</timeout>
+      <xen_kernel_append>vga=gfx-1024x768x16</xen_kernel_append>
     </global>
     <loader_type>grub2-efi</loader_type>
   </bootloader>

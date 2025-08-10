@@ -352,7 +352,11 @@ fi
 
 if ! $invoked_with_golden_image; then
 	if [[ "${os_distribution}" == "opensuse-leap" ]]; then
-		rsync -a -q "${ksmanager_main_dir}/ks-templates/${os_distribution}-latest-autoinst.xml" "${host_kickstart_dir}"/ 
+		if [[ ! -z "${whether_vga_console_is_required}" ]]; then
+			rsync -a -q "${ksmanager_main_dir}/ks-templates/${os_distribution}-latest-autoinst-vmware.xml" "${host_kickstart_dir}/${os_distribution}-latest-autoinst.xml" 
+		else
+			rsync -a -q "${ksmanager_main_dir}/ks-templates/${os_distribution}-latest-autoinst.xml" "${host_kickstart_dir}/${os_distribution}-latest-autoinst.xml" 
+		fi
 	elif [[ "${os_distribution}" == "ubuntu-lts" ]]; then 
 		rsync -a -q --delete "${ksmanager_main_dir}/ks-templates/${os_distribution}-latest-ks" "${host_kickstart_dir}"/
 	else
