@@ -33,6 +33,7 @@ ipv4_gateway="${dnsbinder_gateway}"
 ipv4_nameserver="${dnsbinder_server_ipv4_address}"
 ipv4_nfsserver="${dnsbinder_server_ipv4_address}"
 tftp_server_name="${dnsbinder_server_short_name}"
+nfs_server_name="${dnsbinder_server_short_name}"
 ntp_pool_name="${dnsbinder_server_short_name}"
 web_server_name="${dnsbinder_server_short_name}"
 ##rhel_activation_key=$(cat /server-hub/rhel-activation-key.base64 | base64 -d)
@@ -280,6 +281,8 @@ fn_select_os_distro() {
     esac
 }
 
+fn_select_os_distro
+
 # Detect VM platform
 manufacturer=$(dmidecode -t1 | awk -F: '/Manufacturer/ {
     gsub(/^ +| +$/, "", $2);
@@ -310,8 +313,6 @@ if $golden_image_creation_not_requested; then
 		fn_create_host_kickstart_dir
 	fi
 fi
-
-fn_select_os_distro
 
 if [[ "${os_distribution}" == "opensuse-leap" ]]; then
 	kernel_file_name="linux"
@@ -417,6 +418,7 @@ fn_set_environment() {
 		sed -i "s/get_web_server_name/${web_server_name}/g" "${working_file}" 
 		sed -i "s/get_win_hostname/${win_hostname}/g" "${working_file}"
 		sed -i "s/get_tftp_server_name/${tftp_server_name}.${ipv4_domain}/g" "${working_file}"
+		sed -i "s/get_nfs_server_name/${nfs_server_name}.${ipv4_domain}/g" "${working_file}"
 		sed -i "s/get_rhel_activation_key/${rhel_activation_key}/g" "${working_file}"
 		sed -i "s/get_time_of_last_update/${time_of_last_update}/g" "${working_file}"
 		sed -i "s/get_mgmt_super_user/${mgmt_super_user}/g" "${working_file}"
@@ -486,6 +488,7 @@ echo -e "  ⏰  NTP Pool     : ${ntp_pool_name}.${ipv4_domain}"
 echo -e "  🌐  Web Server   : ${web_server_name}.${ipv4_domain}"
 if ! $invoked_with_golden_image; then
 	echo -e "  📁  TFTP Server  : ${tftp_server_name}.${ipv4_domain}"
+	echo -e "  📁  NFS Server   : ${nfs_server_name}.${ipv4_domain}"
 	echo -e "  📂  KS Local     : ${host_kickstart_dir}"
 	echo -e "  🔗  KS Web       : https://${host_kickstart_dir#/var/www/}"
 fi

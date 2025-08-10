@@ -1,9 +1,9 @@
 ---
 # tasks file for configure_nfs_service_of_server
-- name: Create /nfs-share with necessary ownership and permissions
+- name: Create /lab-share with necessary ownership and permissions
   become: true
   file:
-    path: /nfs-share
+    path: /lab-share
     state: directory
     mode: '2770'
     owner: "{{ ansible_env.mgmt_super_user }}"

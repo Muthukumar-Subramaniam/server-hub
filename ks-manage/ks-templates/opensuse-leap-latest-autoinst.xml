@@ -190,6 +190,7 @@
       <package>tmux</package>
       <package>tar</package>
       <package>samba-client</package>
+      <package>autofs</package>
     </packages>
     <patterns t="list">
       <pattern>apparmor</pattern>
@@ -298,6 +299,14 @@
 	/usr/bin/get_golden_image_creation_not_requested || /usr/bin/ln -s /etc/systemd/system/golden-boot-opensuse-leap.service /etc/systemd/system/multi-user.target.wants/golden-boot-opensuse-leap.service
 	local_lab_info=$(/usr/bin/echo 'get_ipv4_domain' | /usr/bin/sed "s/\./-/g")
 	/usr/bin/echo -e "Host *.get_ipv4_domain\n  StrictHostKeyChecking no\n  UserKnownHostsFile /dev/null\n  LogLevel QUIET" > /etc/ssh/ssh_config.d/999-${local_lab_info}.conf
+	/usr/bin/ln -s /usr/lib/systemd/system/autofs.service /etc/systemd/system/multi-user.target.wants/autofs.service
+	/usr/bin/mkdir /server-hub /lab-share /lab-web-share
+	/usr/bin/echo "/- /etc/auto.master.d/auto-${local_lab_info}" > /etc/auto.master.d/direct.autofs
+	/usr/bin/cat << EOF > /etc/auto.master.d/auto-${local_lab_info}
+/server-hub -fstype=nfs,soft,timeo=5,retrans=2 get_nfs_server_name:/server-hub
+/lab-web-share -fstype=nfs,soft,timeo=5,retrans=2 get_nfs_server_name:/var/www/get_web_server_name.get_ipv4_domain
+/lab-share -fstype=nfs,soft,timeo=5,retrans=2 get_nfs_server_name:/lab-share
+EOF
         ]]></source>
       </script>
     </post-scripts>
