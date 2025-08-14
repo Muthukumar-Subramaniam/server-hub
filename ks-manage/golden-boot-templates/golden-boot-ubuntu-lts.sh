@@ -42,7 +42,7 @@ network:
                 via: ${IPv4_GATEWAY}
                 on-link: true
             nameservers:
-              addresses: [${IPv4_DNS_SERVER}]
+              addresses: [${IPv4_DNS_SERVER}, 8.8.8.8, 8.8.4.4]
               search: [${IPv4_DNS_DOMAIN}]
 EOF
 

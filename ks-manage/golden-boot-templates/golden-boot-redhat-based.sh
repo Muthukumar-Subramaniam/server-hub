@@ -31,7 +31,7 @@ hostnamectl set-hostname "${HOST_NAME}"
 nmcli connection add type ethernet ifname eth0 con-name eth0 \
   ipv4.addresses "${IPv4_ADDRESS}"/"${IPv4_CIDR}" \
   ipv4.gateway "${IPv4_GATEWAY}" \
-  ipv4.dns "${IPv4_DNS_SERVER}" \
+  ipv4.dns "${IPv4_DNS_SERVER},8.8.8.8,8.8.4.4" \
   ipv4.dns-search "${IPv4_DNS_DOMAIN}" \
   ipv4.method manual \
 

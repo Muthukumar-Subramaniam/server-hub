@@ -35,6 +35,8 @@
       <hostname>get_hostname.get_ipv4_domain</hostname>
       <nameservers t="list">
         <nameserver>get_ipv4_nameserver</nameserver>
+        <nameserver>8.8.8.8</nameserver>
+        <nameserver>8.8.4.4</nameserver>
       </nameservers>
       <resolv_conf_policy>auto</resolv_conf_policy>
       <searchlist t="list">
