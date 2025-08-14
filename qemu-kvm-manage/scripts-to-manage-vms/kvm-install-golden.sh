@@ -69,6 +69,8 @@ elif echo "$OS_DISTRO" | grep -qi "oracle"; then
     OS_DISTRO="oraclelinux"
 elif echo "$OS_DISTRO" | grep -qi "redhat"; then
     OS_DISTRO="rhel"
+elif echo "$OS_DISTRO" | grep -qi "fedora"; then
+    OS_DISTRO="fedora"
 elif echo "$OS_DISTRO" | grep -qi "ubuntu"; then
     OS_DISTRO="ubuntu-lts"
 elif echo "$OS_DISTRO" | grep -qi "suse"; then

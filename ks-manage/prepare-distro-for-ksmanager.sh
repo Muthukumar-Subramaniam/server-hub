@@ -42,6 +42,7 @@ rocky_os_availability=$(fn_check_distro_availability "rocky")
 oraclelinux_os_availability=$(fn_check_distro_availability "oraclelinux")
 centos_stream_os_availability=$(fn_check_distro_availability "centos-stream")
 rhel_os_availability=$(fn_check_distro_availability "rhel")
+fedora_os_availability=$(fn_check_distro_availability "fedora")
 ubuntu_lts_os_availability=$(fn_check_distro_availability "ubuntu-lts")
 opensuse_leap_os_availability=$(fn_check_distro_availability "opensuse-leap")
 
@@ -53,8 +54,9 @@ fn_select_os_distro() {
   echo -e "  3)  OracleLinux              ${oraclelinux_os_availability}"
   echo -e "  4)  CentOS Stream            ${centos_stream_os_availability}"
   echo -e "  5)  Red Hat Enterprise Linux ${rhel_os_availability}"
-  echo -e "  6)  Ubuntu Server LTS        ${ubuntu_lts_os_availability}"
-  echo -e "  7)  openSUSE Leap Latest     ${opensuse_leap_os_availability}"
+  echo -e "  6)  Fedora Server            ${fedora_os_availability}"
+  echo -e "  7)  Ubuntu Server LTS        ${ubuntu_lts_os_availability}"
+  echo -e "  8)  openSUSE Leap Latest     ${opensuse_leap_os_availability}"
   echo -e "  q)  Quit\n"
 
   read -p "⌨️  Enter option number (default: AlmaLinux): " os_distribution
@@ -64,8 +66,9 @@ fn_select_os_distro() {
     3 ) DISTRO="oraclelinux" ;;
     4 ) DISTRO="centos-stream" ;;
     5 ) DISTRO="rhel" ;;
-    6 ) DISTRO="ubuntu-lts" ;;
-    7 ) DISTRO="opensuse-leap" ;;
+    6 ) DISTRO="fedora" ;;
+    7 ) DISTRO="ubuntu-lts" ;;
+    8 ) DISTRO="opensuse-leap" ;;
     q | Q ) echo -e "\n👋 Exiting the utility $(basename $0) ! \n"; exit 0 ;;
     * ) echo -e "\n❌ Invalid option! 🔁 Please try again."; fn_select_os_distro "$action_title" ;;
   esac
@@ -236,6 +239,16 @@ case "$MODE" in
           "https://dl.rockylinux.org/pub/rocky/10/isos/x86_64/Rocky-10-latest-x86_64-dvd.iso" \
           "images/pxeboot/vmlinuz" "images/pxeboot/initrd.img"
         ;;
+      fedora)
+        if [[ $(fn_check_distro_availability "fedora") == "[Ready]" ]]; then
+          echo -e "\n⚠️  Distro 'fedora' already appears to be prepared."
+          echo "🧹 Please cleanup first using: $0 --cleanup rocky"
+          exit 1
+        fi
+        prepare_iso "fedora" "Fedora-Server-dvd-x86_64-42-1.1.iso" \
+          "https://download.fedoraproject.org/pub/fedora/linux/releases/42/Server/x86_64/iso/Fedora-Server-dvd-x86_64-42-1.1.iso" \
+          "images/pxeboot/vmlinuz" "images/pxeboot/initrd.img"
+        ;;
       oraclelinux)
         if [[ $(fn_check_distro_availability "oraclelinux") == "[Ready]" ]]; then
           echo -e "\n⚠️  Distro 'oraclelinux' already appears to be prepared."
@@ -285,6 +298,7 @@ case "$MODE" in
       oraclelinux)     cleanup_distro "oraclelinux" "OracleLinux-*-x86_64-dvd.iso" ;;
       centos-stream)   cleanup_distro "centos-stream" "CentOS-Stream-10-latest-x86_64-dvd.iso" ;;
       rhel)            cleanup_distro "rhel" "rhel-*-x86_64-dvd.iso" ;;
+      fedora)          cleanup_distro "fedora" "Fedora-Server-dvd-x86_64*.iso" ;;
       ubuntu-lts)      cleanup_distro "ubuntu-lts" "ubuntu-*-live-server-amd64.iso" ;;
       opensuse-leap)   cleanup_distro "opensuse-leap" "openSUSE-Leap-*-DVD-x86_64-Media.iso" ;;
       *)

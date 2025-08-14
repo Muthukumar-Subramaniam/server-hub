@@ -254,6 +254,7 @@ rocky_os_availability=$(fn_check_distro_availability "rocky")
 oraclelinux_os_availability=$(fn_check_distro_availability "oraclelinux")
 centos_stream_os_availability=$(fn_check_distro_availability "centos-stream")
 rhel_os_availability=$(fn_check_distro_availability "rhel")
+fedora_os_availability=$(fn_check_distro_availability "fedora")
 ubuntu_lts_os_availability=$(fn_check_distro_availability "ubuntu-lts")
 opensuse_leap_os_availability=$(fn_check_distro_availability "opensuse-leap")
 
@@ -264,8 +265,9 @@ fn_select_os_distro() {
     echo -e "  3)  OracleLinux              ${oraclelinux_os_availability}"
     echo -e "  4)  CentOS Stream            ${centos_stream_os_availability}"
     echo -e "  5)  Red Hat Enterprise Linux ${rhel_os_availability}"
-    echo -e "  6)  Ubuntu Server LTS        ${ubuntu_lts_os_availability}"
-    echo -e "  7)  openSUSE Leap Latest     ${opensuse_leap_os_availability}\n"
+    echo -e "  6)  Fedora Server            ${fedora_os_availability}"
+    echo -e "  7)  Ubuntu Server LTS        ${ubuntu_lts_os_availability}"
+    echo -e "  8)  openSUSE Leap Latest     ${opensuse_leap_os_availability}\n"
 
     read -p "⌨️  Enter option number (default: AlmaLinux): " os_distribution
 
@@ -275,8 +277,9 @@ fn_select_os_distro() {
         3 )      os_distribution="oraclelinux" ;;
         4 )      os_distribution="centos-stream" ;;
         5 )      os_distribution="rhel" ;;
-        6 )      os_distribution="ubuntu-lts" ;;
-        7 )      os_distribution="opensuse-leap" ;;
+        6 )      os_distribution="fedora" ;;
+        7 )      os_distribution="ubuntu-lts" ;;
+        8 )      os_distribution="opensuse-leap" ;;
 	* ) echo -e "\n❌ Invalid option! 🔁 Please try again."; fn_select_os_distro ;;
     esac
 }
@@ -360,7 +363,11 @@ if ! $invoked_with_golden_image; then
 	elif [[ "${os_distribution}" == "ubuntu-lts" ]]; then 
 		rsync -a -q --delete "${ksmanager_main_dir}/ks-templates/${os_distribution}-latest-ks" "${host_kickstart_dir}"/
 	else
-		rsync -a -q "${ksmanager_main_dir}/ks-templates/redhat-based-latest-ks.cfg" "${host_kickstart_dir}"/ 
+		if [[ "${os_distribution}" == "fedora" ]]; then
+			rsync -a -q "${ksmanager_main_dir}/ks-templates/fedora-latest-ks.cfg" "${host_kickstart_dir}"/ 
+		else
+			rsync -a -q "${ksmanager_main_dir}/ks-templates/redhat-based-latest-ks.cfg" "${host_kickstart_dir}"/ 
+		fi
 	fi
 	if ! $golden_image_creation_not_requested; then
 		if [[ -z "${redhat_based_distro_name}" ]]; then
@@ -464,8 +471,13 @@ if ! $invoked_with_golden_image; then
 		rsync -a -q "${ksmanager_main_dir}/grub-template-${os_distribution}-manual.cfg" "/var/lib/tftpboot/grub.cfg"
 
 	else
-		rsync -a -q "${ksmanager_main_dir}/grub-template-redhat-based-auto.cfg"  "/var/lib/tftpboot/grub.cfg-01-${grub_cfg_mac_address}"
-		rsync -a -q "${ksmanager_main_dir}/grub-template-redhat-based-manual.cfg" "/var/lib/tftpboot/grub.cfg"
+		if [[ "${os_distribution}" == "fedora" ]]; then
+			rsync -a -q "${ksmanager_main_dir}/grub-template-fedora-auto.cfg"  "/var/lib/tftpboot/grub.cfg-01-${grub_cfg_mac_address}"
+			rsync -a -q "${ksmanager_main_dir}/grub-template-fedora-manual.cfg" "/var/lib/tftpboot/grub.cfg"
+		else
+			rsync -a -q "${ksmanager_main_dir}/grub-template-redhat-based-auto.cfg"  "/var/lib/tftpboot/grub.cfg-01-${grub_cfg_mac_address}"
+			rsync -a -q "${ksmanager_main_dir}/grub-template-redhat-based-manual.cfg" "/var/lib/tftpboot/grub.cfg"
+		fi
 	fi
 
 	fn_set_environment "/var/lib/tftpboot/grub.cfg-01-${grub_cfg_mac_address}"
