@@ -28,33 +28,18 @@ source "/root/network-config-$get_mac_address_path"
 
 hostnamectl set-hostname "${HOST_NAME}"
 
+mkdir -p /root/system-connections-golden-image
+
+/bin/rsync -avPh /etc/NetworkManager/system-connections/* /root/system-connections-golden-image/
+
+nmcli connection delete eth0
+
 nmcli connection add type ethernet ifname eth0 con-name eth0 \
   ipv4.addresses "${IPv4_ADDRESS}"/"${IPv4_CIDR}" \
   ipv4.gateway "${IPv4_GATEWAY}" \
   ipv4.dns "${IPv4_DNS_SERVER},8.8.8.8,8.8.4.4" \
   ipv4.dns-search "${IPv4_DNS_DOMAIN}" \
   ipv4.method manual \
-
-mkdir -p /root/system-connections/orig-during-install
-
-/bin/rsync -avPh /etc/NetworkManager/system-connections/* /root/system-connections/orig-during-install/
-
-v_count=0
-for v_interface_file in $(/bin/ls /etc/NetworkManager/system-connections/)
-do
-        /bin/mv /etc/NetworkManager/system-connections/$v_interface_file /etc/NetworkManager/system-connections/eth$v_count.nmconnection
-        v_interface=$(/bin/echo $v_interface_file | /bin/cut -d "." -f 1)
-        /bin/sed -i "s/$v_interface/eth$v_count/g" /etc/NetworkManager/system-connections/eth$v_count.nmconnection
-        v_count=$((v_count+1))
-done
-
-/bin/mv /etc/NetworkManager/system-connections/eth* /root/system-connections
-
-/bin/rm -rf /etc/NetworkManager/system-connections/*
-
-/bin/rsync -avPh /root/system-connections/* /etc/NetworkManager/system-connections/.
-
-/bin/rm -rf /etc/NetworkManager/system-connections/orig-during-install
 
 touch /root/golden-boot-redhat-based-completed
 
