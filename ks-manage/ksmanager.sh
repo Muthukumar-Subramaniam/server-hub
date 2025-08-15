@@ -265,7 +265,7 @@ fn_select_os_distro() {
     echo -e "  3)  OracleLinux              ${oraclelinux_os_availability}"
     echo -e "  4)  CentOS Stream            ${centos_stream_os_availability}"
     echo -e "  5)  Red Hat Enterprise Linux ${rhel_os_availability}"
-    echo -e "  6)  Fedora Linux            ${fedora_os_availability}"
+    echo -e "  6)  Fedora Linux             ${fedora_os_availability}"
     echo -e "  7)  Ubuntu Server LTS        ${ubuntu_lts_os_availability}"
     echo -e "  8)  openSUSE Leap Latest     ${opensuse_leap_os_availability}\n"
 
