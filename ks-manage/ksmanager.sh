@@ -502,9 +502,9 @@ echo -e "  📡  IPv4 DNS     : ${ipv4_nameserver}"
 echo -e "  🌍  Domain Name  : ${ipv4_domain}"
 echo -e "  ⏰  NTP Pool     : ${ntp_pool_name}.${ipv4_domain}"
 echo -e "  🌐  Web Server   : ${web_server_name}.${ipv4_domain}"
+echo -e "  📁  NFS Server   : ${nfs_server_name}.${ipv4_domain}"
 if ! $invoked_with_golden_image; then
 	echo -e "  📁  TFTP Server  : ${tftp_server_name}.${ipv4_domain}"
-	echo -e "  📁  NFS Server   : ${nfs_server_name}.${ipv4_domain}"
 	echo -e "  📂  KS Local     : ${host_kickstart_dir}"
 	echo -e "  🔗  KS Web       : https://${host_kickstart_dir#/var/www/}"
 fi
