@@ -4,6 +4,8 @@
 # please open an issue at: https://github.com/Muthukumar-Subramaniam/server-hub/issues   #
 #----------------------------------------------------------------------------------------#
 
+DIR_PATH_SCRIPTS_TO_MANAGE_VMS='/server-hub/qemu-kvm-manage/scripts-to-manage-vms'
+
 if [[ "$EUID" -eq 0 ]]; then
     echo -e "\n⛔ Running as root user is not allowed."
     echo -e "\n🔐 This script should be run as a user who has sudo privileges, but *not* using sudo.\n"
@@ -40,5 +42,4 @@ if ! sudo virsh list --all | awk '{print $2}' | grep -Fxq "$qemu_kvm_hostname"; 
     exit 1
 fi
 
-/server-hub/qemu-kvm-manage/scripts-to-manage-vms/kvm-remove.sh "$qemu_kvm_hostname"
-/server-hub/qemu-kvm-manage/scripts-to-manage-vms/kvm-install-pxe.sh "$qemu_kvm_hostname"
+"$DIR_PATH_SCRIPTS_TO_MANAGE_VMS/kvm-remove.sh" "$qemu_kvm_hostname" && "$DIR_PATH_SCRIPTS_TO_MANAGE_VMS/kvm-install-pxe.sh" "$qemu_kvm_hostname"
