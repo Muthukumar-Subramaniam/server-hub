@@ -4,6 +4,8 @@
 # please open an issue at: https://github.com/Muthukumar-Subramaniam/server-hub/issues   #
 #----------------------------------------------------------------------------------------#
 
+INFRA_SERVER_VM_NAME=$(< /virtual-machines/local_infra_server_name)
+
 if [[ "$EUID" -eq 0 ]]; then
     echo -e "\n⛔ Running as root user is not allowed."
     echo -e "\n🔐 This script should be run as a user who has sudo privileges, but *not* using sudo.\n"
@@ -41,12 +43,21 @@ if ! sudo virsh list --all | awk '{print $2}' | grep -Fxq "$qemu_kvm_hostname"; 
 fi
 
 # Confirm deletion
-echo -e "\n⚠️ WARNING: This will permanently delete the VM \"$qemu_kvm_hostname\" and all associated files!"
-read -rp "❓ Are you sure you want to proceed? (yes/[no]): " confirm
+if [[ "$qemu_kvm_hostname" == "$INFRA_SERVER_VM_NAME" ]]; then
+    echo -e "\n⚠️  WARNING: You are about to delete your lab infra server VM : $INFRA_SERVER_VM_NAME !"
+    read -r -p "If you know what you are doing, confirm by typing 'delete-lab-infra-server' : " confirmation
 
-if [[ "$confirm" != "yes" ]]; then
-    echo -e "\n⛔ Aborted.\n"
-    exit 1
+    if [[ "$confirmation" != "delete-lab-infra-server" ]]; then
+        echo -e "\n⛔ Aborted.\n"
+        exit 1
+    fi
+else
+    echo -e "\n⚠️ WARNING: This will permanently delete the VM \"$qemu_kvm_hostname\" and all associated files!"
+    read -rp "❓ Are you sure you want to proceed? (yes/[no]): " confirmation
+    if [[ "$confirmation" != "yes" ]]; then
+        echo -e "\n⛔ Aborted.\n"
+        exit 1
+    fi
 fi
 
 # Proceed with deletion

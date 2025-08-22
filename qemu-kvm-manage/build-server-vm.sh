@@ -239,6 +239,7 @@ echo -e "✅"
 echo "$ipv4_address" >/virtual-machines/ipv4-address-address-of-infra-server-vm
 echo "$mgmt_super_user" >/virtual-machines/infra-mgmt-super-username
 echo "$local_infra_domain_name" >/virtual-machines/local_infra_domain_name
+echo "$infra_server_name" >/virtual-machines/local_infra_server_name
 
 echo -n -e "\n📎 Updating hosts file for ${qemu_kvm_hostname}.${local_infra_domain_name} . . . "
 
