@@ -42,8 +42,10 @@ shadow_password_super_mgmt_user=$(grep "${mgmt_super_user}" /etc/shadow | cut -d
 dnsbinder_script='/server-hub/named-manage/dnsbinder.sh'
 ksmanager_main_dir='/server-hub/ks-manage'
 ksmanager_hub_dir="/var/www/${web_server_name}.${ipv4_domain}/ksmanager-hub"
+ipxe_web_dir="/var/www/${web_server_name}.${ipv4_domain}/ipxe"
 
 mkdir -p "${ksmanager_hub_dir}"
+mkdir -p "${ipxe_web_dir}"
 
 fn_check_and_create_host_record() {
 	while :
@@ -130,9 +132,9 @@ fn_validate_mac() {
     fi
 }
 
-fn_convert_mac_for_grub_cfg() {
-	# Convert MAC address to required format to append with grub.cfg file
-	grub_cfg_mac_address=$(echo "${mac_address_of_host}" | tr ':' '-' | tr 'A-F' 'a-f')
+fn_convert_mac_for_ipxe_cfg() {
+	# Convert MAC address to required format to append with ipxe.cfg file
+	ipxe_cfg_mac_address=$(echo "${mac_address_of_host}" | tr ':' '-' | tr 'A-F' 'a-f')
 }
 
 fn_cache_the_mac() {
@@ -190,7 +192,7 @@ then
 	while :
 	do
 		if $invoked_with_qemu_kvm; then
-			fn_convert_mac_for_grub_cfg
+			fn_convert_mac_for_ipxe_cfg
 			break
 		fi
 		
@@ -198,18 +200,18 @@ then
 
 		if [[ "${confirmation}" =~ ^[Nn]$ ]] 
 		then
-			fn_convert_mac_for_grub_cfg
+			fn_convert_mac_for_ipxe_cfg
 			break
 
 		elif [[ -z "${confirmation}" ]]
 		then
-			fn_convert_mac_for_grub_cfg
+			fn_convert_mac_for_ipxe_cfg
 			break
 
 		elif [[ "${confirmation}" =~ ^[Yy]$ ]]
 		then
 			fn_get_mac_address
-			fn_convert_mac_for_grub_cfg
+			fn_convert_mac_for_ipxe_cfg
 			fn_cache_the_mac
 			break
 		else
@@ -221,11 +223,11 @@ else
 	if $invoked_with_qemu_kvm; then
 		echo -e "\n⚙️  Generating MAC address for the QEMU/KVM VM \"${kickstart_hostname}\"...\n"
 		mac_address_of_host=$(printf '52:54:00:%02x:%02x:%02x\n' $((RANDOM%256)) $((RANDOM%256)) $((RANDOM%256)))
-		fn_convert_mac_for_grub_cfg
+		fn_convert_mac_for_ipxe_cfg
 		fn_cache_the_mac
 	else
 		fn_get_mac_address
-		fn_convert_mac_for_grub_cfg
+		fn_convert_mac_for_ipxe_cfg
 		fn_cache_the_mac
 	fi
 fi
@@ -243,7 +245,7 @@ fn_check_distro_availability() {
 		kernel_file_name="vmlinuz"
 	fi
 
-	if [[ ! -f "/var/lib/tftpboot/${os_distribution}-latest/${kernel_file_name}" ]]; then
+	if [[ ! -f "${ipxe_web_dir}/images/${os_distribution}-latest/${kernel_file_name}" ]]; then
 		echo '[Not-Ready]'
 	else
 		echo '[Ready]'
@@ -324,7 +326,7 @@ else
 	kernel_file_name="vmlinuz"
 fi
 
-while [ ! -f "/var/lib/tftpboot/${os_distribution}-latest/${kernel_file_name}" ]; do
+while [ ! -f "${ipxe_web_dir}/images/${os_distribution}-latest/${kernel_file_name}" ]; do
 	echo -e "\n⚠️  It seems ${os_distribution} is not yet prepared for the PXE-boot environment. 🔄 Please try some other distro."
 	echo -e "⚠️  ( OR ) Please utilize the tool 'prepare-distro-for-ksmanager' to prepare the distro ${os_distribution} for PXE-boot environment .\n"
 	fn_select_os_distro
@@ -383,7 +385,7 @@ fi
 
 if ! $invoked_with_golden_image; then
 
-	echo -e "\n⚙️  Generating kickstart profile and GRUB configs for PXE boot of VM '${kickstart_hostname}'...\n"
+	echo -e "\n⚙️  Generating kickstart profile and iPXE configs for PXE boot of VM '${kickstart_hostname}'...\n"
 
 	rsync -a -q --delete "${ksmanager_main_dir}"/addons-for-kickstarts/ "${ksmanager_hub_dir}"/addons-for-kickstarts/
 
@@ -400,7 +402,7 @@ if $invoked_with_golden_image; then
 
 	echo -e "\n⚙️  Generating network configs for golden boot installation of VM '${kickstart_hostname}'...\n"
 
-	rsync -a -q "${ksmanager_main_dir}"/golden-boot-templates/network-config-for-mac-address "${ksmanager_hub_dir}"/golden-boot-mac-configs/network-config-"${grub_cfg_mac_address}"
+	rsync -a -q "${ksmanager_main_dir}"/golden-boot-templates/network-config-for-mac-address "${ksmanager_hub_dir}"/golden-boot-mac-configs/network-config-"${ipxe_cfg_mac_address}"
 
 fi
 
@@ -465,31 +467,24 @@ fn_set_environment() {
 if ! $invoked_with_golden_image; then
 
 	fn_set_environment "${host_kickstart_dir}"
+	mac_based_ipxe_cfg_file="${ipxe_web_dir}/${ipxe_cfg_mac_address}.ipxe"
 
 	if [[ -z "${redhat_based_distro_name}" ]]; then
-
-		rsync -a -q "${ksmanager_main_dir}/grub-template-${os_distribution}-auto.cfg"  "/var/lib/tftpboot/grub.cfg-01-${grub_cfg_mac_address}"
-		rsync -a -q "${ksmanager_main_dir}/grub-template-${os_distribution}-manual.cfg" "/var/lib/tftpboot/grub.cfg"
-
+            rsync -a -q "${ksmanager_main_dir}/ipxe-templates/ipxe-template-${os_distribution}-auto.ipxe"  "${mac_based_ipxe_cfg_file}"
 	else
-		if [[ "${os_distribution}" == "fedora" ]]; then
-			rsync -a -q "${ksmanager_main_dir}/grub-template-fedora-auto.cfg"  "/var/lib/tftpboot/grub.cfg-01-${grub_cfg_mac_address}"
-			rsync -a -q "${ksmanager_main_dir}/grub-template-fedora-manual.cfg" "/var/lib/tftpboot/grub.cfg"
-		else
-			rsync -a -q "${ksmanager_main_dir}/grub-template-redhat-based-auto.cfg"  "/var/lib/tftpboot/grub.cfg-01-${grub_cfg_mac_address}"
-			rsync -a -q "${ksmanager_main_dir}/grub-template-redhat-based-manual.cfg" "/var/lib/tftpboot/grub.cfg"
-		fi
+	    rsync -a -q "${ksmanager_main_dir}/ipxe-templates/ipxe-template-redhat-based-auto.ipxe"  "${mac_based_ipxe_cfg_file}"
+	    if [[ "${os_distribution}" == "fedora" ]]; then
+		    sed -i "s/redhat-based/fedora/g" "${mac_based_ipxe_cfg_file}"
+	    fi
 	fi
 
-	fn_set_environment "/var/lib/tftpboot/grub.cfg-01-${grub_cfg_mac_address}"
+	fn_set_environment "${mac_based_ipxe_cfg_file}"
 
-	fn_set_environment "/var/lib/tftpboot/grub.cfg"
 fi
 
 if $invoked_with_golden_image; then
-	fn_set_environment "${ksmanager_hub_dir}"/golden-boot-mac-configs/network-config-"${grub_cfg_mac_address}"
+	fn_set_environment "${ksmanager_hub_dir}"/golden-boot-mac-configs/network-config-"${ipxe_cfg_mac_address}"
 fi
-
 
 chown -R ${mgmt_super_user}:${mgmt_super_user}  "${ksmanager_hub_dir}"
 

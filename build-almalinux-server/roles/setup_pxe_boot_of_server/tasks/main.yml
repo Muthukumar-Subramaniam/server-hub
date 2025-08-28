@@ -6,6 +6,91 @@
     src: kea_dhcp4_conf.j2
     dest: /etc/kea/kea-dhcp4.conf
 
+
+- name: Create almalinux-latest mount point under /var/www//{{ ansible_env.dnsbinder_server_short_name }}.{{ ansible_env.dnsbinder_domain }}
+  file:
+    path: "/var/www//{{ ansible_env.dnsbinder_server_short_name }}.{{ ansible_env.dnsbinder_domain }}/almalinux-latest"
+    state: directory
+
+- name: Mount AlmaLinux ISO and update an entry in fstab as well 
+  become: true
+  ansible.posix.mount:
+    path: "/var/www/{{ ansible_env.dnsbinder_server_short_name }}.{{ ansible_env.dnsbinder_domain }}/almalinux-latest"
+    src: /dev/sr0
+    fstype: iso9660
+    opts: "uid={{ ansible_env.mgmt_super_user }},gid={{ ansible_env.mgmt_super_user }}"
+    state: mounted
+
+- name: Create /var/www//{{ ansible_env.dnsbinder_server_short_name }}.{{ ansible_env.dnsbinder_domain }}/ipxe to manage iPXE
+  file:
+    path: "/var/www//{{ ansible_env.dnsbinder_server_short_name }}.{{ ansible_env.dnsbinder_domain }}/ipxe"
+    state: directory
+
+- name: Create /var/www//{{ ansible_env.dnsbinder_server_short_name }}.{{ ansible_env.dnsbinder_domain }}/ipxe/images to manage iPXE images
+  file:
+    path: "/var/www//{{ ansible_env.dnsbinder_server_short_name }}.{{ ansible_env.dnsbinder_domain }}/ipxe/images"
+    state: directory
+
+- name: Create almalinux-latest under /var/www//{{ ansible_env.dnsbinder_server_short_name }}.{{ ansible_env.dnsbinder_domain }}/ipxe/images to hold kernel and initrd image
+  file:
+    path: "/var/www//{{ ansible_env.dnsbinder_server_short_name }}.{{ ansible_env.dnsbinder_domain }}/ipxe/images/almalinux-latest"
+    state: directory
+
+- name: Copy PXE boot images from AlmaLinux {{ ansible_env.alma_version_major }} to /var/lib/tftpboot
+  ansible.builtin.synchronize:
+    mode: push
+    src: "/var/www/{{ ansible_env.dnsbinder_server_short_name }}.{{ ansible_env.dnsbinder_domain }}/almalinux-latest/images/pxeboot/"
+    dest: "/var/www//{{ ansible_env.dnsbinder_server_short_name }}.{{ ansible_env.dnsbinder_domain }}/ipxe/images/almalinux-latest/"
+    rsync_opts:
+      - "--include='vmlinuz'"
+      - "--include='initrd.img'"
+      - "--exclude='*'"
+
+- name: Copy /usr/share/syslinux to /var/lib/tftpboot
+  become: true
+  ansible.posix.synchronize:
+    src: /usr/share/syslinux/
+    dest: /var/lib/tftpboot/
+
+- name: Set variables to configure iPXE
+  set_fact:
+    ipxe_repo_url: "https://github.com/ipxe/ipxe.git"
+    ipxe_src_dir: "/var/www/{{ ansible_env.dnsbinder_server_short_name }}.{{ ansible_env.dnsbinder_domain }}/ipxe/github-ipxe"
+    ipxe_embed_file: "boot_ipxe.j2"
+    ipxe_build_dir: "{{ ipxe_src_dir }}/src"
+    ipxe_output_file: "{{ ipxe_build_dir }}/bin-x86_64-efi/ipxe.efi"
+    ipxe_tftp_target: "/var/lib/tftpboot/ipxe.efi"
+
+- name: Ensure ipxe source dir exists
+  file:
+    path: "{{ ipxe_src_dir }}"
+    state: directory
+
+- name: Clone iPXE from GitHub
+  git:
+    repo: "{{ ipxe_repo_url }}"
+    dest: "{{ ipxe_src_dir }}"
+    version: master
+    update: yes
+
+- name: Place embedded iPXE script (boot_ipxe)
+  template:
+    src: "{{ ipxe_embed_file }}"
+    dest: "{{ ipxe_build_dir }}/boot.ipxe"
+
+- name: Build iPXE EFI binary with embedded script ( This might take some time )
+  command: make bin-x86_64-efi/ipxe.efi EMBED=boot.ipxe
+  args:
+    chdir: "{{ ipxe_build_dir }}"
+
+- name: Copy built ipxe.efi to tftpboot directory
+  become: true
+  copy:
+    src: "{{ ipxe_output_file }}"
+    dest: "{{ ipxe_tftp_target }}"
+    remote_src: yes
+    mode: '0644'
+
 - name: Enable and Start kea-dhcp4,kea-ctrl-agent and tftp.socket
   become: true
   systemd_service:
@@ -27,67 +112,6 @@
     - "kea-ctrl-agent"
     - "tftp.socket"
 
-#- name: Create directory /iso-manage to manage ISOs
-#  become: true
-#  file:
-#    path: /iso-manage
-#    state: directory
-
-#- name: Download AlmaLinux latest boot ISO from official repo to /iso-manage
-#  become: true
-#  get_url:
-#    url: "https://repo.almalinux.org/almalinux/{{ ansible_env.alma_version_major }}/isos/x86_64/AlmaLinux-{{ ansible_env.alma_version_major }}-latest-x86_64-boot.iso"
-#    dest: "/iso-manage/AlmaLinux-{{ ansible_env.alma_version_major }}-latest-x86_64-boot.iso"
-
-- name: Create almalinux-latest mount point under /var/www//{{ ansible_env.dnsbinder_server_short_name }}.{{ ansible_env.dnsbinder_domain }}
-  file:
-    path: "/var/www//{{ ansible_env.dnsbinder_server_short_name }}.{{ ansible_env.dnsbinder_domain }}//almalinux-latest"
-    state: directory
-
-- name: Mount AlmaLinux ISO and update an entry in fstab as well 
-  become: true
-  ansible.posix.mount:
-    path: "/var/www/{{ ansible_env.dnsbinder_server_short_name }}.{{ ansible_env.dnsbinder_domain }}/almalinux-latest"
-    src: /dev/sr0
-    fstype: iso9660
-    opts: "uid={{ ansible_env.mgmt_super_user }},gid={{ ansible_env.mgmt_super_user }}"
-    state: mounted
-
-- name: Create almalinux-latest under /var/lib/tftpboot to hold kernel and initrd image
-  become: true
-  file:
-    path: "/var/lib/tftpboot/almalinux-latest"
-    state: directory
-
-- name: Copy PXE boot images from AlmaLinux {{ ansible_env.alma_version_major }} to /var/lib/tftpboot
-  become: true
-  ansible.builtin.synchronize:
-    mode: push
-    src: "/var/www/{{ ansible_env.dnsbinder_server_short_name }}.{{ ansible_env.dnsbinder_domain }}/almalinux-latest/images/pxeboot/"
-    dest: "/var/lib/tftpboot/almalinux-latest/"
-    rsync_opts:
-      - "--include='vmlinuz'"
-      - "--include='initrd.img'"
-      - "--exclude='*'"
-
-- name: Copy /usr/share/syslinux to /var/lib/tftpboot
-  become: true
-  ansible.posix.synchronize:
-    src: /usr/share/syslinux/
-    dest: /var/lib/tftpboot/
-
-- name: Copy /boot/efi/EFI/almalinux/grubx64.efi to /var/lib/tftpboot
-  become: true
-  ansible.posix.synchronize:
-    src: "/boot/efi/EFI/almalinux/grubx64.efi"
-    dest: /var/lib/tftpboot/grubx64.efi
-  
-- name: Apply Read permission to /var/lib/tftpboot/grubx64.efi      
-  become: true
-  file:
-    path: /var/lib/tftpboot/grubx64.efi
-    mode: 0644
-
 - name: Create command sym-link dnsbinder
   become: true
   file:
@@ -108,12 +132,5 @@
     src: /server-hub/ks-manage/prepare-distro-for-ksmanager.sh
     dest: /usr/bin/prepare-distro-for-ksmanager
     state: link
-
-#- name: Create command sym-link almalinux-repo-sync
-#  become: true
-#  file:
-#    src: /server-hub/almalinux-repo-sync.sh
-#    dest: /bin/almalinux-repo-sync
-#    state: link
 
 ################################ EOF ##################################

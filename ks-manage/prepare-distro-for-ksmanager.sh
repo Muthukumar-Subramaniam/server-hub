@@ -30,7 +30,7 @@ fn_check_distro_availability() {
   else
     kernel_file_name="vmlinuz"
   fi
-  if [[ ! -f "/var/lib/tftpboot/${os_distribution}-latest/${kernel_file_name}" ]]; then
+  if [[ ! -f "/var/www/${dnsbinder_server_fqdn}/ipxe/images/${os_distribution}-latest/${kernel_file_name}" ]]; then
     echo '[Not-Ready]'
   else
     echo '[Ready]'
@@ -77,7 +77,7 @@ fn_select_os_distro() {
 prepare_iso() {
   local distro="$1" iso_file="$2" iso_url="$3" kernel_path="$4" initrd_path="$5"
   local mount_dir="/var/www/${dnsbinder_server_fqdn}/${distro}-latest"
-  local tftp_dir="/var/lib/tftpboot/${distro}-latest"
+  local web_image_dir="/var/www/${dnsbinder_server_fqdn}/ipxe/images/${distro}-latest"
   local iso_path="${ISO_DIR}/${iso_file}"
 
   echo -e "📁 Ensuring ISO directory exists..."
@@ -113,12 +113,12 @@ prepare_iso() {
     echo -e "📎 ISO already mounted.\n"
   fi
 
-  echo -e "📤 Syncing kernel and initrd to $tftp_dir\n"
-  sudo mkdir -p "$tftp_dir"
-  sudo chown "${mgmt_super_user}:${mgmt_super_user}" "$tftp_dir"
+  echo -e "📤 Syncing kernel and initrd to $web_image_dir\n"
+  sudo mkdir -p "$web_image_dir"
+  sudo chown "${mgmt_super_user}:${mgmt_super_user}" "$web_image_dir"
 
-  rsync -avPh "$mount_dir/$kernel_path" "$tftp_dir/"
-  rsync -avPh "$mount_dir/$initrd_path" "$tftp_dir/"
+  rsync -avPh "$mount_dir/$kernel_path" "$web_image_dir/"
+  rsync -avPh "$mount_dir/$initrd_path" "$web_image_dir/"
 
   echo -e "\n✅ All done for $distro.\n"
 }
@@ -132,7 +132,7 @@ prepare_rhel() {
   fi
   local iso_file="rhel-10.0-x86_64-dvd.iso"
   local mount_dir="/var/www/${dnsbinder_server_fqdn}/${distro}"
-  local tftp_dir="/var/lib/tftpboot/${distro}"
+  local web_image_dir="/var/www/${dnsbinder_server_fqdn}/ipxe/images/${distro}-latest"
   local iso_path="${ISO_DIR}/${iso_file}"
 
   echo -e "\nLogin from a browser with your Red Hat Developer Subscription ! \n"
@@ -159,9 +159,9 @@ cleanup_distro() {
   local iso_file="$2"
   local iso_path="${ISO_DIR}/${iso_file}"
   local mount_dir="/var/www/${dnsbinder_server_fqdn}/${distro}-latest"
-  local tftp_dir="/var/lib/tftpboot/${distro}-latest"
+  local web_image_dir="/var/www/${dnsbinder_server_fqdn}/ipxe/images/${distro}-latest"
 
-  echo -e "\n⚠️  This will delete ISO, mount point and TFTP boot files for $distro."
+  echo -e "\n⚠️  This will delete ISO, mount point and boot image files for $distro."
   read -p "❓ Are you sure you want to continue? (yes/no): " confirm
   if [[ "$confirm" != "yes" ]]; then
     echo "❌ Cleanup aborted."
@@ -175,8 +175,8 @@ cleanup_distro() {
     sudo rm -rf "$mount_dir"
   fi
 
-  if [[ -n "$tftp_dir" && -d "$tftp_dir" ]]; then
-    sudo rm -rf "$tftp_dir"
+  if [[ -n "$web_image_dir" && -d "$web_image_dir" ]]; then
+    sudo rm -rf "$web_image_dir"
   fi
 
   echo -e "🧽 Cleaning up /etc/fstab entries containing '${distro}-latest'"
