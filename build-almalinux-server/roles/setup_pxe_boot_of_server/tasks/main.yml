@@ -52,15 +52,6 @@
     src: /usr/share/syslinux/
     dest: /var/lib/tftpboot/
 
-- name: Set variables to configure iPXE
-  set_fact:
-    ipxe_repo_url: "https://github.com/ipxe/ipxe.git"
-    ipxe_src_dir: "/var/www/{{ ansible_env.dnsbinder_server_short_name }}.{{ ansible_env.dnsbinder_domain }}/ipxe/github-ipxe"
-    ipxe_embed_file: "boot_ipxe.j2"
-    ipxe_build_dir: "{{ ipxe_src_dir }}/src"
-    ipxe_output_file: "{{ ipxe_build_dir }}/bin-x86_64-efi/ipxe.efi"
-    ipxe_tftp_target: "/var/lib/tftpboot/ipxe.efi"
-
 - name: Ensure ipxe source dir exists
   file:
     path: "{{ ipxe_src_dir }}"
