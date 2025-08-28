@@ -138,7 +138,7 @@ fn_convert_mac_for_grub_cfg() {
 fn_cache_the_mac() {
 	echo -e "\n📝 Updating MAC address to mac-address-cache for future use...\n"
 	sed -i "/${kickstart_hostname}/d" "${ksmanager_hub_dir}"/mac-address-cache
-	echo "${kickstart_hostname} ${mac_address_of_host}" >> "${ksmanager_hub_dir}"/mac-address-cache
+	echo "${kickstart_hostname} ${mac_address_of_host} ${ipv4_address}" >> "${ksmanager_hub_dir}"/mac-address-cache
 }
 
 # Loop until a valid MAC address is provided
@@ -185,6 +185,7 @@ fi
 if grep ^"${kickstart_hostname} " "${ksmanager_hub_dir}"/mac-address-cache &>/dev/null
 then
 	mac_address_of_host=$(grep ^"${kickstart_hostname} " "${ksmanager_hub_dir}"/mac-address-cache | cut -d " " -f 2 )
+
 	echo -e "\nMAC Address ${mac_address_of_host} found for ${kickstart_hostname} in mac-address-cache! \n" 
 	while :
 	do
@@ -489,7 +490,93 @@ if $invoked_with_golden_image; then
 	fn_set_environment "${ksmanager_hub_dir}"/golden-boot-mac-configs/network-config-"${grub_cfg_mac_address}"
 fi
 
+
 chown -R ${mgmt_super_user}:${mgmt_super_user}  "${ksmanager_hub_dir}"
+
+fn_update_kea_dhcp_reservations() {
+  echo -e "\n⚙️  Updating IPv4 reservations with kea-dhcp server ...\n"
+  local kea_cache_file="${ksmanager_hub_dir}/mac-address-cache"
+  local kea_config_file="/etc/kea/kea-dhcp4.conf"
+  local kea_api_url="http://127.0.0.1:8000/"
+  local kea_api_auth="kea-api:$(sudo cat /etc/kea/kea-api-password)"
+  local kea_temp_config_timestamp=$(date +"%Y%m%d_%H%M%S_%Z")
+  local kea_config_temp_dir="${ksmanager_hub_dir}/kea_dhcp_temp_configs_with_reservation"
+  local kea_tmp_config="${kea_config_temp_dir}/kea-dhcp4.conf_${kea_temp_config_timestamp}"
+
+  mkdir -p "$kea_config_temp_dir"
+
+  current_ip_with_mac=$(grep ^"${kickstart_hostname} " "${kea_cache_file}" | cut -d " " -f 3 )
+  if [[ "${current_ip_with_mac}" != "${ipv4_address}" ]]; then
+    sed -i "/^${kickstart_hostname} / s/${current_ip_with_mac}/${ipv4_address}/" "${kea_cache_file}"
+  fi
+
+  # Read existing Kea config
+  local kea_existing_config
+  kea_existing_config=$(cat "$kea_config_file")
+
+  # Build JSON array of reservations from cache file
+  local kea_reservations_json=""
+  while read -r kea_hostname kea_hw_address kea_ip_address; do
+    kea_reservations_json+="{
+      \"hostname\": \"$kea_hostname.$ipv4_domain\",
+      \"hw-address\": \"$kea_hw_address\",
+      \"ip-address\": \"$kea_ip_address\"
+    },"
+  done < "$kea_cache_file"
+
+  kea_reservations_json="[${kea_reservations_json%,}]"
+
+  # Insert reservations into config JSON
+  local kea_new_config
+  kea_new_config=$(echo "$kea_existing_config" | \
+    jq --argjson reservations "$kea_reservations_json" \
+      '.Dhcp4.subnet4[0].reservations = $reservations')
+
+  # Wrap into config-set command for Kea Control Agent
+  cat > "$kea_tmp_config" <<EOF
+{
+  "command": "config-set",
+  "service": [ "dhcp4" ],
+  "arguments": $kea_new_config
+}
+EOF
+
+  chown ${mgmt_super_user}:${mgmt_super_user}  "${kea_tmp_config}"
+
+  # Delete old lease (safe if none exists)
+  curl -s -X POST -H "Content-Type: application/json" \
+    -u "$kea_api_auth" \
+    -d "{
+          \"command\": \"lease4-del\",
+          \"service\": [ \"dhcp4\" ],
+          \"arguments\": {
+            \"hw-address\": \"${mac_address_of_host}\"
+          }
+        }" \
+  "$kea_api_url" &>/dev/null
+
+  # Delete lease by IP (safe if none exists)
+  curl -s -X POST -H "Content-Type: application/json" \
+    -u "$kea_api_auth" \
+    -d "{
+          \"command\": \"lease4-del\",
+          \"service\": [ \"dhcp4\" ],
+          \"arguments\": {
+            \"ip-address\": \"${ipv4_address}\"
+          }
+        }" \
+   "$kea_api_url" &>/dev/null
+
+  # Push new config dynamically
+  curl -s -X POST -H "Content-Type: application/json" \
+    -u "$kea_api_auth" \
+    -d @"$kea_tmp_config" \
+    "$kea_api_url" &>/dev/null
+}
+
+if systemctl is-active --quiet kea-ctrl-agent; then
+	fn_update_kea_dhcp_reservations
+fi
 
 echo -e "\nℹ️  FYI:\n"
 echo -e "  🖥️  Hostname     : ${kickstart_hostname}.${ipv4_domain}"
@@ -504,6 +591,7 @@ echo -e "  ⏰  NTP Pool     : ${ntp_pool_name}.${ipv4_domain}"
 echo -e "  🌐  Web Server   : ${web_server_name}.${ipv4_domain}"
 echo -e "  📁  NFS Server   : ${nfs_server_name}.${ipv4_domain}"
 if ! $invoked_with_golden_image; then
+	echo -e "  📁  DHCP Server  : ${tftp_server_name}.${ipv4_domain}"
 	echo -e "  📁  TFTP Server  : ${tftp_server_name}.${ipv4_domain}"
 	echo -e "  📂  KS Local     : ${host_kickstart_dir}"
 	echo -e "  🔗  KS Web       : https://${host_kickstart_dir#/var/www/}"

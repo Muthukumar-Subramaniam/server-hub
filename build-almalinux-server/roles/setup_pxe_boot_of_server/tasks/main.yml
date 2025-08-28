@@ -6,7 +6,7 @@
     src: kea_dhcp4_conf.j2
     dest: /etc/kea/kea-dhcp4.conf
 
-- name: Enable and Start kea-dhcp4 and tftp.socket
+- name: Enable and Start kea-dhcp4,kea-ctrl-agent and tftp.socket
   become: true
   systemd_service:
     name: "{{ item }}"
@@ -14,15 +14,17 @@
     enabled: true
   loop:
     - "kea-dhcp4"
+    - "kea-ctrl-agent"
     - "tftp.socket"
 
-- name: Restart dhcpd and tftp.socket
+- name: Restart kea-dhcp4,kea-ctrl-agent and tftp.socket
   become: true
   systemd_service:
     name: "{{ item }}"
     state: restarted
   loop:
     - "kea-dhcp4"
+    - "kea-ctrl-agent"
     - "tftp.socket"
 
 #- name: Create directory /iso-manage to manage ISOs
