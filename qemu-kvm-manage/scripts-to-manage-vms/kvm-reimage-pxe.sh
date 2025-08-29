@@ -47,8 +47,8 @@ while [[ $# -gt 0 ]]; do
       echo "Usage: $(basename $0) [hostname] [--console|-c]"
       echo
       echo "Arguments:"
-      echo "  hostname      Name of the VM to be installed (optional, will prompt if not given)"
-      echo "  --console,-c  Attach console during install (optional, can appear before or after hostname)"
+      echo "  hostname      Name of the VM to be reimaged (optional, will prompt if not given)"
+      echo "  --console,-c  Attach console during reimage (optional, can appear before or after hostname)"
       exit 0
       ;;
     *)
@@ -67,7 +67,7 @@ done
 # If hostname still not set, prompt
 if [ -z "$qemu_kvm_hostname" ]; then
     echo
-    read -p "🖥️  Please enter the hostname of the VM to be installed : " qemu_kvm_hostname
+    read -p "🖥️  Please enter the hostname of the VM to be reimaged : " qemu_kvm_hostname
     if [[ -n "${KVM_TOOL_EXECUTED_FROM:-}" && "${KVM_TOOL_EXECUTED_FROM}" == "${qemu_kvm_hostname}" ]]; then
 	echo -e "\n❌ This operation is not allowed to avoid self-referential KVM actions that could destabilize the infra server."
     	echo -e "⚠️ Note:"
