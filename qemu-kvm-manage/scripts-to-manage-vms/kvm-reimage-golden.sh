@@ -44,7 +44,7 @@ while [[ $# -gt 0 ]]; do
       shift
       ;;
     --help|-h)
-      echo "Usage: $0 [hostname] [--console|-c]"
+      echo "Usage: $(basename $0) [hostname] [--console|-c]"
       echo
       echo "Arguments:"
       echo "  hostname      Name of the VM to be installed (optional, will prompt if not given)"
@@ -56,7 +56,7 @@ while [[ $# -gt 0 ]]; do
         qemu_kvm_hostname="$1"
       else
         echo "❌ Unexpected argument: $1"
-        echo "ℹ️  Usage: $0 [hostname] [--console|-c]"
+        echo "ℹ️  Usage: $(basename $0) [hostname] [--console|-c]"
         exit 1
       fi
       shift
