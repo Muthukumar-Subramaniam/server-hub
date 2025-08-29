@@ -25,6 +25,7 @@ fi
 
 ATTACH_CONSOLE="no"
 qemu_kvm_hostname=""
+all_input_args="$@"
 
 # Fail fast if more than 2 args given
 if [[ $# -gt 2 ]]; then
@@ -67,7 +68,7 @@ done
 # If hostname still not set, prompt
 if [ -z "$qemu_kvm_hostname" ]; then
     echo
-    read -p "🖥️  Please enter the hostname of the VM to be installed : " qemu_kvm_hostname
+    read -p "🖥️  Please enter the hostname of the VM to be reimaged : " qemu_kvm_hostname
     if [[ -n "${KVM_TOOL_EXECUTED_FROM:-}" && "${KVM_TOOL_EXECUTED_FROM}" == "${qemu_kvm_hostname}" ]]; then
 	echo -e "\n❌ This operation is not allowed to avoid self-referential KVM actions that could destabilize the infra server."
     	echo -e "⚠️ Note:"
@@ -91,4 +92,4 @@ if ! sudo virsh list --all | awk '{print $2}' | grep -Fxq "$qemu_kvm_hostname"; 
     exit 1
 fi
 
-"$DIR_PATH_SCRIPTS_TO_MANAGE_VMS/kvm-remove.sh" "$qemu_kvm_hostname" && "$DIR_PATH_SCRIPTS_TO_MANAGE_VMS/kvm-install-golden.sh" "$@"
+"$DIR_PATH_SCRIPTS_TO_MANAGE_VMS/kvm-remove.sh" "$qemu_kvm_hostname" && "$DIR_PATH_SCRIPTS_TO_MANAGE_VMS/kvm-install-golden.sh" "$all_input_args"

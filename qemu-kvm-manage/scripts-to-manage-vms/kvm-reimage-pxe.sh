@@ -25,6 +25,7 @@ fi
 
 ATTACH_CONSOLE="no"
 qemu_kvm_hostname=""
+all_input_args="$@"
 
 # Fail fast if more than 2 args given
 if [[ $# -gt 2 ]]; then
@@ -91,4 +92,4 @@ if ! sudo virsh list --all | awk '{print $2}' | grep -Fxq "$qemu_kvm_hostname"; 
     exit 1
 fi
 
-"$DIR_PATH_SCRIPTS_TO_MANAGE_VMS/kvm-remove.sh" "$qemu_kvm_hostname" && "$DIR_PATH_SCRIPTS_TO_MANAGE_VMS/kvm-install-pxe.sh" "$@"
+"$DIR_PATH_SCRIPTS_TO_MANAGE_VMS/kvm-remove.sh" "$qemu_kvm_hostname" && "$DIR_PATH_SCRIPTS_TO_MANAGE_VMS/kvm-install-pxe.sh" "$all_input_args"
