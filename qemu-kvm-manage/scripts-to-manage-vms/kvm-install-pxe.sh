@@ -30,7 +30,7 @@ qemu_kvm_hostname=""
 # Fail fast if more than 2 args given
 if [[ $# -gt 2 ]]; then
   echo "❌ Too many arguments."
-  echo "ℹ️  Usage: $0 [hostname] [--console|-c]"
+  echo "ℹ️  Usage: $(basename $0) [hostname] [--console|-c]"
   exit 1
 fi
 
