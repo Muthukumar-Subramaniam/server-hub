@@ -92,4 +92,4 @@ if ! sudo virsh list --all | awk '{print $2}' | grep -Fxq "$qemu_kvm_hostname"; 
     exit 1
 fi
 
-"$DIR_PATH_SCRIPTS_TO_MANAGE_VMS/kvm-remove.sh" "$qemu_kvm_hostname" && "$DIR_PATH_SCRIPTS_TO_MANAGE_VMS/kvm-install-pxe.sh" "$all_input_args"
+"$DIR_PATH_SCRIPTS_TO_MANAGE_VMS/kvm-remove.sh" "$qemu_kvm_hostname" && "$DIR_PATH_SCRIPTS_TO_MANAGE_VMS/kvm-install-pxe.sh" "$(printf "'%s' " "$all_input_args")"
