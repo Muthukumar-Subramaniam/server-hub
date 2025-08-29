@@ -94,7 +94,7 @@ fi
 if [[ "$ATTACH_CONSOLE" == "yes" ]]; then
 	toggle_console="--console"
 else
-	toggle_console=""
+	toggle_console=
 fi
 
 "$DIR_PATH_SCRIPTS_TO_MANAGE_VMS/kvm-remove.sh" $qemu_kvm_hostname && "$DIR_PATH_SCRIPTS_TO_MANAGE_VMS/kvm-install-pxe.sh" $qemu_kvm_hostname $toggle_console
