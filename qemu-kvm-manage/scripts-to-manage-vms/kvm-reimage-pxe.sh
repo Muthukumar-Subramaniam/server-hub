@@ -97,4 +97,4 @@ else
 	toggle_console=""
 fi
 
-"$DIR_PATH_SCRIPTS_TO_MANAGE_VMS/kvm-remove.sh $qemu_kvm_hostname" && "$DIR_PATH_SCRIPTS_TO_MANAGE_VMS/kvm-install-pxe.sh $qemu_kvm_hostname $toggle_console"
+"$DIR_PATH_SCRIPTS_TO_MANAGE_VMS/kvm-remove.sh" $qemu_kvm_hostname && "$DIR_PATH_SCRIPTS_TO_MANAGE_VMS/kvm-install-pxe.sh" $qemu_kvm_hostname $toggle_console
