@@ -26,48 +26,69 @@ fi
 infra_mgmt_super_username=$(< /virtual-machines/infra-mgmt-super-username)
 local_infra_domain_name=$(< /virtual-machines/local_infra_domain_name)
 
+mapfile -t vm_list < <(sudo virsh list --all | awk 'NR>2 && $2 != "" {print $2}')
+
 # SSH options
-SSH_OPTS="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=QUIET"
+ssh_options="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=QUIET"
 
-# Colors
-RED="\033[0;31m"
-GREEN="\033[0;32m"
-YELLOW="\033[0;33m"
-RESET="\033[0m"
+# Color codes
+COLOR_GREEN=$'\033[0;32m'
+COLOR_YELLOW=$'\033[0;33m'
+COLOR_RED=$'\033[0;31m'
+COLOR_RESET=$'\033[0m'
 
-# Header
-printf "%-20s %-12s %-12s\n" "VM-Name" "VM-State" "OS-State"
-printf '%s\n' "------------------------------------------"
+# Temporary files to collect output
+tmp_file_running_vms=$(mktemp)
+tmp_file_off_vms=$(mktemp)
 
-# Collect VM list safely
-mapfile -t vms < <(sudo virsh list --all | awk 'NR>2 && $2 != "" {print $2}')
+# Iterate over VMs in parallel
+for vm_name in "${vm_list[@]}"; do
+(
+    current_vm_state="[ N/A ]"
+    current_os_state="[ N/A ]"
 
-for vm in "${vms[@]}"; do
-    vm_state="[ N/A ]"
-    os_state="[ N/A ]"
+    # Get VM state from virsh
+    current_vm_state=$(sudo virsh domstate "$vm_name" 2>/dev/null || echo "[ N/A ]")
 
-    # VM state
-    vm_state=$(sudo virsh domstate "$vm" 2>/dev/null || echo "[ N/A ]")
-
-    if [[ "$vm_state" == "running" ]]; then
-        state_out=$(ssh $SSH_OPTS "${infra_mgmt_super_username}@${vm}.${local_infra_domain_name}" \
+    # If VM is running, check OS systemd state via SSH
+    if [[ "$current_vm_state" == "running" ]]; then
+        ssh_output=$(ssh $ssh_options "${infra_mgmt_super_username}@${vm_name}.${local_infra_domain_name}" \
             "systemctl is-system-running --quiet && echo Ready || echo Not-Ready" \
-        2>/dev/null </dev/null || true)
+            2>/dev/null </dev/null || true)
 
-        if [[ -n "$state_out" ]]; then
-            os_state="$state_out"
-        else
-            os_state="Not-Ready"
-        fi
+        current_os_state="${ssh_output:-Not-Ready}"
     fi
 
-    # Decide row color
-    row_color="$RESET"
-    case "$os_state" in
-        Ready)      row_color="$GREEN" ;;
-        Not-Ready)  row_color="$YELLOW" ;;
-        "[ N/A ]")  row_color="$RED" ;;
+    # Determine line color based on OS state
+    line_color="$COLOR_RESET"
+    case "$current_os_state" in
+        Ready)      line_color="$COLOR_GREEN" ;;
+        Not-Ready)  line_color="$COLOR_YELLOW" ;;
+        "[ N/A ]")  line_color="$COLOR_RED" ;;
     esac
 
-    printf "${row_color}%-20s %-12s %-12s${RESET}\n" "$vm" "$vm_state" "$os_state"
+    formatted_line=$(printf "%s%-20s %-12s %-12s%s\n" "$line_color" "$vm_name" "$current_vm_state" "$current_os_state" "$COLOR_RESET")
+
+    # Collect output: running VMs first, others at end
+    if [[ "$current_vm_state" == "running" ]]; then
+        echo "$formatted_line" >> "$tmp_file_running_vms"
+    else
+        echo "$formatted_line" >> "$tmp_file_off_vms"
+    fi
+) &
 done
+
+# Wait for all background jobs
+wait
+
+# Print table header
+printf "%-20s %-12s %-12s\n" "VM-Name" "VM-State" "OS-State"
+printf '%.0s-' {1..42}
+echo
+
+# Print running first, then non-running VMs
+sort "$tmp_file_running_vms"
+sort "$tmp_file_off_vms"
+
+# Cleanup temporary files
+rm -f "$tmp_file_running_vms" "$tmp_file_off_vms"
