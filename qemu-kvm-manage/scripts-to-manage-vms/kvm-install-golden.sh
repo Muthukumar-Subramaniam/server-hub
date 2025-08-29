@@ -24,10 +24,49 @@ infra_server_ipv4_address=$(cat /virtual-machines/ipv4-address-address-of-infra-
 infra_mgmt_super_username=$(cat /virtual-machines/infra-mgmt-super-username)
 local_infra_domain_name=$(cat /virtual-machines/local_infra_domain_name)
 
-# Use first argument or prompt for hostname
-if [ -n "$1" ]; then
-    qemu_kvm_hostname="$1"
-else
+ATTACH_CONSOLE="no"
+qemu_kvm_hostname=""
+
+# Fail fast if more than 2 args given
+if [[ $# -gt 2 ]]; then
+  echo "❌ Too many arguments."
+  echo "ℹ️  Usage: $0 [hostname] [--console|-c]"
+  exit 1
+fi
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --console|-c)
+      if [[ "$ATTACH_CONSOLE" == "yes" ]]; then
+        echo "❌ Duplicate --console/-c option."
+        exit 1
+      fi
+      ATTACH_CONSOLE="yes"
+      shift
+      ;;
+    --help|-h)
+      echo "Usage: $0 [hostname] [--console|-c]"
+      echo
+      echo "Arguments:"
+      echo "  hostname      Name of the VM to be installed (optional, will prompt if not given)"
+      echo "  --console,-c  Attach console during install (optional, can appear before or after hostname)"
+      exit 0
+      ;;
+    *)
+      if [[ -z "$qemu_kvm_hostname" ]]; then
+        qemu_kvm_hostname="$1"
+      else
+        echo "❌ Unexpected argument: $1"
+        echo "ℹ️  Usage: $0 [hostname] [--console|-c]"
+        exit 1
+      fi
+      shift
+      ;;
+  esac
+done
+
+# If hostname still not set, prompt
+if [ -z "$qemu_kvm_hostname" ]; then
     echo
     read -p "🖥️  Please enter the hostname of the VM to be installed : " qemu_kvm_hostname
     if [[ -n "${KVM_TOOL_EXECUTED_FROM:-}" && "${KVM_TOOL_EXECUTED_FROM}" == "${qemu_kvm_hostname}" ]]; then
@@ -116,9 +155,7 @@ sudo cp -p /virtual-machines/golden-images-disk-store/${OS_DISTRO}-golden-image.
 
 echo -e "✅"
 
-echo -e "\n🚀 Starting installation of VM '${qemu_kvm_hostname}' . . .\n"
-
-sudo virt-install \
+VIRT_INSTALL_CMD="sudo virt-install \
   --name ${qemu_kvm_hostname} \
   --features acpi=on,apic=on \
   --memory 2048 \
@@ -126,18 +163,33 @@ sudo virt-install \
   --disk path=/virtual-machines/${qemu_kvm_hostname}/${qemu_kvm_hostname}.qcow2,bus=virtio,boot.order=1 \
   --os-variant almalinux9 \
   --network network=default,model=virtio,mac=${MAC_ADDRESS},boot.order=2 \
-  --graphics none \
-  --console pty,target_type=serial \
   --machine q35 \
   --cpu host-model \
+  --graphics none \
   --boot loader=/usr/share/edk2/ovmf/OVMF_CODE.fd,\
 nvram.template=/usr/share/edk2/ovmf/OVMF_VARS.fd,\
-nvram=/virtual-machines/${qemu_kvm_hostname}/${qemu_kvm_hostname}_VARS.fd,menu=on \
+nvram=/virtual-machines/${qemu_kvm_hostname}/${qemu_kvm_hostname}_VARS.fd,menu=on"
+
+if [ "$ATTACH_CONSOLE" = "yes" ]; then
+  VIRT_INSTALL_CMD+=" --console pty,target_type=serial"
+else
+  VIRT_INSTALL_CMD+=" --noautoconsole"
+fi
+
+echo -e "\n🚀 Starting installation of VM '${qemu_kvm_hostname}' . . .\n"
+eval "$VIRT_INSTALL_CMD"
 
 if sudo virsh list | grep -q "${qemu_kvm_hostname}"; then
-    echo -e "\n✅ Successfully installed the VM ${qemu_kvm_hostname} ! \n"
+    if [ "$ATTACH_CONSOLE" != "yes" ]; then
+        echo -e "\n✅ Successfully initiated installtion of VM ${qemu_kvm_hostname} ! "
+	echo " It might take sometime for installation to complete and OS to get Ready."
+        echo  " You could monitor the status with kvm-list."
+        echo -e " If you want to access console, Run 'kvm-console ${qemu_kvm_hostname}'."
+    else
+	echo -e "\n✅ Successfully completed installation of VM ${qemu_kvm_hostname} ! "
+    fi
 else
-    echo -e "\n❌ Failed to install the VM ${qemu_kvm_hostname} ! \n"
+    echo -e "\n❌ Failed to initiate installation of VM ${qemu_kvm_hostname} ! \n"
     echo "🔍 Please check what went wrong."
     echo
 fi

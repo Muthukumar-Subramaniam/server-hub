@@ -23,11 +23,51 @@ if sudo dmidecode -s system-manufacturer | grep -qi 'QEMU'; then
     exit 1
 fi
 
-# Use first argument or prompt for hostname
-if [ -n "$1" ]; then
-    qemu_kvm_hostname="$1"
-else
-    read -p "⌨️  Please enter the Hostname of the VM to be re-imaged: " qemu_kvm_hostname
+ATTACH_CONSOLE="no"
+qemu_kvm_hostname=""
+
+# Fail fast if more than 2 args given
+if [[ $# -gt 2 ]]; then
+  echo "❌ Too many arguments."
+  echo "ℹ️  Usage: $0 [hostname] [--console|-c]"
+  exit 1
+fi
+
+while [[ $# -gt 0 ]]; do
+  case "$1" in
+    --console|-c)
+      if [[ "$ATTACH_CONSOLE" == "yes" ]]; then
+        echo "❌ Duplicate --console/-c option."
+        exit 1
+      fi
+      ATTACH_CONSOLE="yes"
+      shift
+      ;;
+    --help|-h)
+      echo "Usage: $0 [hostname] [--console|-c]"
+      echo
+      echo "Arguments:"
+      echo "  hostname      Name of the VM to be installed (optional, will prompt if not given)"
+      echo "  --console,-c  Attach console during install (optional, can appear before or after hostname)"
+      exit 0
+      ;;
+    *)
+      if [[ -z "$qemu_kvm_hostname" ]]; then
+        qemu_kvm_hostname="$1"
+      else
+        echo "❌ Unexpected argument: $1"
+        echo "ℹ️  Usage: $0 [hostname] [--console|-c]"
+        exit 1
+      fi
+      shift
+      ;;
+  esac
+done
+
+# If hostname still not set, prompt
+if [ -z "$qemu_kvm_hostname" ]; then
+    echo
+    read -p "🖥️  Please enter the hostname of the VM to be installed : " qemu_kvm_hostname
     if [[ -n "${KVM_TOOL_EXECUTED_FROM:-}" && "${KVM_TOOL_EXECUTED_FROM}" == "${qemu_kvm_hostname}" ]]; then
 	echo -e "\n❌ This operation is not allowed to avoid self-referential KVM actions that could destabilize the infra server."
     	echo -e "⚠️ Note:"
@@ -51,4 +91,4 @@ if ! sudo virsh list --all | awk '{print $2}' | grep -Fxq "$qemu_kvm_hostname"; 
     exit 1
 fi
 
-"$DIR_PATH_SCRIPTS_TO_MANAGE_VMS/kvm-remove.sh" "$qemu_kvm_hostname" && "$DIR_PATH_SCRIPTS_TO_MANAGE_VMS/kvm-install-golden.sh" "$qemu_kvm_hostname"
+"$DIR_PATH_SCRIPTS_TO_MANAGE_VMS/kvm-remove.sh" "$qemu_kvm_hostname" && "$DIR_PATH_SCRIPTS_TO_MANAGE_VMS/kvm-install-golden.sh" "$@"
