@@ -72,6 +72,7 @@ sudo rm -f /virtual-machines/${qemu_kvm_hostname}/${qemu_kvm_hostname}.qcow2 \
 
 sudo rmdir /virtual-machines/${qemu_kvm_hostname}
 
-sudo sed -i "/${qemu_kvm_hostname}\.${local_infra_domain_name}/d" "${ALIAS_FILE_OF_LAB_NODES}" "${ETC_HOSTS_FILE}"
+sudo sed -i "/@${qemu_kvm_hostname}\.${local_infra_domain_name}/d" "${ALIAS_FILE_OF_LAB_NODES}"
+sudo sed -i "/ ${qemu_kvm_hostname}\.${local_infra_domain_name}/d" "${ETC_HOSTS_FILE}"
 
 echo -e "✅ VM \"$qemu_kvm_hostname\" deleted successfully. \n"
