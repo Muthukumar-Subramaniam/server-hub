@@ -5,6 +5,9 @@
 #----------------------------------------------------------------------------------------#
 
 INFRA_SERVER_VM_NAME=$(< /virtual-machines/local_infra_server_name)
+ALIAS_FILE_OF_LAB_NODES='/virtual-machines/ssh-assist-aliases-for-vms-on-qemu-kvm'
+ETC_HOSTS_FILE='/etc/hosts'
+local_infra_domain_name=$(< /virtual-machines/local_infra_domain_name)
 
 if [[ "$EUID" -eq 0 ]]; then
     echo -e "\n⛔ Running as root user is not allowed."
@@ -68,5 +71,7 @@ sudo rm -f /virtual-machines/${qemu_kvm_hostname}/${qemu_kvm_hostname}.qcow2 \
            /virtual-machines/${qemu_kvm_hostname}/${qemu_kvm_hostname}.xml
 
 sudo rmdir /virtual-machines/${qemu_kvm_hostname}
+
+sudo sed -i "/${qemu_kvm_hostname}\.${local_infra_domain_name}/d" "${ALIAS_FILE_OF_LAB_NODES}" "${ETC_HOSTS_FILE}"
 
 echo -e "✅ VM \"$qemu_kvm_hostname\" deleted successfully. \n"
