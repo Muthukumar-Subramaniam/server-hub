@@ -41,6 +41,24 @@ fi
 
 mkdir -p /virtual-machines/golden-images-disk-store
 
+golden_image_path="/virtual-machines/golden-images-disk-store/${qemu_kvm_hostname}.qcow2"
+
+# ✅ Check if golden image already exists
+if [ -f "${golden_image_path}" ]; then
+    echo -e "\n⚠️  Golden image '${qemu_kvm_hostname}' already exists ! \n"
+    read -p "Do you want to delete and recreate it? [yes/NO]: " answer
+    case "$answer" in
+        [yes|YES]* )
+            echo -e "\n🗑️  Deleting existing golden image..."
+            sudo rm -f "${golden_image_path}"
+            ;;
+        * )
+            echo -e "\n✅ Keeping existing golden image '${qemu_kvm_hostname}'. Exiting... \n"
+            exit 0
+            ;;
+    esac
+fi
+
 echo -e "\n🚀 Starting installation of VM '${qemu_kvm_hostname}' to create golden image disk . . .\n"
 
 sudo virt-install \
@@ -48,7 +66,7 @@ sudo virt-install \
   --features acpi=on,apic=on \
   --memory 4096 \
   --vcpus 2 \
-  --disk path=/virtual-machines/golden-images-disk-store/${qemu_kvm_hostname}.qcow2,size=20,bus=virtio,boot.order=1 \
+  --disk path=${golden_image_path},size=20,bus=virtio,boot.order=1 \
   --os-variant almalinux9 \
   --network network=default,model=virtio,mac=${MAC_ADDRESS},boot.order=2 \
   --graphics none \
@@ -62,4 +80,4 @@ nvram=/virtual-machines/golden-images-disk-store/${qemu_kvm_hostname}_VARS.fd,me
 sudo virsh destroy "${qemu_kvm_hostname}" 2>/dev/null
 sudo virsh undefine "${qemu_kvm_hostname}" --nvram 2>/dev/null
 
-echo -e "\n✅ Successfully created golden image disk /virtual-machines/golden-images-disk-store/${qemu_kvm_hostname}.qcow2 ! \n"
+echo -e "\n✅ Successfully created golden image disk ${golden_image_path} ! \n"
