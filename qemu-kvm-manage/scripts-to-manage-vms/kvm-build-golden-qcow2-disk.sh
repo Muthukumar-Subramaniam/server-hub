@@ -48,7 +48,7 @@ if [ -f "${golden_image_path}" ]; then
     echo -e "\n⚠️  Golden image '${qemu_kvm_hostname}' already exists ! \n"
     read -p "Do you want to delete and recreate it? [yes/NO]: " answer
     case "$answer" in
-        [yes|YES]* )
+        yes|YES)
             echo -e "\n🗑️  Deleting existing golden image..."
             sudo rm -f "${golden_image_path}"
             ;;
