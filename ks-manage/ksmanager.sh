@@ -389,8 +389,6 @@ if ! $invoked_with_golden_image; then
 
 	rsync -a -q --delete "${ksmanager_main_dir}"/addons-for-kickstarts/ "${ksmanager_hub_dir}"/addons-for-kickstarts/
 
-	rsync -a -q /etc/pki/tls/certs/"${web_server_name}.${ipv4_domain}-apache-selfsigned.crt" "${ksmanager_hub_dir}"/addons-for-kickstarts/
-
 	rsync -a -q "/home/${mgmt_super_user}/.ssh/authorized_keys" "${ksmanager_hub_dir}"/addons-for-kickstarts/
 
 	chmod +r "${ksmanager_hub_dir}"/addons-for-kickstarts/authorized_keys
