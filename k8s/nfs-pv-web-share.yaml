@@ -12,4 +12,4 @@ spec:
     volumeHandle: nfs-web-share
     volumeAttributes:
       server: server.lab.local
-      share: /var/www/server.lab.local
+      share: /server.lab.local

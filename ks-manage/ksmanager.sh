@@ -41,8 +41,8 @@ time_of_last_update=$(date | sed  "s/ /-/g")
 shadow_password_super_mgmt_user=$(grep "${mgmt_super_user}" /etc/shadow | cut -d ":" -f 2)
 dnsbinder_script='/server-hub/named-manage/dnsbinder.sh'
 ksmanager_main_dir='/server-hub/ks-manage'
-ksmanager_hub_dir="/var/www/${web_server_name}.${ipv4_domain}/ksmanager-hub"
-ipxe_web_dir="/var/www/${web_server_name}.${ipv4_domain}/ipxe"
+ksmanager_hub_dir="/${web_server_name}.${ipv4_domain}/ksmanager-hub"
+ipxe_web_dir="/${web_server_name}.${ipv4_domain}/ipxe"
 
 mkdir -p "${ksmanager_hub_dir}"
 mkdir -p "${ipxe_web_dir}"
@@ -333,19 +333,19 @@ while [ ! -f "${ipxe_web_dir}/images/${os_distribution}-latest/${kernel_file_nam
 done
 
 if [[ "${os_distribution}" == "ubuntu-lts" ]]; then
-	os_name_and_version=$(awk -F'LTS' '{print $1 "LTS"}' "/var/www/${web_server_name}.${ipv4_domain}/${os_distribution}-latest/.disk/info")
+	os_name_and_version=$(awk -F'LTS' '{print $1 "LTS"}' "/${web_server_name}.${ipv4_domain}/${os_distribution}-latest/.disk/info")
 elif [[ "${os_distribution}" == "opensuse-leap" ]]; then
-	os_name_and_version=$(awk -F ' = ' '/^\[release\]/{f=1; next} /^\[/{f=0} f && /^(name|version)/ {gsub(/^[ \t]+/, "", $2); printf "%s ", $2} END{print ""}' "/var/www/${web_server_name}.${ipv4_domain}/${os_distribution}-latest/.treeinfo")
+	os_name_and_version=$(awk -F ' = ' '/^\[release\]/{f=1; next} /^\[/{f=0} f && /^(name|version)/ {gsub(/^[ \t]+/, "", $2); printf "%s ", $2} END{print ""}' "/${web_server_name}.${ipv4_domain}/${os_distribution}-latest/.treeinfo")
 else
 	redhat_based_distro_name="${os_distribution}"
 	if [[ "${os_distribution}" == "centos-stream" ]]; then
-		os_name_and_version=$(grep -i "centos" "/var/www/${web_server_name}.${ipv4_domain}/${os_distribution}-latest/.discinfo")
+		os_name_and_version=$(grep -i "centos" "/${web_server_name}.${ipv4_domain}/${os_distribution}-latest/.discinfo")
 	elif [[ "${os_distribution}" == "oraclelinux" ]]; then
-		os_name_and_version=$(grep -i "oracle" "/var/www/${web_server_name}.${ipv4_domain}/${os_distribution}-latest/.discinfo")
+		os_name_and_version=$(grep -i "oracle" "/${web_server_name}.${ipv4_domain}/${os_distribution}-latest/.discinfo")
 	elif [[ "${os_distribution}" == "rhel" ]]; then
-		os_name_and_version=$(grep -i "Red Hat" "/var/www/${web_server_name}.${ipv4_domain}/${os_distribution}-latest/.discinfo")
+		os_name_and_version=$(grep -i "Red Hat" "/${web_server_name}.${ipv4_domain}/${os_distribution}-latest/.discinfo")
 	else
-		os_name_and_version=$(grep -i "${os_distribution}" "/var/www/${web_server_name}.${ipv4_domain}/${os_distribution}-latest/.discinfo")
+		os_name_and_version=$(grep -i "${os_distribution}" "/${web_server_name}.${ipv4_domain}/${os_distribution}-latest/.discinfo")
 	fi
 fi
 
@@ -589,7 +589,7 @@ if ! $invoked_with_golden_image; then
 	echo -e "  📁  DHCP Server  : ${tftp_server_name}.${ipv4_domain}"
 	echo -e "  📁  TFTP Server  : ${tftp_server_name}.${ipv4_domain}"
 	echo -e "  📂  KS Local     : ${host_kickstart_dir}"
-	echo -e "  🔗  KS Web       : https://${host_kickstart_dir#/var/www/}"
+	echo -e "  🔗  KS Web       : https://${host_kickstart_dir#/}"
 fi
 echo -e "  💿  Requested OS : ${os_name_and_version}"
 

@@ -30,7 +30,7 @@ fn_check_distro_availability() {
   else
     kernel_file_name="vmlinuz"
   fi
-  if [[ ! -f "/var/www/${dnsbinder_server_fqdn}/ipxe/images/${os_distribution}-latest/${kernel_file_name}" ]]; then
+  if [[ ! -f "/${dnsbinder_server_fqdn}/ipxe/images/${os_distribution}-latest/${kernel_file_name}" ]]; then
     echo '[Not-Ready]'
   else
     echo '[Ready]'
@@ -76,8 +76,8 @@ fn_select_os_distro() {
 
 prepare_iso() {
   local distro="$1" iso_file="$2" iso_url="$3" kernel_path="$4" initrd_path="$5"
-  local mount_dir="/var/www/${dnsbinder_server_fqdn}/${distro}-latest"
-  local web_image_dir="/var/www/${dnsbinder_server_fqdn}/ipxe/images/${distro}-latest"
+  local mount_dir="/${dnsbinder_server_fqdn}/${distro}-latest"
+  local web_image_dir="/${dnsbinder_server_fqdn}/ipxe/images/${distro}-latest"
   local iso_path="${ISO_DIR}/${iso_file}"
 
   echo -e "📁 Ensuring ISO directory exists..."
@@ -131,8 +131,8 @@ prepare_rhel() {
     exit 1
   fi
   local iso_file="rhel-10.0-x86_64-dvd.iso"
-  local mount_dir="/var/www/${dnsbinder_server_fqdn}/${distro}"
-  local web_image_dir="/var/www/${dnsbinder_server_fqdn}/ipxe/images/${distro}-latest"
+  local mount_dir="/${dnsbinder_server_fqdn}/${distro}"
+  local web_image_dir="/${dnsbinder_server_fqdn}/ipxe/images/${distro}-latest"
   local iso_path="${ISO_DIR}/${iso_file}"
 
   echo -e "\nLogin from a browser with your Red Hat Developer Subscription ! \n"
@@ -158,8 +158,8 @@ cleanup_distro() {
   local distro="$1"
   local iso_file="$2"
   local iso_path="${ISO_DIR}/${iso_file}"
-  local mount_dir="/var/www/${dnsbinder_server_fqdn}/${distro}-latest"
-  local web_image_dir="/var/www/${dnsbinder_server_fqdn}/ipxe/images/${distro}-latest"
+  local mount_dir="/${dnsbinder_server_fqdn}/${distro}-latest"
+  local web_image_dir="/${dnsbinder_server_fqdn}/ipxe/images/${distro}-latest"
 
   echo -e "\n⚠️  This will delete ISO, mount point and boot image files for $distro."
   read -p "❓ Are you sure you want to continue? (yes/no): " confirm

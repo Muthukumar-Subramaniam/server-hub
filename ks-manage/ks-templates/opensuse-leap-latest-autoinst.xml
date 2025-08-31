@@ -282,8 +282,6 @@
 	/usr/bin/wget -O /root/.ssh/authorized_keys http://get_web_server_name.get_ipv4_domain/ksmanager-hub/addons-for-kickstarts/authorized_keys
 	/usr/bin/chmod 0600 /home/get_mgmt_super_user/.ssh/authorized_keys /root/.ssh/authorized_keys
 	/usr/bin/chown -R get_mgmt_super_user:users /home/get_mgmt_super_user/.ssh
-	/usr/bin/wget -P /etc/pki/trust/anchors/  http://get_web_server_name.get_ipv4_domain/ksmanager-hub/addons-for-kickstarts/ca-certs/get_web_server_name.get_ipv4_domain-apache-selfsigned.crt
-	/usr/sbin/update-ca-certificates
 	/usr/bin/echo -e "HISTSIZE=-1\nHISTFILESIZE=-1" | /usr/bin/tee -a /home/get_mgmt_super_user/.bashrc /root/.bashrc
 	var_PS1_variable_get_mgmt_super_user=$(/usr/bin/curl -s -L http://get_web_server_name.get_ipv4_domain/ksmanager-hub/addons-for-kickstarts/PS1-env-variable-normal-user)
 	/usr/bin/echo "${var_PS1_variable_get_mgmt_super_user}" >> /home/get_mgmt_super_user/.bashrc
@@ -307,7 +305,7 @@
 	/usr/bin/echo "/- /etc/auto.master.d/auto-${local_lab_info}" > /etc/auto.master.d/direct.autofs
 	/usr/bin/cat << EOF > /etc/auto.master.d/auto-${local_lab_info}
 /server-hub -fstype=nfs,soft,timeo=5,retrans=2 get_nfs_server_name:/server-hub
-/lab-web-share -fstype=nfs,soft,timeo=5,retrans=2 get_nfs_server_name:/var/www/get_web_server_name.get_ipv4_domain
+/lab-web-share -fstype=nfs,soft,timeo=5,retrans=2 get_nfs_server_name:/get_web_server_name.get_ipv4_domain
 /lab-share -fstype=nfs,soft,timeo=5,retrans=2 get_nfs_server_name:/lab-share
 EOF
         ]]></source>

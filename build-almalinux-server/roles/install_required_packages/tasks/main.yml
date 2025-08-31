@@ -18,8 +18,8 @@
       - kea
       - kea-hooks
       - syslinux
-      - httpd
-      - mod_ssl
+      - nginx
+      - nginx-mod-stream
       - tmux
       - tftp
       - rsync
@@ -33,10 +33,4 @@
       - tuned
       - tree
       - yum-utils
-      - make
-      - gcc
-      - binutils
-      - perl
-      - xz
-      - mtools
     state: present

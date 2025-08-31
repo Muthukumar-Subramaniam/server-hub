@@ -7,40 +7,40 @@
     dest: /etc/kea/kea-dhcp4.conf
 
 
-- name: Create almalinux-latest mount point under /var/www//{{ ansible_env.dnsbinder_server_short_name }}.{{ ansible_env.dnsbinder_domain }}
+- name: Create almalinux-latest mount point under //{{ ansible_env.dnsbinder_server_short_name }}.{{ ansible_env.dnsbinder_domain }}
   file:
-    path: "/var/www//{{ ansible_env.dnsbinder_server_short_name }}.{{ ansible_env.dnsbinder_domain }}/almalinux-latest"
+    path: "//{{ ansible_env.dnsbinder_server_short_name }}.{{ ansible_env.dnsbinder_domain }}/almalinux-latest"
     state: directory
 
 - name: Mount AlmaLinux ISO and update an entry in fstab as well 
   become: true
   ansible.posix.mount:
-    path: "/var/www/{{ ansible_env.dnsbinder_server_short_name }}.{{ ansible_env.dnsbinder_domain }}/almalinux-latest"
+    path: "/{{ ansible_env.dnsbinder_server_short_name }}.{{ ansible_env.dnsbinder_domain }}/almalinux-latest"
     src: /dev/sr0
     fstype: iso9660
     opts: "uid={{ ansible_env.mgmt_super_user }},gid={{ ansible_env.mgmt_super_user }}"
     state: mounted
 
-- name: Create /var/www//{{ ansible_env.dnsbinder_server_short_name }}.{{ ansible_env.dnsbinder_domain }}/ipxe to manage iPXE
+- name: Create //{{ ansible_env.dnsbinder_server_short_name }}.{{ ansible_env.dnsbinder_domain }}/ipxe to manage iPXE
   file:
-    path: "/var/www//{{ ansible_env.dnsbinder_server_short_name }}.{{ ansible_env.dnsbinder_domain }}/ipxe"
+    path: "//{{ ansible_env.dnsbinder_server_short_name }}.{{ ansible_env.dnsbinder_domain }}/ipxe"
     state: directory
 
-- name: Create /var/www//{{ ansible_env.dnsbinder_server_short_name }}.{{ ansible_env.dnsbinder_domain }}/ipxe/images to manage iPXE images
+- name: Create //{{ ansible_env.dnsbinder_server_short_name }}.{{ ansible_env.dnsbinder_domain }}/ipxe/images to manage iPXE images
   file:
-    path: "/var/www//{{ ansible_env.dnsbinder_server_short_name }}.{{ ansible_env.dnsbinder_domain }}/ipxe/images"
+    path: "//{{ ansible_env.dnsbinder_server_short_name }}.{{ ansible_env.dnsbinder_domain }}/ipxe/images"
     state: directory
 
-- name: Create almalinux-latest under /var/www//{{ ansible_env.dnsbinder_server_short_name }}.{{ ansible_env.dnsbinder_domain }}/ipxe/images to hold kernel and initrd image
+- name: Create almalinux-latest under //{{ ansible_env.dnsbinder_server_short_name }}.{{ ansible_env.dnsbinder_domain }}/ipxe/images to hold kernel and initrd image
   file:
-    path: "/var/www//{{ ansible_env.dnsbinder_server_short_name }}.{{ ansible_env.dnsbinder_domain }}/ipxe/images/almalinux-latest"
+    path: "//{{ ansible_env.dnsbinder_server_short_name }}.{{ ansible_env.dnsbinder_domain }}/ipxe/images/almalinux-latest"
     state: directory
 
 - name: Copy PXE boot images from AlmaLinux {{ ansible_env.alma_version_major }} to /var/lib/tftpboot
   ansible.builtin.synchronize:
     mode: push
-    src: "/var/www/{{ ansible_env.dnsbinder_server_short_name }}.{{ ansible_env.dnsbinder_domain }}/almalinux-latest/images/pxeboot/"
-    dest: "/var/www//{{ ansible_env.dnsbinder_server_short_name }}.{{ ansible_env.dnsbinder_domain }}/ipxe/images/almalinux-latest/"
+    src: "/{{ ansible_env.dnsbinder_server_short_name }}.{{ ansible_env.dnsbinder_domain }}/almalinux-latest/images/pxeboot/"
+    dest: "//{{ ansible_env.dnsbinder_server_short_name }}.{{ ansible_env.dnsbinder_domain }}/ipxe/images/almalinux-latest/"
     rsync_opts:
       - "--include='vmlinuz'"
       - "--include='initrd.img'"
@@ -52,34 +52,11 @@
     src: /usr/share/syslinux/
     dest: /var/lib/tftpboot/
 
-- name: Ensure ipxe source dir exists
-  file:
-    path: "{{ ipxe_src_dir }}"
-    state: directory
-
-- name: Clone iPXE from GitHub
-  git:
-    repo: "{{ ipxe_repo_url }}"
-    dest: "{{ ipxe_src_dir }}"
-    version: master
-    update: yes
-
-- name: Place embedded iPXE script (boot_ipxe)
-  template:
-    src: "{{ ipxe_embed_file }}"
-    dest: "{{ ipxe_build_dir }}/boot.ipxe"
-
-- name: Build iPXE EFI binary with embedded script ( This might take some time )
-  command: make bin-x86_64-efi/ipxe.efi EMBED=boot.ipxe
-  args:
-    chdir: "{{ ipxe_build_dir }}"
-
-- name: Copy built ipxe.efi to tftpboot directory
+- name: Copy custom-built ipxe.efi to tftpboot directory
   become: true
   copy:
-    src: "{{ ipxe_output_file }}"
+    src: ipxe.efi
     dest: "{{ ipxe_tftp_target }}"
-    remote_src: yes
     mode: '0644'
 
 - name: Enable and Start kea-dhcp4,kea-ctrl-agent and tftp.socket

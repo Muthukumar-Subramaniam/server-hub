@@ -21,8 +21,8 @@
     - name: Apply Firewall Rules
       role:  apply-firewall-rules
 
-    - name: Configure httpd service ( Web Server)
-      role: configure_httpd_service_of_server
+    - name: Configure nginx Web Server
+      role: configure_nginx_web_server
 
     - name: Configure NFS service
       role: configure_nfs_service_of_server

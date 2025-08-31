@@ -1,8 +1,3 @@
 ---
 # defaults file for setup_pxe_boot_of_server
-ipxe_repo_url: "https://github.com/ipxe/ipxe.git"
-ipxe_src_dir: "/var/www/{{ ansible_env.dnsbinder_server_short_name }}.{{ ansible_env.dnsbinder_domain }}/ipxe/github-ipxe"
-ipxe_embed_file: "boot_ipxe.j2"
-ipxe_build_dir: "{{ ipxe_src_dir }}/src"
-ipxe_output_file: "{{ ipxe_build_dir }}/bin-x86_64-efi/ipxe.efi"
 ipxe_tftp_target: "/var/lib/tftpboot/ipxe.efi"

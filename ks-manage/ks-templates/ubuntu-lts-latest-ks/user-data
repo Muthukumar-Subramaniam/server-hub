@@ -35,8 +35,6 @@ autoinstall:
       - curl -fsSL http://get_web_server_name.get_ipv4_domain/ksmanager-hub/addons-for-kickstarts/authorized_keys -o /root/.ssh/authorized_keys
       - chmod 0600 /home/get_mgmt_super_user/.ssh/authorized_keys /root/.ssh/authorized_keys
       - chown -R get_mgmt_super_user:get_mgmt_super_user /home/get_mgmt_super_user/.ssh
-      - curl -fsSL http://get_web_server_name.get_ipv4_domain/ksmanager-hub/addons-for-kickstarts/ca-certs/get_web_server_name.get_ipv4_domain-apache-selfsigned.crt -o /usr/local/share/ca-certificates/get_web_server_name.get_ipv4_domain-apache-selfsigned.crt
-      - update-ca-certificates
       - touch /etc/cloud/cloud-init.disabled
       - if ls /etc/netplan/*cloud* &>/dev/null;then mv /etc/netplan/*cloud* /etc/netplan/old/;fi
       - cp -p /etc/chrony/chrony.conf /etc/chrony/chrony.conf_bkp_orig
@@ -55,7 +53,7 @@ autoinstall:
       - sed -i 's/^[[:space:]]*#\+[[:space:]]*\(+dir:\/etc\/auto\.master\.d\)/\1/' /etc/auto.master
       - echo "/- /etc/auto.master.d/auto-${local_lab_info}" > /etc/auto.master.d/direct.autofs
       - echo '/server-hub -fstype=nfs,soft,timeo=5,retrans=2 get_nfs_server_name:/server-hub' > /etc/auto.master.d/auto-${local_lab_info}
-      - echo '/lab-web-share -fstype=nfs,soft,timeo=5,retrans=2 get_nfs_server_name:/var/www/get_web_server_name.get_ipv4_domain' >> /etc/auto.master.d/auto-${local_lab_info}
+      - echo '/lab-web-share -fstype=nfs,soft,timeo=5,retrans=2 get_nfs_server_name:/get_web_server_name.get_ipv4_domain' >> /etc/auto.master.d/auto-${local_lab_info}
       - echo '/lab-share -fstype=nfs,soft,timeo=5,retrans=2 get_nfs_server_name:/lab-share' >> /etc/auto.master.d/auto-${local_lab_info}
       - reboot
 
