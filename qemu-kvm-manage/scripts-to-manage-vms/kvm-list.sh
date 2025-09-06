@@ -29,7 +29,7 @@ local_infra_domain_name=$(< /kvm-hub/local_infra_domain_name)
 mapfile -t vm_list < <(sudo virsh list --all | awk 'NR>2 && $2 != "" {print $2}')
 
 # SSH options
-ssh_options="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=QUIET"
+ssh_options="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=QUIET -o ConnectTimeout=5 -o ConnectionAttempts=1 -o ServerAliveInterval=5 -o ServerAliveCountMax=1"
 
 # Color codes
 COLOR_GREEN=$'\033[0;32m'
