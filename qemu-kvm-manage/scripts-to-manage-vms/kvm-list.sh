@@ -29,7 +29,13 @@ local_infra_domain_name=$(< /kvm-hub/local_infra_domain_name)
 mapfile -t vm_list < <(sudo virsh list --all | awk 'NR>2 && $2 != "" {print $2}')
 
 # SSH options
-ssh_options="-o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -o LogLevel=QUIET -o ConnectTimeout=5 -o ConnectionAttempts=1 -o ServerAliveInterval=5 -o ServerAliveCountMax=1"
+ssh_options="-o StrictHostKeyChecking=no \
+             -o UserKnownHostsFile=/dev/null \
+             -o LogLevel=QUIET \
+             -o ConnectTimeout=5 \
+             -o ConnectionAttempts=1 \
+             -o ServerAliveInterval=5 \
+             -o ServerAliveCountMax=1"
 
 # Color codes
 COLOR_GREEN=$'\033[0;32m'
@@ -46,17 +52,20 @@ for vm_name in "${vm_list[@]}"; do
 (
     current_vm_state="[ N/A ]"
     current_os_state="[ N/A ]"
+    os_distro="[ N/A ]"
 
     # Get VM state from virsh
     current_vm_state=$(sudo virsh domstate "$vm_name" 2>/dev/null || echo "[ N/A ]")
 
-    # If VM is running, check OS systemd state via SSH
+    # If VM is running, check systemd + distro via single SSH
     if [[ "$current_vm_state" == "running" ]]; then
         ssh_output=$(ssh $ssh_options "${infra_mgmt_super_username}@${vm_name}.${local_infra_domain_name}" \
-            "systemctl is-system-running --quiet && echo Ready || echo Not-Ready" \
+            'systemctl is-system-running --quiet && echo "Ready" || echo "Not-Ready"; \
+             source /etc/os-release 2>/dev/null && echo "$PRETTY_NAME" || echo "N/A"' \
             2>/dev/null </dev/null || true)
 
-        current_os_state="${ssh_output:-Not-Ready}"
+        current_os_state=$(echo "$ssh_output" | sed -n '1p')
+        os_distro=$(echo "$ssh_output" | sed -n '2p')
     fi
 
     # Determine line color based on OS state
@@ -67,7 +76,8 @@ for vm_name in "${vm_list[@]}"; do
         "[ N/A ]")  line_color="$COLOR_RED" ;;
     esac
 
-    formatted_line=$(printf "%s%-20s %-12s %-12s%s\n" "$line_color" "$vm_name" "$current_vm_state" "$current_os_state" "$COLOR_RESET")
+    formatted_line=$(printf "%s%-20s %-12s %-12s %-25s%s\n" \
+        "$line_color" "$vm_name" "$current_vm_state" "$current_os_state" "$os_distro" "$COLOR_RESET")
 
     # Collect output: running VMs first, others at end
     if [[ "$current_vm_state" == "running" ]]; then
@@ -82,8 +92,8 @@ done
 wait
 
 # Print table header
-printf "%-20s %-12s %-12s\n" "VM-Name" "VM-State" "OS-State"
-printf '%.0s-' {1..42}
+printf "%-20s %-12s %-12s %-25s\n" "VM-Name" "VM-State" "OS-State" "OS-Distro"
+printf '%.0s-' {1..72}
 echo
 
 # Print running first, then non-running VMs
