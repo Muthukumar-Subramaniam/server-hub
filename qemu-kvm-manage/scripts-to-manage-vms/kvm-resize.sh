@@ -52,8 +52,8 @@ fn_shutdown_or_poweroff() {
     case "$selected_choice" in
         1)
             echo -e "\n🛑 Initiating graceful shutdown . . ."
-	    infra_mgmt_super_username=$(cat /virtual-machines/infra-mgmt-super-username)
-            local_infra_domain_name=$(cat /virtual-machines/local_infra_domain_name)
+	    infra_mgmt_super_username=$(cat /kvm-hub/infra-mgmt-super-username)
+            local_infra_domain_name=$(cat /kvm-hub/local_infra_domain_name)
 	    echo -e "\n🔍 Checking SSH connectivity to ${qemu_kvm_hostname}.${local_infra_domain_name} . . ."
             if nc -zw5 "${qemu_kvm_hostname}.${local_infra_domain_name}" 22; then
                 echo -e "\n🔗 SSH connectivity seems to be fine. Initiating graceful shutdown . . .\n"
@@ -175,7 +175,7 @@ resize_vm_disk() {
 
     fs_resize_scipt="/server-hub/common-utils/rootfs-extender.sh"
 
-    vm_qcow2_disk_path="/virtual-machines/${qemu_kvm_hostname}/${qemu_kvm_hostname}.qcow2"
+    vm_qcow2_disk_path="/kvm-hub/vms/${qemu_kvm_hostname}/${qemu_kvm_hostname}.qcow2"
 
     if [ ! -f "$vm_qcow2_disk_path" ]; then
         echo -e "\n❌ Disk image not found at $vm_qcow2_disk_path\n"
@@ -214,8 +214,8 @@ resize_vm_disk() {
 	    echo -e "✅ VM '$qemu_kvm_hostname' is started successfully after disk resize."
 
             echo -e "\n🛠️ Attempting to re-size root file system of VM '$qemu_kvm_hostname' . . ."
-	    infra_mgmt_super_username=$(cat /virtual-machines/infra-mgmt-super-username)
-            local_infra_domain_name=$(cat /virtual-machines/local_infra_domain_name)
+	    infra_mgmt_super_username=$(cat /kvm-hub/infra-mgmt-super-username)
+            local_infra_domain_name=$(cat /kvm-hub/local_infra_domain_name)
 	    SSH_TARGET_HOST="${qemu_kvm_hostname}.${local_infra_domain_name}"
 	    MAX_SSH_WAIT_SECONDS=120
             SSH_RETRY_INTERVAL_SECONDS=5

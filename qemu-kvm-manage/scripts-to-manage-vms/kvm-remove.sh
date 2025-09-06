@@ -4,10 +4,10 @@
 # please open an issue at: https://github.com/Muthukumar-Subramaniam/server-hub/issues   #
 #----------------------------------------------------------------------------------------#
 
-INFRA_SERVER_VM_NAME=$(< /virtual-machines/local_infra_server_name)
-ALIAS_FILE_OF_LAB_NODES='/virtual-machines/ssh-assist-aliases-for-vms-on-qemu-kvm'
+INFRA_SERVER_VM_NAME=$(< /kvm-hub/local_infra_server_name)
+ALIAS_FILE_OF_LAB_NODES='/kvm-hub/ssh-assist-aliases-for-vms-on-qemu-kvm'
 ETC_HOSTS_FILE='/etc/hosts'
-local_infra_domain_name=$(< /virtual-machines/local_infra_domain_name)
+local_infra_domain_name=$(< /kvm-hub/local_infra_domain_name)
 
 if [[ "$EUID" -eq 0 ]]; then
     echo -e "\n⛔ Running as root user is not allowed."
@@ -66,11 +66,11 @@ fi
 # Proceed with deletion
 sudo virsh destroy "${qemu_kvm_hostname}" 2>/dev/null
 sudo virsh undefine "${qemu_kvm_hostname}" --nvram 2>/dev/null
-sudo rm -f /virtual-machines/${qemu_kvm_hostname}/${qemu_kvm_hostname}.qcow2 \
-           /virtual-machines/${qemu_kvm_hostname}/${qemu_kvm_hostname}_VARS.fd \
-           /virtual-machines/${qemu_kvm_hostname}/${qemu_kvm_hostname}.xml
+sudo rm -f /kvm-hub/vms/${qemu_kvm_hostname}/${qemu_kvm_hostname}.qcow2 \
+           /kvm-hub/vms/${qemu_kvm_hostname}/${qemu_kvm_hostname}_VARS.fd \
+           /kvm-hub/vms/${qemu_kvm_hostname}/${qemu_kvm_hostname}.xml
 
-sudo rmdir /virtual-machines/${qemu_kvm_hostname}
+sudo rmdir /kvm-hub/vms/${qemu_kvm_hostname}
 
 dot_escaped_domain=$(echo "$local_infra_domain_name" | sed 's/\./\\./g')
 sudo sed -i "/[[:space:]]${qemu_kvm_hostname}\.${dot_escaped_domain}[[:space:]]/d" "${ETC_HOSTS_FILE}"

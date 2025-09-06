@@ -20,9 +20,9 @@ if sudo dmidecode -s system-manufacturer | grep -qi 'QEMU'; then
     exit 1
 fi
 
-infra_server_ipv4_address=$(cat /virtual-machines/ipv4-address-address-of-infra-server-vm)
-infra_mgmt_super_username=$(cat /virtual-machines/infra-mgmt-super-username)
-local_infra_domain_name=$(cat /virtual-machines/local_infra_domain_name)
+infra_server_ipv4_address=$(cat /kvm-hub/ipv4-address-address-of-infra-server-vm)
+infra_mgmt_super_username=$(cat /kvm-hub/infra-mgmt-super-username)
+local_infra_domain_name=$(cat /kvm-hub/local_infra_domain_name)
 kvm_host_admin_user="$USER"
 scripts_location_to_manage_vms="/server-hub/qemu-kvm-manage/scripts-to-manage-vms"
 temp_dir_to_create_wrapper_scripts="/tmp/scripts-to-manage-vms"

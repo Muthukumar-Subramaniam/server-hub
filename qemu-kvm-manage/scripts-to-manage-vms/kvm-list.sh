@@ -23,8 +23,8 @@ if sudo dmidecode -s system-manufacturer 2>/dev/null | grep -qi 'QEMU'; then
 fi
 
 # Load infra variables
-infra_mgmt_super_username=$(< /virtual-machines/infra-mgmt-super-username)
-local_infra_domain_name=$(< /virtual-machines/local_infra_domain_name)
+infra_mgmt_super_username=$(< /kvm-hub/infra-mgmt-super-username)
+local_infra_domain_name=$(< /kvm-hub/local_infra_domain_name)
 
 mapfile -t vm_list < <(sudo virsh list --all | awk 'NR>2 && $2 != "" {print $2}')
 

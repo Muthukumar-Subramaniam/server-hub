@@ -20,9 +20,9 @@ if sudo dmidecode -s system-manufacturer | grep -qi 'QEMU'; then
     exit 1
 fi
 
-infra_server_ipv4_address=$(cat /virtual-machines/ipv4-address-address-of-infra-server-vm)
-infra_mgmt_super_username=$(cat /virtual-machines/infra-mgmt-super-username)
-local_infra_domain_name=$(cat /virtual-machines/local_infra_domain_name)
+infra_server_ipv4_address=$(cat /kvm-hub/ipv4-address-address-of-infra-server-vm)
+infra_mgmt_super_username=$(cat /kvm-hub/infra-mgmt-super-username)
+local_infra_domain_name=$(cat /kvm-hub/local_infra_domain_name)
 
 ATTACH_CONSOLE="no"
 qemu_kvm_hostname=""
@@ -122,7 +122,7 @@ if [ -z ${MAC_ADDRESS} ]; then
 	exit 1
 fi
 
-mkdir -p /virtual-machines/${qemu_kvm_hostname}
+mkdir -p /kvm-hub/vms/${qemu_kvm_hostname}
 
 echo -n -e "\n📎 Updating hosts file for ${qemu_kvm_hostname}.${local_infra_domain_name} . . . "
 
@@ -132,22 +132,22 @@ echo -e "✅"
 
 echo -n -e "\n📎 Creating alias '${qemu_kvm_hostname}' to assist with future SSH logins . . . "
 
-echo "alias ${qemu_kvm_hostname}=\"ssh -o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ${infra_mgmt_super_username}@${qemu_kvm_hostname}.${local_infra_domain_name}\"" >> /virtual-machines/ssh-assist-aliases-for-vms-on-qemu-kvm
+echo "alias ${qemu_kvm_hostname}=\"ssh -o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ${infra_mgmt_super_username}@${qemu_kvm_hostname}.${local_infra_domain_name}\"" >> /kvm-hub/ssh-assist-aliases-for-vms-on-qemu-kvm
 
 source "${HOME}/.bashrc"
 
 echo -e "✅"
 
-if [ ! -f /virtual-machines/golden-images-disk-store/${OS_DISTRO}-golden-image.qcow2 ]; then
+if [ ! -f /kvm-hub/golden-images-disk-store/${OS_DISTRO}-golden-image.qcow2 ]; then
 	echo -e "\n🚫 Golden Image Disk Not Found ! "
-	echo -e "➡️  Expected at: /virtual-machines/golden-images-disk-store/${OS_DISTRO}-golden-image.qcow2"
+	echo -e "➡️  Expected at: /kvm-hub/golden-images-disk-store/${OS_DISTRO}-golden-image.qcow2"
 	echo -e "🛠️ To build the golden image disk, run: \e[1;32mkvm-build-golden-qcow2-disk\e[0m\n"
 	exit
 fi
 
-echo -n -e "\n🚀 Copy golden image disk /virtual-machines/golden-images-disk-store/${OS_DISTRO}-golden-image.qcow2 to install '${qemu_kvm_hostname}' . . . "
+echo -n -e "\n🚀 Copy golden image disk /kvm-hub/golden-images-disk-store/${OS_DISTRO}-golden-image.qcow2 to install '${qemu_kvm_hostname}' . . . "
 
-sudo cp -p /virtual-machines/golden-images-disk-store/${OS_DISTRO}-golden-image.qcow2 /virtual-machines/${qemu_kvm_hostname}/${qemu_kvm_hostname}.qcow2
+sudo cp -p /kvm-hub/golden-images-disk-store/${OS_DISTRO}-golden-image.qcow2 /kvm-hub/vms/${qemu_kvm_hostname}/${qemu_kvm_hostname}.qcow2
 
 echo -e "✅"
 
@@ -156,7 +156,7 @@ VIRT_INSTALL_CMD="sudo virt-install \
   --features acpi=on,apic=on \
   --memory 2048 \
   --vcpus 2 \
-  --disk path=/virtual-machines/${qemu_kvm_hostname}/${qemu_kvm_hostname}.qcow2,bus=virtio,boot.order=1 \
+  --disk path=/kvm-hub/vms/${qemu_kvm_hostname}/${qemu_kvm_hostname}.qcow2,bus=virtio,boot.order=1 \
   --os-variant almalinux9 \
   --network network=default,model=virtio,mac=${MAC_ADDRESS},boot.order=2 \
   --machine q35 \
@@ -164,7 +164,7 @@ VIRT_INSTALL_CMD="sudo virt-install \
   --graphics none \
   --boot loader=/usr/share/edk2/ovmf/OVMF_CODE.fd,\
 nvram.template=/usr/share/edk2/ovmf/OVMF_VARS.fd,\
-nvram=/virtual-machines/${qemu_kvm_hostname}/${qemu_kvm_hostname}_VARS.fd,menu=on"
+nvram=/kvm-hub/vms/${qemu_kvm_hostname}/${qemu_kvm_hostname}_VARS.fd,menu=on"
 
 if [ "$ATTACH_CONSOLE" = "yes" ]; then
   VIRT_INSTALL_CMD+=" --console pty,target_type=serial"

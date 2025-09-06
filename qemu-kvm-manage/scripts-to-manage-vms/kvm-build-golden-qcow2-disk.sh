@@ -20,9 +20,9 @@ if sudo dmidecode -s system-manufacturer | grep -qi 'QEMU'; then
     exit 1
 fi
 
-infra_server_ipv4_address=$(cat /virtual-machines/ipv4-address-address-of-infra-server-vm)
-infra_mgmt_super_username=$(cat /virtual-machines/infra-mgmt-super-username)
-local_infra_domain_name=$(cat /virtual-machines/local_infra_domain_name)
+infra_server_ipv4_address=$(cat /kvm-hub/ipv4-address-address-of-infra-server-vm)
+infra_mgmt_super_username=$(cat /kvm-hub/infra-mgmt-super-username)
+local_infra_domain_name=$(cat /kvm-hub/local_infra_domain_name)
 
 echo -e "\n⚙️  Invoking ksmanager to create PXE environment to build a golden image . . .\n"
 
@@ -39,9 +39,9 @@ if [ -z ${MAC_ADDRESS} ]; then
 	exit 1
 fi
 
-mkdir -p /virtual-machines/golden-images-disk-store
+mkdir -p /kvm-hub/golden-images-disk-store
 
-golden_image_path="/virtual-machines/golden-images-disk-store/${qemu_kvm_hostname}.qcow2"
+golden_image_path="/kvm-hub/golden-images-disk-store/${qemu_kvm_hostname}.qcow2"
 
 # ✅ Check if golden image already exists
 if [ -f "${golden_image_path}" ]; then
@@ -75,7 +75,7 @@ sudo virt-install \
   --cpu host-model \
   --boot loader=/usr/share/edk2/ovmf/OVMF_CODE.fd,\
 nvram.template=/usr/share/edk2/ovmf/OVMF_VARS.fd,\
-nvram=/virtual-machines/golden-images-disk-store/${qemu_kvm_hostname}_VARS.fd,menu=on \
+nvram=/kvm-hub/golden-images-disk-store/${qemu_kvm_hostname}_VARS.fd,menu=on \
 
 sudo virsh destroy "${qemu_kvm_hostname}" 2>/dev/null
 sudo virsh undefine "${qemu_kvm_hostname}" --nvram 2>/dev/null

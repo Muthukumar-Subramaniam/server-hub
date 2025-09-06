@@ -4,7 +4,7 @@
 # please open an issue at: https://github.com/Muthukumar-Subramaniam/server-hub/issues   #
 #----------------------------------------------------------------------------------------#
 
-ISO_DIR="/virtual-machines/iso-files"
+ISO_DIR="/kvm-hub/iso-files"
 ISO_NAME="AlmaLinux-10-latest-x86_64-dvd.iso"
 
 if [[ "$EUID" -eq 0 ]]; then
@@ -54,9 +54,9 @@ if ! command -v virt-install &> /dev/null; then
     exit 1
 fi
 
-# Check if base directory /virtual-machines exists
-if [[ ! -d /virtual-machines ]]; then
-    echo -e "\n❌ Directory /virtual-machines does not exist."
+# Check if base directory /kvm-hub exists
+if [[ ! -d /kvm-hub ]]; then
+    echo -e "\n❌ Directory /kvm-hub does not exist."
     echo "🚫 Seems like your qemu-kvm environment is not yet setup."
     echo -e "🛠️ To set up QEMU/KVM, please run the script \033[1msetup-qemu-kvm.sh\033[0m ! \n"
     exit 1
@@ -97,8 +97,8 @@ done
 
 
 # Exit if VM disk file already exists
-if [[ -f "/virtual-machines/${infra_server_name}/${infra_server_name}.qcow2" ]]; then
-    echo -e "\n❌ VM disk file already exists at /virtual-machines/${infra_server_name}/${infra_server_name}.qcow2. Aborting to avoid overwrite.\n"
+if [[ -f "/kvm-hub/${infra_server_name}/${infra_server_name}.qcow2" ]]; then
+    echo -e "\n❌ VM disk file already exists at /kvm-hub/${infra_server_name}/${infra_server_name}.qcow2. Aborting to avoid overwrite.\n"
     exit 1
 fi
 
@@ -203,9 +203,9 @@ echo -e "  🌐 IPv4 Gateway : ${ipv4_gateway}"
 echo -e "  🌐 DNS Domain   : ${local_infra_domain_name}"
 echo    "============================================"
 
-mkdir -p "/virtual-machines/${infra_server_name}"
+mkdir -p "/kvm-hub/vms/${infra_server_name}"
 
-KS_FILE="/virtual-machines/${infra_server_name}/${infra_server_name}_ks.cfg"
+KS_FILE="/kvm-hub/vms/${infra_server_name}/${infra_server_name}_ks.cfg"
 cp -f almalinux-template-ks.cfg "${KS_FILE}" 
 sudo chown $USER:qemu "${KS_FILE}"
 sed -i "s/get_ipv4_address/${ipv4_address}/g" "${KS_FILE}"
@@ -236,10 +236,10 @@ sudo mount -o loop "${ISO_DIR}/${ISO_NAME}" /mnt/iso-for-${infra_server_name} &>
 
 echo -e "✅"
 
-echo "$ipv4_address" >/virtual-machines/ipv4-address-address-of-infra-server-vm
-echo "$mgmt_super_user" >/virtual-machines/infra-mgmt-super-username
-echo "$local_infra_domain_name" >/virtual-machines/local_infra_domain_name
-echo "$infra_server_name" >/virtual-machines/local_infra_server_name
+echo "$ipv4_address" >/kvm-hub/ipv4-address-address-of-infra-server-vm
+echo "$mgmt_super_user" >/kvm-hub/infra-mgmt-super-username
+echo "$local_infra_domain_name" >/kvm-hub/local_infra_domain_name
+echo "$infra_server_name" >/kvm-hub/local_infra_server_name
 
 echo -n -e "\n📎 Updating hosts file for ${qemu_kvm_hostname}.${local_infra_domain_name} . . . "
 
@@ -251,14 +251,14 @@ echo -e "✅"
 
 echo -n -e "\n📎 Creating alias '${infra_server_name}' to assist with future SSH logins . . . "
 
-touch /virtual-machines/ssh-assist-aliases-for-vms-on-qemu-kvm
+touch /kvm-hub/ssh-assist-aliases-for-vms-on-qemu-kvm
 
-sed -i "/${infra_server_name}.${local_infra_domain_name}/d" /virtual-machines/ssh-assist-aliases-for-vms-on-qemu-kvm
+sed -i "/${infra_server_name}.${local_infra_domain_name}/d" /kvm-hub/ssh-assist-aliases-for-vms-on-qemu-kvm
 
-echo "alias ${infra_server_name}=\"ssh -o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ${mgmt_super_user}@${infra_server_name}.${local_infra_domain_name}\"" >> /virtual-machines/ssh-assist-aliases-for-vms-on-qemu-kvm
+echo "alias ${infra_server_name}=\"ssh -o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ${mgmt_super_user}@${infra_server_name}.${local_infra_domain_name}\"" >> /kvm-hub/ssh-assist-aliases-for-vms-on-qemu-kvm
 
 if ! grep -q "ssh-assist-aliases-for-vms-on-qemu-kvm" "${HOME}/.bashrc" ; then
-	echo -e "\nsource /virtual-machines/ssh-assist-aliases-for-vms-on-qemu-kvm" >> "${HOME}/.bashrc"
+	echo -e "\nsource /kvm-hub/ssh-assist-aliases-for-vms-on-qemu-kvm" >> "${HOME}/.bashrc"
 fi
 
 source "${HOME}/.bashrc"
@@ -295,7 +295,7 @@ sudo virt-install \
   --features acpi=on,apic=on \
   --memory 2048 \
   --vcpus 2 \
-  --disk path=/virtual-machines/${infra_server_name}/${infra_server_name}.qcow2,size=30,bus=virtio \
+  --disk path=/kvm-hub/vms/${infra_server_name}/${infra_server_name}.qcow2,size=30,bus=virtio \
   --disk path="$ISO_DIR/$ISO_NAME",device=cdrom,bus=sata \
   --os-variant almalinux9 \
   --network network=default,model=virtio \
@@ -308,7 +308,7 @@ sudo virt-install \
   --cpu host-model \
   --boot loader=/usr/share/edk2/ovmf/OVMF_CODE.fd,\
 nvram.template=/usr/share/edk2/ovmf/OVMF_VARS.fd,\
-nvram=/virtual-machines/${infra_server_name}/${infra_server_name}_VARS.fd,menu=on \
+nvram=/kvm-hub/vms/${infra_server_name}/${infra_server_name}_VARS.fd,menu=on \
 
 if sudo virsh list | grep -q "${infra_server_name}"; then
 	echo -e "\n✅ Successfully deployed your Infra Server VM (${infra_server_name}) !\n"

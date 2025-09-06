@@ -41,20 +41,20 @@ sudo systemctl enable --now libvirtd
 sudo systemctl status libvirtd -l --no-pager
 sudo usermod -aG libvirt $USER
 
-echo -n -e "\n📁 Creating /virtual-machines to manage VMs . . . "
-sudo mkdir -p /virtual-machines
-sudo chown -R $USER:qemu /virtual-machines
-chmod -R g+s /virtual-machines
+echo -n -e "\n📁 Creating /kvm-hub/vms to manage VMs . . . "
+sudo mkdir -p /kvm-hub/vms
+sudo chown -R $USER:qemu /kvm-hub
+chmod -R g+s /kvm-hub
 echo -e "✅"
 
-echo -e "\n📥 Cloning virt-manager git repo to /virtual-machines/virt-manager . . . "
-mkdir -p /virtual-machines/virt-manager && \
-git clone https://github.com/virt-manager/virt-manager.git /virtual-machines/virt-manager
+echo -e "\n📥 Cloning virt-manager git repo to /kvm-hub/virt-manager . . . "
+mkdir -p /kvm-hub/virt-manager && \
+git clone https://github.com/virt-manager/virt-manager.git /kvm-hub/virt-manager
 
-echo -n -e "\n🛠️ Creating a wrapper binary for virt-install from /virtual-machines/virt-manager . . . "
+echo -n -e "\n🛠️ Creating a wrapper binary for virt-install from /kvm-hub/virt-manager . . . "
 cat <<EOF | sudo tee /bin/virt-install &>/dev/null
 #!/bin/bash
-PYTHONPATH=/virtual-machines/virt-manager exec python3 /virtual-machines/virt-manager/virt-install "\$@"
+PYTHONPATH=/kvm-hub/virt-manager exec python3 /kvm-hub/virt-manager/virt-install "\$@"
 EOF
 sudo chmod +x /bin/virt-install
 echo -e "✅"

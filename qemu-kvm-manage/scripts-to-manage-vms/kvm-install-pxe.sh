@@ -20,9 +20,9 @@ if sudo dmidecode -s system-manufacturer | grep -qi 'QEMU'; then
     exit 1
 fi
 
-infra_server_ipv4_address=$(cat /virtual-machines/ipv4-address-address-of-infra-server-vm)
-infra_mgmt_super_username=$(cat /virtual-machines/infra-mgmt-super-username)
-local_infra_domain_name=$(cat /virtual-machines/local_infra_domain_name)
+infra_server_ipv4_address=$(cat /kvm-hub/ipv4-address-address-of-infra-server-vm)
+infra_mgmt_super_username=$(cat /kvm-hub/infra-mgmt-super-username)
+local_infra_domain_name=$(cat /kvm-hub/local_infra_domain_name)
 
 ATTACH_CONSOLE="no"
 qemu_kvm_hostname=""
@@ -103,7 +103,7 @@ if [ -z ${MAC_ADDRESS} ]; then
 	exit 1
 fi
 
-mkdir -p /virtual-machines/${qemu_kvm_hostname}
+mkdir -p /kvm-hub/vms/${qemu_kvm_hostname}
 
 echo -n -e "\n📎 Updating hosts file for ${qemu_kvm_hostname}.${local_infra_domain_name} . . . "
 
@@ -113,7 +113,7 @@ echo -e "✅"
 
 echo -n -e "\n📎 Creating alias '${qemu_kvm_hostname}' to assist with future SSH logins . . . "
 
-echo "alias ${qemu_kvm_hostname}=\"ssh -o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ${infra_mgmt_super_username}@${qemu_kvm_hostname}.${local_infra_domain_name}\"" >> /virtual-machines/ssh-assist-aliases-for-vms-on-qemu-kvm
+echo "alias ${qemu_kvm_hostname}=\"ssh -o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ${infra_mgmt_super_username}@${qemu_kvm_hostname}.${local_infra_domain_name}\"" >> /kvm-hub/ssh-assist-aliases-for-vms-on-qemu-kvm
 
 source "${HOME}/.bashrc"
 
@@ -126,7 +126,7 @@ VIRT_INSTALL_CMD="sudo virt-install \
   --features acpi=on,apic=on \
   --memory 2048 \
   --vcpus 2 \
-  --disk path=/virtual-machines/${qemu_kvm_hostname}/${qemu_kvm_hostname}.qcow2,size=20,bus=virtio,boot.order=1 \
+  --disk path=/kvm-hub/vms/${qemu_kvm_hostname}/${qemu_kvm_hostname}.qcow2,size=20,bus=virtio,boot.order=1 \
   --os-variant almalinux9 \
   --network network=default,model=virtio,mac=${MAC_ADDRESS},boot.order=2 \
   --graphics none \
@@ -134,7 +134,7 @@ VIRT_INSTALL_CMD="sudo virt-install \
   --cpu host-model \
   --boot loader=/usr/share/edk2/ovmf/OVMF_CODE.fd,\
 nvram.template=/usr/share/edk2/ovmf/OVMF_VARS.fd,\
-nvram=/virtual-machines/${qemu_kvm_hostname}/${qemu_kvm_hostname}_VARS.fd,menu=on"
+nvram=/kvm-hub/vms/${qemu_kvm_hostname}/${qemu_kvm_hostname}_VARS.fd,menu=on"
 
 if [ "$ATTACH_CONSOLE" = "yes" ]; then
   VIRT_INSTALL_CMD+=" --console pty,target_type=serial"
