@@ -6,7 +6,7 @@ autoinstall:
   apt:
     update: false
     upgrade: false
-    fallback: offline-install
+    failback: offline-install
 
   early-commands:
     - echo "ttyS0" >> /etc/securetty
