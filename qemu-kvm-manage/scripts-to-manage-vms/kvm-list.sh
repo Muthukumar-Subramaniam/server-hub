@@ -63,9 +63,13 @@ for vm_name in "${vm_list[@]}"; do
             'systemctl is-system-running --quiet && echo "Ready" || echo "Not-Ready"; \
              source /etc/os-release 2>/dev/null && echo "$PRETTY_NAME" || echo "N/A"' \
             2>/dev/null </dev/null || true)
-
-        current_os_state=$(echo "$ssh_output" | sed -n '1p')
-        os_distro=$(echo "$ssh_output" | sed -n '2p')
+        if [[ ! -z "$ssh_output" ]]; then
+        	current_os_state=$(echo "$ssh_output" | sed -n '1p')
+        	os_distro=$(echo "$ssh_output" | sed -n '2p')
+	else
+               current_os_state="Not-Ready"
+               os_distro="[ N/A ]"
+	fi
     fi
 
     # Determine line color based on OS state
@@ -93,7 +97,7 @@ wait
 
 # Print table header
 printf "%-20s %-12s %-12s %-25s\n" "VM-Name" "VM-State" "OS-State" "OS-Distro"
-printf '%.0s-' {1..72}
+printf '%.0s-' {1..56}
 echo
 
 # Print running first, then non-running VMs
