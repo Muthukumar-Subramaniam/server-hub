@@ -4,10 +4,8 @@ autoinstall:
   version: 1
 
   apt:
-    mirror-selection:
-      primary:
-        - uri: "file:/cdrom"
-    fallback: offline-install
+    update: false
+    upgrade: false
 
   early-commands:
     - echo "ttyS0" >> /etc/securetty
