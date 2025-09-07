@@ -3,11 +3,12 @@
 autoinstall:
   version: 1
 
+  refresh-installer:
+    update: no
+
   early-commands:
     - echo "ttyS0" >> /etc/securetty
     - systemctl start serial-getty@ttyS0.service
-    - sed -i 's/^deb http/#deb http/' /etc/apt/sources.list || true
-    - rm -f /etc/apt/sources.list.d/ubuntu.sources
 
   source:
    id: ubuntu-server-minimal
