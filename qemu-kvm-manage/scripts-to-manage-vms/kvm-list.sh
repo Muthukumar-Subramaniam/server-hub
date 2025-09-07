@@ -35,6 +35,7 @@ ssh_options="-o StrictHostKeyChecking=no \
              -o ConnectTimeout=5 \
              -o ConnectionAttempts=1 \
              -o ServerAliveInterval=5 \
+	     -o PreferredAuthentications=publickey \
              -o ServerAliveCountMax=1"
 
 # Color codes
