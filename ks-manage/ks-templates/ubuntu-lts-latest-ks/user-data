@@ -3,12 +3,6 @@
 autoinstall:
   version: 1
 
-  apt:
-    primary:
-      - arches: [amd64]
-        uri: "file:/cdrom"
-    fallback: []
-
   early-commands:
     - echo "ttyS0" >> /etc/securetty
     - systemctl start serial-getty@ttyS0.service
