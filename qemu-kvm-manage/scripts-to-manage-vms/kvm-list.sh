@@ -61,11 +61,14 @@ for vm_name in "${vm_list[@]}"; do
     # If VM is running, check systemd + distro via single SSH
     if [[ "$current_vm_state" == "running" ]]; then
         ssh_output=$(ssh $ssh_options "${infra_mgmt_super_username}@${vm_name}.${local_infra_domain_name}" \
-            'systemctl is-system-running --quiet && echo "Ready" || echo "Not-Ready"; \
+            'systemctl is-system-running; \
              source /etc/os-release 2>/dev/null && echo "$PRETTY_NAME" || echo "N/A"' \
             2>/dev/null </dev/null || true)
         if [[ ! -z "$ssh_output" ]]; then
         	current_os_state=$(echo "$ssh_output" | sed -n '1p')
+		if [[ -z "$current_os_state" ]]; then
+			current_os_state="Not-Ready"
+		fi
         	os_distro=$(echo "$ssh_output" | sed -n '2p')
 	else
                current_os_state="Not-Ready"
@@ -76,8 +79,8 @@ for vm_name in "${vm_list[@]}"; do
     # Determine line color based on OS state
     line_color="$COLOR_RESET"
     case "$current_os_state" in
-        Ready)      line_color="$COLOR_GREEN" ;;
-        Not-Ready)  line_color="$COLOR_YELLOW" ;;
+        running)      line_color="$COLOR_GREEN" ;;
+        Not-Ready|degraded|starting)  line_color="$COLOR_YELLOW" ;;
         "[ N/A ]")  line_color="$COLOR_RED" ;;
     esac
 
