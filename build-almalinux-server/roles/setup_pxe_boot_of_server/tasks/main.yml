@@ -7,9 +7,9 @@
     dest: /etc/kea/kea-dhcp4.conf
 
 
-- name: Create almalinux-latest mount point under //{{ ansible_env.dnsbinder_server_short_name }}.{{ ansible_env.dnsbinder_domain }}
+- name: Create almalinux-latest mount point under /{{ ansible_env.dnsbinder_server_short_name }}.{{ ansible_env.dnsbinder_domain }}
   file:
-    path: "//{{ ansible_env.dnsbinder_server_short_name }}.{{ ansible_env.dnsbinder_domain }}/almalinux-latest"
+    path: "/{{ ansible_env.dnsbinder_server_short_name }}.{{ ansible_env.dnsbinder_domain }}/almalinux-latest"
     state: directory
 
 - name: Mount AlmaLinux ISO and update an entry in fstab as well 
@@ -21,26 +21,26 @@
     opts: "uid={{ ansible_env.mgmt_super_user }},gid={{ ansible_env.mgmt_super_user }}"
     state: mounted
 
-- name: Create //{{ ansible_env.dnsbinder_server_short_name }}.{{ ansible_env.dnsbinder_domain }}/ipxe to manage iPXE
+- name: Create /{{ ansible_env.dnsbinder_server_short_name }}.{{ ansible_env.dnsbinder_domain }}/ipxe to manage iPXE
   file:
-    path: "//{{ ansible_env.dnsbinder_server_short_name }}.{{ ansible_env.dnsbinder_domain }}/ipxe"
+    path: "/{{ ansible_env.dnsbinder_server_short_name }}.{{ ansible_env.dnsbinder_domain }}/ipxe"
     state: directory
 
-- name: Create //{{ ansible_env.dnsbinder_server_short_name }}.{{ ansible_env.dnsbinder_domain }}/ipxe/images to manage iPXE images
+- name: Create /{{ ansible_env.dnsbinder_server_short_name }}.{{ ansible_env.dnsbinder_domain }}/ipxe/images to manage iPXE images
   file:
-    path: "//{{ ansible_env.dnsbinder_server_short_name }}.{{ ansible_env.dnsbinder_domain }}/ipxe/images"
+    path: "/{{ ansible_env.dnsbinder_server_short_name }}.{{ ansible_env.dnsbinder_domain }}/ipxe/images"
     state: directory
 
-- name: Create almalinux-latest under //{{ ansible_env.dnsbinder_server_short_name }}.{{ ansible_env.dnsbinder_domain }}/ipxe/images to hold kernel and initrd image
+- name: Create almalinux-latest under /{{ ansible_env.dnsbinder_server_short_name }}.{{ ansible_env.dnsbinder_domain }}/ipxe/images to hold kernel and initrd image
   file:
-    path: "//{{ ansible_env.dnsbinder_server_short_name }}.{{ ansible_env.dnsbinder_domain }}/ipxe/images/almalinux-latest"
+    path: "/{{ ansible_env.dnsbinder_server_short_name }}.{{ ansible_env.dnsbinder_domain }}/ipxe/images/almalinux-latest"
     state: directory
 
 - name: Copy PXE boot images from AlmaLinux {{ ansible_env.alma_version_major }} to /var/lib/tftpboot
   ansible.builtin.synchronize:
     mode: push
     src: "/{{ ansible_env.dnsbinder_server_short_name }}.{{ ansible_env.dnsbinder_domain }}/almalinux-latest/images/pxeboot/"
-    dest: "//{{ ansible_env.dnsbinder_server_short_name }}.{{ ansible_env.dnsbinder_domain }}/ipxe/images/almalinux-latest/"
+    dest: "/{{ ansible_env.dnsbinder_server_short_name }}.{{ ansible_env.dnsbinder_domain }}/ipxe/images/almalinux-latest/"
     rsync_opts:
       - "--include='vmlinuz'"
       - "--include='initrd.img'"
