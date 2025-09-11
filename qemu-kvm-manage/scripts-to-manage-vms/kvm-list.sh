@@ -79,7 +79,7 @@ for vm_name in "${vm_list[@]}"; do
     # Determine line color based on OS state
     line_color="$COLOR_RESET"
     case "$current_os_state" in
-        running) current_os_state="Ready"; line_color="$COLOR_GREEN" ;;
+        running) current_os_state="healthy"; line_color="$COLOR_GREEN" ;;
         "[ N/A ]") line_color="$COLOR_RED" ;;
 	*) line_color="$COLOR_YELLOW" ;;
     esac
