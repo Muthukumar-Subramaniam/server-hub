@@ -19,13 +19,14 @@ autoinstall:
     username: get_mgmt_super_user
 
   user-data:
-    timezone: Asia/Kolkata
+    timezone: UTC
     chpasswd:
       expire: false
       list:
         - root:get_shadow_password_super_mgmt_user
     runcmd:
       - apt-get install -y chrony vim less bash-completion nfs-common tmux net-tools sysstat zip tcpdump traceroute wget tar inetutils-ping dnsutils rsync netcat-openbsd nmap lsof autofs
+      - apt-get remove -y lvm2 && apt-get autoremove -y 
       - /usr/bin/echo -e "HISTSIZE=-1\nHISTFILESIZE=-1" | tee -a /home/get_mgmt_super_user/.bashrc /root/.bashrc
       - var_PS1_variable_get_mgmt_super_user=$(curl -s -L http://get_web_server_name.get_ipv4_domain/ksmanager-hub/addons-for-kickstarts/PS1-env-variable-normal-user)
       - echo "${var_PS1_variable_get_mgmt_super_user}" >> /home/get_mgmt_super_user/.bashrc
@@ -74,78 +75,68 @@ autoinstall:
 
   storage:
     config:
-    - ptable: gpt
-      path: /dev/get_disk_type_for_the_vm
-      wipe: superblock-recursive
-      preserve: false
-      name: ''
-      grub_device: false
-      id: disk-get_disk_type_for_the_vm
-      type: disk
-    - device: disk-get_disk_type_for_the_vm
-      size: 134217728
-      wipe: superblock
-      flag: boot
-      number: 1
-      preserve: false
-      grub_device: true
-      id: partition-0
-      type: partition
-    - fstype: fat32
-      volume: partition-0
-      preserve: false
-      id: format-0
-      type: format
-    - device: disk-get_disk_type_for_the_vm
-      size: 536870912
-      wipe: superblock
-      number: 2
-      preserve: false
-      id: partition-1
-      type: partition
-    - fstype: xfs
-      volume: partition-1
-      preserve: false
-      id: format-1
-      type: format
-    - device: disk-get_disk_type_for_the_vm
-      size: -1
-      wipe: superblock
-      number: 3
-      preserve: false
-      id: partition-2
-      type: partition
-    - name: ubuntu
-      devices:
-      - partition-2
-      preserve: false
-      id: ubuntu
-      type: lvm_volgroup
-    - name: root
-      volgroup: ubuntu
-      size: 100%
-      wipe: superblock
-      preserve: false
-      path: /dev/ubuntu/root
-      id: root
-      type: lvm_partition
-    - fstype: xfs
-      volume: root
-      preserve: false
-      id: format-2
-      type: format
-    - path: /
-      device: format-2
-      id: mount-2
-      type: mount
-    - path: /boot
-      device: format-1
-      id: mount-1
-      type: mount
-    - path: /boot/efi
-      device: format-0
-      id: mount-0
-      type: mount
+# Configure Disk
+      - ptable: gpt
+        path: /dev/get_disk_type_for_the_vm
+        wipe: superblock-recursive
+        preserve: false
+        name: ''
+        grub_device: false
+        id: disk-get_disk_type_for_the_vm
+        type: disk
+# EFI partition
+      - device: disk-get_disk_type_for_the_vm
+        size: 134217728
+        wipe: superblock
+        flag: boot
+        number: 1
+        preserve: false
+        grub_device: true
+        id: partition-0
+        type: partition
+      - fstype: fat32
+        volume: partition-0
+        preserve: false
+        id: format-0
+        type: format
+      - path: /boot/efi
+        device: format-0
+        id: mount-0
+        type: mount
+# /boot partition
+      - device: disk-get_disk_type_for_the_vm
+        size: 536870912
+        wipe: superblock
+        number: 2
+        preserve: false
+        id: partition-1
+        type: partition
+      - fstype: xfs
+        volume: partition-1
+        preserve: false
+        id: format-1
+        type: format
+      - path: /boot
+        device: format-1
+        id: mount-1
+        type: mount
+# / (root) partition
+      - device: disk-get_disk_type_for_the_vm
+        size: -1
+        wipe: superblock
+        number: 3
+        preserve: false
+        id: partition-2
+        type: partition
+      - fstype: xfs
+        volume: partition-2
+        preserve: false
+        id: format-2
+        type: format
+      - path: /
+        device: format-2
+        id: mount-2
+        type: mount
 
   late-commands:
     - mkdir -p /target/etc/systemd/network
