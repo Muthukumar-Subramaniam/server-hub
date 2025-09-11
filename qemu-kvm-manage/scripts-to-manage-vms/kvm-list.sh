@@ -62,7 +62,7 @@ for vm_name in "${vm_list[@]}"; do
     if [[ "$current_vm_state" == "running" ]]; then
         ssh_output=$(ssh $ssh_options "${infra_mgmt_super_username}@${vm_name}.${local_infra_domain_name}" \
             'systemctl is-system-running; \
-             source /etc/os-release 2>/dev/null && echo "$PRETTY_NAME" || echo "N/A"' \
+             source /etc/os-release 2>/dev/null && echo "$PRETTY_NAME" || echo "[ N/A ]"' \
             2>/dev/null </dev/null || true)
         if [[ ! -z "$ssh_output" ]]; then
         	current_os_state=$(echo "$ssh_output" | sed -n '1p')
@@ -80,8 +80,8 @@ for vm_name in "${vm_list[@]}"; do
     line_color="$COLOR_RESET"
     case "$current_os_state" in
         running)      line_color="$COLOR_GREEN" ;;
-        Not-Ready|degraded|starting)  line_color="$COLOR_YELLOW" ;;
         "[ N/A ]")  line_color="$COLOR_RED" ;;
+	*) line_color="$COLOR_YELLOW" ;;
     esac
 
     formatted_line=$(printf "%s%-20s %-12s %-12s %-25s%s\n" \
