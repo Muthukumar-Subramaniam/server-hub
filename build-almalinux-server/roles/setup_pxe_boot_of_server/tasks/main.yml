@@ -12,7 +12,7 @@
     path: "/{{ ansible_env.dnsbinder_server_short_name }}.{{ ansible_env.dnsbinder_domain }}/almalinux-latest"
     state: directory
 
-- name: Mount AlmaLinux ISO and update an entry in fstab as well 
+- name: Mount AlmaLinux ISO from CD-ROM and update an entry in fstab as well 
   become: true
   ansible.posix.mount:
     path: "/{{ ansible_env.dnsbinder_server_short_name }}.{{ ansible_env.dnsbinder_domain }}/almalinux-latest"
@@ -36,7 +36,7 @@
     path: "/{{ ansible_env.dnsbinder_server_short_name }}.{{ ansible_env.dnsbinder_domain }}/ipxe/images/almalinux-latest"
     state: directory
 
-- name: Copy PXE boot images from AlmaLinux {{ ansible_env.alma_version_major }} to /var/lib/tftpboot
+- name: Copy PXE boot images from AlmaLinux ISO CD-ROM mount to /var/lib/tftpboot/almalinux-latest
   ansible.builtin.synchronize:
     mode: push
     src: "/{{ ansible_env.dnsbinder_server_short_name }}.{{ ansible_env.dnsbinder_domain }}/almalinux-latest/images/pxeboot/"
