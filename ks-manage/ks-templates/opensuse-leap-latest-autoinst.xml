@@ -1,6 +1,24 @@
 <?xml version="1.0"?>
 <!DOCTYPE profile>
 <profile xmlns="http://www.suse.com/1.0/yast2ns" xmlns:config="http://www.suse.com/1.0/configns">
+  <add-on t="map">
+    <add_on_products t="list">
+      <listentry t="map">
+        <alias>lab-repo-oss</alias>
+        <media_url>http://get_web_server_name.get_ipv4_domain/opensuse-leap-latest/</media_url>
+        <name>Lab OSS Repository</name>
+        <priority t="integer">99</priority>
+        <product_dir>/</product_dir>
+      </listentry>
+      <listentry t="map">
+        <alias>online-repo-non-oss</alias>
+        <media_url>http://download.opensuse.org/distribution/leap/15.6/repo/non-oss/</media_url>
+        <name>Online Non-OSS Repository</name>
+        <priority t="integer">99</priority>
+        <product_dir>/</product_dir>
+      </listentry>
+    </add_on_products>
+  </add-on>
   <bootloader t="map">
     <global t="map">
       <append>console=ttyS0,115200n8 splash=silent preempt=full mitigations=auto quiet security=apparmor</append>
@@ -80,30 +98,10 @@
   </ntp-client>
   <partitioning t="list">
     <drive t="map">
-      <device>/dev/system</device>
-      <enable_snapshots t="boolean">false</enable_snapshots>
-      <partitions t="list">
-        <partition t="map">
-          <create t="boolean">true</create>
-          <filesystem t="symbol">xfs</filesystem>
-          <format t="boolean">false</format>
-          <lv_name>root</lv_name>
-          <mount>/</mount>
-          <mountby t="symbol">device</mountby>
-          <pool t="boolean">false</pool>
-          <resize t="boolean">false</resize>
-          <size></size>
-          <stripes t="integer">1</stripes>
-          <stripesize t="integer">0</stripesize>
-        </partition>
-      </partitions>
-      <pesize>4194304</pesize>
-      <type t="symbol">CT_LVM</type>
-    </drive>
-    <drive t="map">
       <device>/dev/get_disk_type_for_the_vm</device>
       <disklabel>gpt</disklabel>
       <partitions t="list">
+        <!-- EFI System Partition -->
         <partition t="map">
           <create t="boolean">true</create>
           <filesystem t="symbol">vfat</filesystem>
@@ -114,20 +112,21 @@
           <partition_id t="integer">263</partition_id>
           <partition_nr t="integer">1</partition_nr>
           <resize t="boolean">false</resize>
-          <size>134217728</size>
+          <size>134217728</size> <!-- 128 MB -->
         </partition>
+        <!-- Root partition (plain XFS) -->
         <partition t="map">
           <create t="boolean">true</create>
-          <format t="boolean">false</format>
-          <lvm_group>system</lvm_group>
-          <partition_id t="integer">142</partition_id>
+          <filesystem t="symbol">xfs</filesystem>
+          <format t="boolean">true</format>
+          <mount>/</mount>
+          <mountby t="symbol">uuid</mountby>
+          <partition_id t="integer">131</partition_id> <!-- Linux filesystem type -->
           <partition_nr t="integer">2</partition_nr>
           <resize t="boolean">false</resize>
-          <size></size>
+          <size></size> <!-- use rest of disk -->
         </partition>
       </partitions>
-      <type t="symbol">CT_DISK</type>
-      <use>all</use>
     </drive>
   </partitioning>
   <proxy t="map">
@@ -152,7 +151,6 @@
         <service>irqbalance</service>
         <service>issue-generator</service>
         <service>kbdsettings</service>
-        <service>lvm2-monitor</service>
         <service>mcelog</service>
         <service>wicked</service>
         <service>nscd</service>
@@ -181,7 +179,6 @@
       <package>nvme-cli</package>
       <package>numactl</package>
       <package>mokutil</package>
-      <package>lvm2</package>
       <package>kexec-tools</package>
       <package>irqbalance</package>
       <package>grub2-x86_64-efi</package>
@@ -193,6 +190,7 @@
       <package>tar</package>
       <package>samba-client</package>
       <package>autofs</package>
+      <package>python311</package>
     </packages>
     <patterns t="list">
       <pattern>apparmor</pattern>
@@ -212,7 +210,7 @@
     <import t="boolean">false</import>
   </ssh_import>
   <timezone t="map">
-    <timezone>Asia/Kolkata</timezone>
+    <timezone>UTC</timezone>
   </timezone>
   <user_defaults t="map">
     <expire/>
@@ -272,9 +270,12 @@
         <filename>my-script.sh</filename>
         <interpreter>shell</interpreter>
         <location><![CDATA[]]></location>
-        <notification>Running Custom Script of get_mgmt_super_user</notification>
+        <notification>Running custom post-script</notification>
         <source><![CDATA[
 	#!/bin/bash
+        /usr/bin/mkdir /etc/zypp/repos.d/original
+        /usr/bin/mv /etc/zypp/repos.d/*-update.repo /etc/zypp/repos.d/openSUSE* /etc/zypp/repos.d/original/
+        /usr/bin/unlink /usr/bin/python3 && /usr/bin/ln -s /usr/bin/python3.11 /usr/bin/python3
 	/usr/bin/wget -O /etc/motd http://get_web_server_name.get_ipv4_domain/ksmanager-hub/addons-for-kickstarts/motd.txt
 	/usr/bin/mkdir -p /home/get_mgmt_super_user/.ssh /root/.ssh
 	/usr/bin/chmod 0700 /home/get_mgmt_super_user/.ssh /root/.ssh
@@ -289,7 +290,6 @@
 	/usr/bin/echo "${var_PS1_variable_root}" >> /root/.bashrc
 	/usr/bin/echo "get_mgmt_super_user ALL=(ALL) NOPASSWD:ALL" >/etc/sudoers.d/get_mgmt_super_user
 	/usr/bin/systemctl disable kdump
-	for v_repo_file in $(ls /etc/zypp/repos.d);do if grep get_web_server_name.get_ipv4_domain /etc/zypp/repos.d/$v_repo_file;then rm -rf /etc/zypp/repos.d/$v_repo_file;fi;done
 	/usr/bin/echo 'kernel.hostname=get_hostname.get_ipv4_domain' > /etc/sysctl.d/hostname.conf 
 	/usr/bin/get_golden_image_creation_not_requested || /usr/bin/wget -O /etc/systemd/system/golden-image-setup.service http://get_web_server_name.get_ipv4_domain/ksmanager-hub/addons-for-kickstarts/golden-image-setup.service
 	/usr/bin/get_golden_image_creation_not_requested || /usr/bin/wget -O /root/golden-image-setup.sh http://get_web_server_name.get_ipv4_domain/ksmanager-hub/addons-for-kickstarts/golden-image-setup.sh
