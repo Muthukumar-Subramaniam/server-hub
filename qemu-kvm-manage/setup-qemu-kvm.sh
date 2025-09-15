@@ -30,7 +30,11 @@ echo -e "✅"
 
 echo -e "\n📦 Installing required packages for QEMU/KVM . . . \n"
 
-sudo dnf install -y qemu-kvm qemu-img libvirt libvirt-daemon libvirt-daemon-driver-qemu python3-requests python3-libxml2 python3-libvirt libosinfo python3-gobject gobject-introspection edk2-ovmf 
+if command -v apt-get &>/dev/null; then
+    sudo apt-get update && apt-install -y qemu-kvm qemu-utils libvirt-daemon-system libvirt-clients python3-requests python3-lxml python3-libvirt libosinfo-bin   python3-gi gir1.2-gobject-2.0 ovmf ed
+elif command -v dnf &>/dev/null; then
+    sudo dnf install -y qemu-kvm qemu-img libvirt libvirt-daemon libvirt-daemon-driver-qemu python3-requests python3-libxml2 python3-libvirt libosinfo python3-gobject gobject-introspection edk2-ovmf 
+fi
 
 echo -e "\n📦 Disabling libvirtd-tls and libvirtd-tcp sockets . . . \n"
 sudo systemctl disable --now libvirtd-tls.socket libvirtd-tcp.socket
@@ -39,12 +43,10 @@ sudo systemctl mask libvirtd-tls.socket libvirtd-tcp.socket
 echo -e "\n🔌 Enabling and starting libvirtd . . . \n"
 sudo systemctl enable --now libvirtd
 sudo systemctl status libvirtd -l --no-pager
-sudo usermod -aG libvirt $USER
 
 echo -n -e "\n📁 Creating /kvm-hub/vms to manage VMs . . . "
 sudo mkdir -p /kvm-hub/vms
-sudo chown -R $USER:qemu /kvm-hub
-chmod -R g+s /kvm-hub
+sudo chown $USER:$(id -g) /kvm-hub
 echo -e "✅"
 
 echo -e "\n📥 Cloning virt-manager git repo to /kvm-hub/virt-manager . . . "
