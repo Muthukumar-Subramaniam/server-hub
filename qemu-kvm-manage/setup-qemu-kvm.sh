@@ -46,7 +46,7 @@ sudo systemctl status libvirtd -l --no-pager
 
 echo -n -e "\n📁 Creating /kvm-hub/vms to manage VMs . . . "
 sudo mkdir -p /kvm-hub/vms
-sudo chown $USER:$(id -g) /kvm-hub
+sudo chown -R $USER:$(id -g) /kvm-hub
 echo -e "✅"
 
 echo -e "\n📥 Cloning virt-manager git repo to /kvm-hub/virt-manager . . . "
