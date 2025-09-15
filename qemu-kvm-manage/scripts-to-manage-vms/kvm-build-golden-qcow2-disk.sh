@@ -20,6 +20,12 @@ if sudo dmidecode -s system-manufacturer | grep -qi 'QEMU'; then
     exit 1
 fi
 
+# Check if any arguments are passed
+if [ "$#" -ne 0 ]; then
+    echo -e "\n❌ $(basename $0) does not take any arguments.\n"
+    exit 1
+fi
+
 infra_server_ipv4_address=$(cat /kvm-hub/ipv4-address-address-of-infra-server-vm)
 infra_mgmt_super_username=$(cat /kvm-hub/infra-mgmt-super-username)
 local_infra_domain_name=$(cat /kvm-hub/local_infra_domain_name)

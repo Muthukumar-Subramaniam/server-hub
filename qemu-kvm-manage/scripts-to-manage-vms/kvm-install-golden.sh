@@ -78,6 +78,11 @@ if [ -z "$qemu_kvm_hostname" ]; then
     fi
 fi
 
+if [[ ! "${qemu_kvm_hostname}" =~ ^[a-z0-9-]+$ || "${qemu_kvm_hostname}" =~ ^- || "${qemu_kvm_hostname}" =~ -$ ]]; then
+    echo -e "\n❌ VM hostname '$qemu_kvm_hostname' is invalid.\n"
+    exit 1
+fi
+
 # Check if VM exists in 'virsh list --all'
 if sudo virsh list --all | awk '{print $2}' | grep -Fxq "$qemu_kvm_hostname"; then
     echo "❌ VM \"$qemu_kvm_hostname\" exists already."

@@ -20,6 +20,35 @@ if sudo dmidecode -s system-manufacturer | grep -qi 'QEMU'; then
     exit 1
 fi
 
+# Function to show help
+fn_show_help() {
+    cat <<EOF
+Usage: kvm-console [hostname]
+
+Arguments:
+  hostname  Name of the VM to take console (optional, will prompt if not given)
+EOF
+}
+
+# Handle help and argument validation
+if [[ $# -gt 1 ]]; then
+    echo -e "❌ Too many arguments.\n"
+    fn_show_help
+    exit 1
+fi
+
+if [[ "$1" == "-h" || "$1" == "--help" ]]; then
+    fn_show_help
+    exit 0
+fi
+
+if [[ "$1" == -* ]]; then
+    echo -e "❌ No such option: $1\n"
+    fn_show_help
+    exit 1
+fi
+
+
 # Use first argument or prompt for hostname
 if [ -n "$1" ]; then
     qemu_kvm_hostname="$1"
@@ -34,15 +63,20 @@ else
     fi
 fi
 
+if [[ ! "${qemu_kvm_hostname}" =~ ^[a-z0-9-]+$ || "${qemu_kvm_hostname}" =~ ^- || "${qemu_kvm_hostname}" =~ -$ ]]; then
+    echo -e "\n❌ VM hostname '$qemu_kvm_hostname' is invalid.\n"
+    exit 1
+fi
+
 # Check if VM exists in 'virsh list --all'
 if ! sudo virsh list --all | awk '{print $2}' | grep -Fxq "$qemu_kvm_hostname"; then
-    echo "❌ Error: VM \"$qemu_kvm_hostname\" does not exist."
+    echo -e "\n❌ VM '$qemu_kvm_hostname' does not exist.\n"
     exit 1
 fi
 
 # Check if VM exists in 'virsh list'
 if ! sudo virsh list  | awk '{print $2}' | grep -Fxq "$qemu_kvm_hostname"; then
-    echo "❌ Error: VM \"$qemu_kvm_hostname\" is not running."
+    echo -e "\n❌ VM '$qemu_kvm_hostname' is not running.\n"
     exit 1
 fi
 

@@ -22,6 +22,12 @@ if sudo dmidecode -s system-manufacturer 2>/dev/null | grep -qi 'QEMU'; then
     exit 1
 fi
 
+# Check if any arguments are passed
+if [ "$#" -ne 0 ]; then
+    echo -e "\n❌ $(basename $0) does not take any arguments.\n"
+    exit 1
+fi
+
 # Load infra variables
 infra_mgmt_super_username=$(< /kvm-hub/infra-mgmt-super-username)
 local_infra_domain_name=$(< /kvm-hub/local_infra_domain_name)
