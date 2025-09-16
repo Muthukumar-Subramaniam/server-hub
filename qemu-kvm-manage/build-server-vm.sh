@@ -306,8 +306,8 @@ sudo virt-install \
   --console pty,target_type=serial \
   --machine q35 \
   --cpu host-model \
-  --boot loader=/usr/share/edk2/ovmf/OVMF_CODE.fd,\
-nvram.template=/usr/share/edk2/ovmf/OVMF_VARS.fd,\
+  --boot loader=/server-hub/qemu-kvm-manage/ovmf-uefi-firmware/OVMF_CODE.fd,\
+nvram.template=/server-hub/qemu-kvm-manage/ovmf-uefi-firmware/OVMF_VARS.fd,\
 nvram=/kvm-hub/vms/${infra_server_name}/${infra_server_name}_VARS.fd,menu=on \
 
 if sudo virsh list | grep -q "${infra_server_name}"; then

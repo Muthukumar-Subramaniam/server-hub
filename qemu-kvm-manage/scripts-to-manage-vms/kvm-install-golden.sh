@@ -167,8 +167,8 @@ VIRT_INSTALL_CMD="sudo virt-install \
   --machine q35 \
   --cpu host-model \
   --graphics none \
-  --boot loader=/usr/share/edk2/ovmf/OVMF_CODE.fd,\
-nvram.template=/usr/share/edk2/ovmf/OVMF_VARS.fd,\
+  --boot loader=/server-hub/qemu-kvm-manage/ovmf-uefi-firmware/OVMF_CODE.fd,\
+nvram.template=/server-hub/qemu-kvm-manage/ovmf-uefi-firmware/OVMF_VARS.fd,\
 nvram=/kvm-hub/vms/${qemu_kvm_hostname}/${qemu_kvm_hostname}_VARS.fd,menu=on"
 
 if [ "$ATTACH_CONSOLE" = "yes" ]; then
