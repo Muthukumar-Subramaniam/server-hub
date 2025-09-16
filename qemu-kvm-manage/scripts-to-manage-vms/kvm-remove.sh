@@ -99,12 +99,9 @@ fi
 # Proceed with deletion
 sudo virsh destroy "${qemu_kvm_hostname}" 2>/dev/null
 sudo virsh undefine "${qemu_kvm_hostname}" --nvram 2>/dev/null
-sudo rm -f /kvm-hub/vms/${qemu_kvm_hostname}/${qemu_kvm_hostname}.qcow2 \
-           /kvm-hub/vms/${qemu_kvm_hostname}/${qemu_kvm_hostname}_VARS.fd \
-           /kvm-hub/vms/${qemu_kvm_hostname}/${qemu_kvm_hostname}.xml
-
-sudo rmdir /kvm-hub/vms/${qemu_kvm_hostname}
-
+if [ -n "${qemu_kvm_hostname}" ]; then
+    sudo rm -rf "/kvm-hub/vms/${qemu_kvm_hostname}"
+fi
 dot_escaped_domain=$(echo "$local_infra_domain_name" | sed 's/\./\\./g')
 sudo sed -i "/[[:space:]]${qemu_kvm_hostname}\.${dot_escaped_domain}[[:space:]]/d" "${ETC_HOSTS_FILE}"
 sudo sed -i "/^alias ${qemu_kvm_hostname}=/d" "${ALIAS_FILE_OF_LAB_NODES}"
