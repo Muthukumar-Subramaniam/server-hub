@@ -79,8 +79,8 @@ sudo virt-install \
   --console pty,target_type=serial \
   --machine q35 \
   --cpu host-model \
-  --boot loader=/server-hub/qemu-kvm-manage/ovmf-uefi-firmware/OVMF_CODE.fd,\
-nvram.template=/server-hub/qemu-kvm-manage/ovmf-uefi-firmware/OVMF_VARS.fd,\
+  --boot loader=/usr/share/edk2/ovmf/OVMF_CODE.fd,\
+nvram.template=/usr/share/edk2/ovmf/OVMF_VARS.fd,\
 nvram=/kvm-hub/golden-images-disk-store/${qemu_kvm_hostname}_VARS.fd,menu=on \
 
 sudo virsh destroy "${qemu_kvm_hostname}" 2>/dev/null
