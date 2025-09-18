@@ -9,9 +9,6 @@ if [[ $UID -eq 0 ]]; then
 	exit 1
 fi
 
-echo -e "\nUpgrading system packages if there are any updates . . . \n"
-sudo dnf update -y
-
 if command -v ansible &>/dev/null; then
 	echo -e "\nAnsible is already installed, Proceeding further . . .\n"
 else
@@ -121,5 +118,7 @@ echo -e "\nRemove crashkernel memory reserve if present . . .\n"
 
 sudo grubby --update-kernel ALL --remove-args=crashkernel
 
-echo -e "\nPlease reboot the server if you did not face any issue with setup script ! \n"
-echo -e "\nAfter Reboot you can ansible playbook build-server.yaml to setup the system ! \n" 
+if [[ "$1" != "--invoked-by-automation" ]]; then
+    echo -e "\nPlease reboot the server if you did not face any issue with setup script ! \n"
+    echo -e "\nAfter Reboot you can ansible playbook build-server.yaml to setup the system ! \n" 
+fi
