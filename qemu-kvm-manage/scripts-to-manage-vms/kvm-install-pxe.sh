@@ -23,6 +23,7 @@ fi
 infra_server_ipv4_address=$(cat /kvm-hub/ipv4-address-address-of-infra-server-vm)
 infra_mgmt_super_username=$(cat /kvm-hub/infra-mgmt-super-username)
 local_infra_domain_name=$(cat /kvm-hub/local_infra_domain_name)
+source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/select-ovmf.sh
 
 ATTACH_CONSOLE="no"
 qemu_kvm_hostname=""
@@ -137,8 +138,8 @@ VIRT_INSTALL_CMD="sudo virt-install \
   --graphics none \
   --machine q35 \
   --cpu host-model \
-  --boot loader=/usr/share/edk2/ovmf/OVMF_CODE.fd,\
-nvram.template=/usr/share/edk2/ovmf/OVMF_VARS.fd,\
+  --boot loader=${OVMF_CODE_PATH},\
+nvram.template=${OVMF_VARS_PATH},\
 nvram=/kvm-hub/vms/${qemu_kvm_hostname}/${qemu_kvm_hostname}_VARS.fd,menu=on"
 
 if [ "$ATTACH_CONSOLE" = "yes" ]; then

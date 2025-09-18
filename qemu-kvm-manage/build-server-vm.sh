@@ -290,6 +290,8 @@ echo -e "✅"
 
 echo -e "\n🚀 Buckle up ! We are about to view the Infra Server VM (${infra_server_name}) deployment from console ! \n"
 
+source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/select-ovmf.sh
+
 sudo virt-install \
   --name ${infra_server_name} \
   --features acpi=on,apic=on \
@@ -306,8 +308,8 @@ sudo virt-install \
   --console pty,target_type=serial \
   --machine q35 \
   --cpu host-model \
-  --boot loader=/usr/share/edk2/ovmf/OVMF_CODE.fd,\
-nvram.template=/usr/share/edk2/ovmf/OVMF_VARS.fd,\
+  --boot loader=${OVMF_CODE_PATH},\
+nvram.template=${OVMF_VARS_PATH},\
 nvram=/kvm-hub/vms/${infra_server_name}/${infra_server_name}_VARS.fd,menu=on \
 
 if sudo virsh list | grep -q "${infra_server_name}"; then

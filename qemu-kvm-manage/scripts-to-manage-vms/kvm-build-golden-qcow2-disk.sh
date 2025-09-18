@@ -29,6 +29,7 @@ fi
 infra_server_ipv4_address=$(cat /kvm-hub/ipv4-address-address-of-infra-server-vm)
 infra_mgmt_super_username=$(cat /kvm-hub/infra-mgmt-super-username)
 local_infra_domain_name=$(cat /kvm-hub/local_infra_domain_name)
+source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/select-ovmf.sh
 
 echo -e "\n⚙️  Invoking ksmanager to create PXE environment to build a golden image . . .\n"
 
@@ -79,8 +80,8 @@ sudo virt-install \
   --console pty,target_type=serial \
   --machine q35 \
   --cpu host-model \
-  --boot loader=/usr/share/edk2/ovmf/OVMF_CODE.fd,\
-nvram.template=/usr/share/edk2/ovmf/OVMF_VARS.fd,\
+  --boot loader=${OVMF_CODE_PATH},\
+nvram.template=${OVMF_VARS_PATH},\
 nvram=/kvm-hub/golden-images-disk-store/${qemu_kvm_hostname}_VARS.fd,menu=on \
 
 sudo virsh destroy "${qemu_kvm_hostname}" 2>/dev/null
