@@ -25,7 +25,7 @@ infra_mgmt_super_username=$(< /kvm-hub/infra-mgmt-super-username)
 local_infra_domain_name=$(< /kvm-hub/local_infra_domain_name)
 
 
-echo -n "\n⚙️  Enabling DNS of lab infra with resolvectl if required . . . "
+echo -n -e "\n⚙️  Enabling DNS of lab infra with resolvectl if required . . . "
 
 if grep -q "${infra_server_ipv4_address}" <<< $(resolvectl); then
     echo "[ ✅ ]"
