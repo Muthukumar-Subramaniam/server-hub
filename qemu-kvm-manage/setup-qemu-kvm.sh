@@ -97,6 +97,7 @@ vm_tool_names=(
   kvm-resize
   kvm-console
   kvm-list
+  kvm-dnsbinder
 )
 for vm_tool in "${vm_tool_names[@]}"; do
     source_script="${scripts_directory}/${vm_tool}.sh"
