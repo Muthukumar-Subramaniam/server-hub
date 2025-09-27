@@ -56,7 +56,7 @@ for EACH_ARG in "\$@"; do
 	exit 1
     fi
 done
-ssh \${SSH_OPTIONS} -t ${kvm_host_admin_user}@${kvm_host_ipv4_address} "export KVM_TOOL_EXECUTED_FROM='\${INFRA_SERVER_NAME}';${FILENAME} \$(printf "'%s' " "\$@")"
+ssh \${SSH_OPTIONS} -t ${kvm_host_admin_user}@${kvm_host_ipv4_address} "export KVM_TOOL_EXECUTED_FROM='\${INFRA_SERVER_NAME}';${FILENAME} \$@"
 exit
 EOF
 done
