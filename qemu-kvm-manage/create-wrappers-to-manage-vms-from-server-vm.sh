@@ -42,70 +42,25 @@ mkdir -p "${temp_dir_to_create_wrapper_scripts}"
 
 
 for FILENAME in $(ls "${scripts_location_to_manage_vms}" | sed "s/.sh//g"); do
-	if [[ "$FILENAME" =~ ^kvm-(install|reimage)-(pxe|golden)$ ]]; then
 cat > "${temp_dir_to_create_wrapper_scripts}/${FILENAME}" << EOF
 #!/bin/bash
-
 # Who am I?
+SSH_OPTIONS="${SSH_OPTS}"
 INFRA_SERVER_NAME="\$(hostname -s)"
-
-# Parse args (to detect hostname, similar to install script)
-ATTACH_CONSOLE="no"
-qemu_kvm_hostname=""
-
-if [[ \$# -gt 2 ]]; then
-  echo "❌ Too many arguments."
-  echo "ℹ️  Usage: \$0 [hostname] [--console|-c]"
-  exit 1
-fi
-
-for arg in "\$@"; do
-  case "\$arg" in
-    --console|-c|--help|-h)
-      # Skip options, don't treat them as hostname
-      ;;
-    *)
-      if [[ -z "\$qemu_kvm_hostname" ]]; then
-        qemu_kvm_hostname="\$arg"
-      else
-        echo "❌ Unexpected argument: \$arg"
-        echo "ℹ️  Usage: \$0 [hostname] [--console|-c]"
-        exit 1
-      fi
-      ;;
-  esac
-done
-
-# Self-referential check (only if hostname provided)
-if [[ -n "\$qemu_kvm_hostname" && "\$qemu_kvm_hostname" == "\$INFRA_SERVER_NAME" ]]; then
-  echo -e "\n❌ This operation is not allowed to avoid self-referential KVM actions that could destabilize the infra server."
-  echo -e "⚠️ Note:"
-  echo -e "  🔹 You are running a KVM management related action for the lab infra server from the infra server itself."
-  echo -e "  🔹 If you still need to perform this operation, you need to do this from the Linux workstation running the QEMU/KVM setup.\n"
-  exit 1
-fi
-
-# Forward all args safely
-ssh ${SSH_OPTS} -t ${kvm_host_admin_user}@${kvm_host_ipv4_address} "export KVM_TOOL_EXECUTED_FROM='\${INFRA_SERVER_NAME}';${FILENAME} \$(printf "'%s' " "\$@")"
-EOF
-	else
-cat > "${temp_dir_to_create_wrapper_scripts}/${FILENAME}" << EOF
-#!/bin/bash
-if [[ "\${1}" == "\$(hostname -s)" ]]; then
+for EACH_ARG in "\$@"; do
+    if [[ "\${EACH_ARG}" == "\${INFRA_SERVER_NAME}" ]]; then
 	echo -e "\n❌ This operation is not allowed to avoid self-referential KVM actions that could destabilize the infra server."
     	echo -e "⚠️ Note:"
 	echo -e "  🔹 You are running a KVM management related action for the lab infra server from the infra server itself."
 	echo -e "  🔹 If you still need to perform this operation, you need to do this from the Linux workstation running the QEMU/KVM setup.\n"
 	exit 1
-fi
-INFRA_SERVER_NAME="\$(hostname -s)"
-ssh ${SSH_OPTS} \
-  -t ${kvm_host_admin_user}@${kvm_host_ipv4_address} \
-  "export KVM_TOOL_EXECUTED_FROM="\${INFRA_SERVER_NAME}";${FILENAME} \${1}"
+    fi
+done
+ssh \${SSH_OPTIONS} -t ${kvm_host_admin_user}@${kvm_host_ipv4_address} "export KVM_TOOL_EXECUTED_FROM='\${INFRA_SERVER_NAME}';${FILENAME} \$(printf "'%s' " "\$@")"
 exit
 EOF
-     fi
 done
+
 echo "[ok]"
 
 echo -n "[STEP] Syncing wrapper scripts to infra server VM . . . "
