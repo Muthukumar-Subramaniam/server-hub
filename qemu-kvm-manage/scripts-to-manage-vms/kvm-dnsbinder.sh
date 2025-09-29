@@ -24,6 +24,11 @@ infra_server_ipv4_address=$(< /kvm-hub/ipv4-address-address-of-infra-server-vm)
 infra_mgmt_super_username=$(< /kvm-hub/infra-mgmt-super-username)
 local_infra_domain_name=$(< /kvm-hub/local_infra_domain_name)
 
+if [[ -n "${KVM_TOOL_EXECUTED_FROM:-}" ]]; then
+    echo -e "\n❌ Detected execution from the lab infra server."
+    echo -e "👉 Please run the 'dnsbinder' utility directly with sudo to manage lab infra DNS.\n"
+    exit 1
+fi
 
 echo -n -e "\n⚙️  Enabling DNS of lab infra with resolvectl . . . "
 
