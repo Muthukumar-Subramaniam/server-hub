@@ -16,14 +16,14 @@ cd /server-hub/qemu-kvm-manage/
 
 ---
 
-## Step 2 – Run QEMU/KVM Setup Script
+## Step 2 – Run the below QEMU/KVM Setup Script
 
 ```bash
 ./setup-qemu-kvm.sh
 ```
 
 ---
-## Setp 3 - Run below script to download latest AlmaLinux ISO
+## Setp 3 - Run the below script to download latest AlmaLinux ISO
 ( This will take sometime depending on your network speed )
 
 ```bash
@@ -31,7 +31,7 @@ cd /server-hub/qemu-kvm-manage/
 ```
 
 ---
-## Step 4 – Deploy the Centralized Lab Infra Server VM
+## Step 4 – Automated Deployment of the Centralized Lab Infra Server VM
 
 The following script will guide you through setting up the centralized lab infrastructure server. It will prompt for all the required information and then perform an automated installation and configuration of the server VM.
 
