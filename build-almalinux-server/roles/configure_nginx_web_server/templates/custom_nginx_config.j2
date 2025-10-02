@@ -7,4 +7,6 @@ server {
     autoindex on;              # show directory listing
     autoindex_exact_size off;  # human-readable sizes
     autoindex_localtime on;    # show local time instead of UTC
+    include /etc/nginx/mime.types;
+    default_type text/plain;
 }

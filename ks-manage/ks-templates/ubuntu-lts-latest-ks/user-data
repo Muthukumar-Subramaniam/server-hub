@@ -3,8 +3,8 @@
 autoinstall:
   version: 1
 
-##  apt:
-##    disable_suites: [security, updates]
+  apt:
+    disable_suites: [security, updates]
 
   early-commands:
     - echo "ttyS0" >> /etc/securetty
