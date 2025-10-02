@@ -89,6 +89,7 @@ kvm-stop                      # Stop a VM
 kvm-restart                   # Restart a VM
 kvm-resize                    # Resize Memory,CPU or Disk of a VM
 kvm-remove                    # Remove/delete a VM
+kvm-dnsbinder                 # Bind and manage lab infra DNS
 ```
 
 ---
