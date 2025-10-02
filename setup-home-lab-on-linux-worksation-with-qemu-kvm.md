@@ -38,7 +38,7 @@ The following script will guide you through setting up the centralized lab infra
 During the process, the VM will reboot twice:
 
 1. **First Reboot:** Occurs after the OS installation and initial configurations.  
-2. **Second Reboot:** After the first reboot, essential services are configured using a custom bootstrap script and an Ansible playbook. Once the server is fully up and you see the login prompt, you can safely exit the console by pressing `Ctrl + ]`.
+2. **Second Reboot:** After the first boot, essential services are configured using a custom bootstrap script and an Ansible playbook. Once the server is fully up and you see the login prompt, you can safely exit the console by pressing `Ctrl + ]`.
 
 To start the deployment, run:
 ```bash
