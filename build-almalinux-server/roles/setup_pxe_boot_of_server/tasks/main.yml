@@ -6,6 +6,11 @@
     src: kea_dhcp4_conf.j2
     dest: /etc/kea/kea-dhcp4.conf
 
+- name: Configure /etc/kea/kea-ctrl-agent.conf
+  become: true
+  template:
+    src: kea_ctrl_agent_conf.j2
+    dest: /etc/kea/kea-ctrl-agent.conf
 
 - name: Create almalinux-latest mount point under /{{ ansible_env.dnsbinder_server_short_name }}.{{ ansible_env.dnsbinder_domain }}
   file:
