@@ -41,7 +41,7 @@ echo -n "[STEP] Generating wrapper scripts to manage KVM VMs . . . "
 mkdir -p "${temp_dir_to_create_wrapper_scripts}"
 
 
-for FILENAME in $(ls "${scripts_location_to_manage_vms}" | sed "s/.sh//g"); do
+for FILENAME in $(find "${scripts_location_to_manage_vms}/*.sh" -exec basename {} \; | sed "s/.sh//g"); do
 cat > "${temp_dir_to_create_wrapper_scripts}/${FILENAME}" << EOF
 #!/bin/bash
 # Who am I?
@@ -72,5 +72,5 @@ echo "[ok]"
 echo -e "\nNow you can manage QEMU/KVM environment from your infra server VM itself ! \n"
 echo "CLI Tools to manage KVM VMs : "
 echo "-----------------------------"
-ls "${scripts_location_to_manage_vms}" | sed "s/.sh//g"
+find "${scripts_location_to_manage_vms}/*.sh" -exec basename {} \; | sed "s/.sh//g"
 echo "-----------------------------"
