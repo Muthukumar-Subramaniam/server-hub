@@ -67,7 +67,7 @@ infra-server
 
 ---
 
-Your lab setup is now **ready**!
+# Your lab setup is now **ready**!
 
 ---
 
