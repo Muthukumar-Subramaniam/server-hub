@@ -78,12 +78,12 @@ Once setup is complete, your Linux Workstation will have the following tools:
 
 ```bash
 kvm-build-golden-qcow2-disk   # Create golden qcow2 base image
-kvm-install-golden            # Deploy VM using golden image
-kvm-reimage-golden            # Reinstall VM using golden image
-kvm-install-pxe               # Deploy VM using PXE
-kvm-reimage-pxe               # Reinstall VM using PXE
-kvm-list                      # List all managed VMs
-kvm-console                   # Connect to VM via serial console
+kvm-install-golden            # Deploy a VM using golden image
+kvm-reimage-golden            # Reinstall a VM using golden image
+kvm-install-pxe               # Deploy a VM using PXE
+kvm-reimage-pxe               # Reinstall a VM using PXE
+kvm-list                      # List all the deployed VMs and its status
+kvm-console                   # Connect to a VM via serial console
 kvm-start                     # Start a VM
 kvm-stop                      # Stop a VM
 kvm-restart                   # Restart a VM
