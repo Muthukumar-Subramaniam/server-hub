@@ -9,9 +9,6 @@ if [[ $UID -eq 0 ]]; then
 	exit 1
 fi
 
-echo -e "\nUpgrading system packages if there are any updates . . . \n"
-sudo dnf update -y
-
 if command -v ansible &>/dev/null; then
 	echo -e "\nAnsible is already installed, Proceeding further . . .\n"
 else
