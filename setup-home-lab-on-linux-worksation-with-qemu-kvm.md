@@ -4,10 +4,9 @@ This guide walks you through setting up a fully functional VM provisioning virtu
 
 ---
 
-## Step 1 – Clone `server-hub` and Prepare QEMU/KVM Management Scripts
+## Step 1 – Run the below to clone this `server-hub` repository
 
 ```bash
-sudo dnf install git -y
 sudo mkdir -p /server-hub
 sudo chown ${USER}:$(id -g) /server-hub
 git clone https://github.com/Muthukumar-Subramaniam/server-hub.git /server-hub
