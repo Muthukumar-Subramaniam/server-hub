@@ -491,7 +491,7 @@ fn_update_kea_dhcp_reservations() {
   local kea_cache_file="${ksmanager_hub_dir}/mac-address-cache"
   local kea_config_file="/etc/kea/kea-dhcp4.conf"
   local kea_api_url="http://127.0.0.1:8000/"
-  local kea_api_auth="kea-api:$(sudo cat /etc/kea/kea-api-password)"
+  local kea_api_auth="kea-api:kea-api-password"
   local kea_temp_config_timestamp=$(date +"%Y%m%d_%H%M%S_%Z")
   local kea_config_temp_dir="${ksmanager_hub_dir}/kea_dhcp_temp_configs_with_reservation"
   local kea_tmp_config="${kea_config_temp_dir}/kea-dhcp4.conf_${kea_temp_config_timestamp}"
