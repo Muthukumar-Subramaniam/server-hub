@@ -19,8 +19,8 @@ ISO_DIR="/iso-files"
 FSTAB="/etc/fstab"
 
 print_usage() {
-  echo -e "\n📘 Usage:\n  $0 --setup <distro>\n  $0 --cleanup <distro>"
-  echo "Supported distros: almalinux, rocky, oraclelinux, centos-stream, rhel, ubuntu-lts, opensuse-leap"
+  echo -e "\nUsage:\n    $(basename $0) --setup <distro>\n    $(basename $0) --cleanup <distro>"
+  echo -e "Supported distros:\n    almalinux, rocky, oraclelinux, centos-stream, rhel, ubuntu-lts, opensuse-leap\n"
 }
 
 fn_check_distro_availability() {
@@ -127,7 +127,7 @@ prepare_rhel() {
   local distro="rhel"
   if [[ $(fn_check_distro_availability "$distro") == "[Ready]" ]]; then
     echo -e "\n⚠️  Distro '$distro' already appears to be prepared."
-    echo "🧹 Please cleanup first using: $0 --cleanup $distro"
+    echo "🧹 Please cleanup first using: $(basename $0) --cleanup $distro"
     exit 1
   fi
   local iso_file="rhel-10.0-x86_64-dvd.iso"
@@ -145,7 +145,7 @@ prepare_ubuntu() {
   local distro="ubuntu-lts"
   if [[ $(fn_check_distro_availability "$distro") == "[Ready]" ]]; then
     echo -e "\n⚠️  Distro '$distro' already appears to be prepared."
-    echo "🧹 Please cleanup first using: $0 --cleanup $distro"
+    echo "🧹 Please cleanup first using: $(basename $0) --cleanup $distro"
     exit 1
   fi
   local latest_lts=$(curl -s https://cdimage.ubuntu.com/releases/ | sed -n 's/.*href="\([0-9][0-9]\.04\(\.[0-9][0-9]*\)\?\)\/".*/\1/p' | awk -F. '$1 % 2 == 0 { print }' | sort -V | tail -n1)
@@ -202,6 +202,11 @@ else
   MODE="$1"
   DISTRO="${2:-}"
 
+  if [[ "$MODE" == "-h" || "$MODE" == "--help" ]]; then
+    print_usage
+    exit 0
+  fi
+
   if [[ "$MODE" != "--setup" && "$MODE" != "--cleanup" ]]; then
     echo -e "\n❌ Invalid mode: $MODE"
     print_usage
@@ -222,7 +227,7 @@ case "$MODE" in
       almalinux)
         if [[ $(fn_check_distro_availability "almalinux") == "[Ready]" ]]; then
           echo -e "\n⚠️  Distro 'almalinux' already appears to be prepared."
-          echo "🧹 Please cleanup first using: $0 --cleanup almalinux"
+          echo "🧹 Please cleanup first using: $(basename $0) --cleanup almalinux"
           exit 1
         fi
         prepare_iso "almalinux" "AlmaLinux-10-latest-x86_64-dvd.iso" \
@@ -232,7 +237,7 @@ case "$MODE" in
       rocky)
         if [[ $(fn_check_distro_availability "rocky") == "[Ready]" ]]; then
           echo -e "\n⚠️  Distro 'rocky' already appears to be prepared."
-          echo "🧹 Please cleanup first using: $0 --cleanup rocky"
+          echo "🧹 Please cleanup first using: $(basename $0) --cleanup rocky"
           exit 1
         fi
         prepare_iso "rocky" "Rocky-10-latest-x86_64-dvd.iso" \
@@ -242,7 +247,7 @@ case "$MODE" in
       fedora)
         if [[ $(fn_check_distro_availability "fedora") == "[Ready]" ]]; then
           echo -e "\n⚠️  Distro 'fedora' already appears to be prepared."
-          echo "🧹 Please cleanup first using: $0 --cleanup rocky"
+          echo "🧹 Please cleanup first using: $(basename $0) --cleanup rocky"
           exit 1
         fi
         prepare_iso "fedora" "Fedora-Server-dvd-x86_64-42-1.1.iso" \
@@ -252,7 +257,7 @@ case "$MODE" in
       oraclelinux)
         if [[ $(fn_check_distro_availability "oraclelinux") == "[Ready]" ]]; then
           echo -e "\n⚠️  Distro 'oraclelinux' already appears to be prepared."
-          echo "🧹 Please cleanup first using: $0 --cleanup oraclelinux"
+          echo "🧹 Please cleanup first using: $(basename $0) --cleanup oraclelinux"
           exit 1
         fi
         prepare_iso "oraclelinux" "OracleLinux-R10-U0-x86_64-dvd.iso" \
@@ -262,7 +267,7 @@ case "$MODE" in
       centos-stream)
         if [[ $(fn_check_distro_availability "centos-stream") == "[Ready]" ]]; then
           echo -e "\n⚠️  Distro 'centos-stream' already appears to be prepared."
-          echo "🧹 Please cleanup first using: $0 --cleanup centos-stream"
+          echo "🧹 Please cleanup first using: $(basename $0) --cleanup centos-stream"
           exit 1
         fi
         prepare_iso "centos-stream" "CentOS-Stream-10-latest-x86_64-dvd.iso" \
@@ -278,7 +283,7 @@ case "$MODE" in
       opensuse-leap)
         if [[ $(fn_check_distro_availability "opensuse-leap") == "[Ready]" ]]; then
           echo -e "\n⚠️  Distro 'opensuse-leap' already appears to be prepared."
-          echo "🧹 Please cleanup first using: $0 --cleanup opensuse-leap"
+          echo "🧹 Please cleanup first using: $(basename $0) --cleanup opensuse-leap"
           exit 1
         fi
         prepare_iso "opensuse-leap" "openSUSE-Leap-15.6-DVD-x86_64-Media.iso" \
