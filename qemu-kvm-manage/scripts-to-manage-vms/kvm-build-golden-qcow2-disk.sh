@@ -77,6 +77,7 @@ sudo virt-install \
   --os-variant almalinux9 \
   --network network=default,model=virtio,mac=${MAC_ADDRESS},boot.order=2 \
   --graphics none \
+  --watchdog none \
   --console pty,target_type=serial \
   --machine q35 \
   --cpu host-model \

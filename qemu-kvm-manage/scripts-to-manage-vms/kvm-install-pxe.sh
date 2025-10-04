@@ -137,6 +137,7 @@ VIRT_INSTALL_CMD="sudo virt-install \
   --network network=default,model=virtio,mac=${MAC_ADDRESS},boot.order=2 \
   --graphics none \
   --machine q35 \
+  --watchdog none \
   --cpu host-model \
   --boot loader=${OVMF_CODE_PATH},\
 nvram.template=${OVMF_VARS_PATH},\

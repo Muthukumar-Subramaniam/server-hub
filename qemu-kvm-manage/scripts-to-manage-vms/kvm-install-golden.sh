@@ -151,9 +151,11 @@ if [ ! -f /kvm-hub/golden-images-disk-store/${OS_DISTRO}-golden-image.qcow2 ]; t
 	exit
 fi
 
-echo -n -e "\n🚀 Copy golden image disk /kvm-hub/golden-images-disk-store/${OS_DISTRO}-golden-image.qcow2 to install '${qemu_kvm_hostname}' . . . "
+echo -n -e "\n🚀 Clone golden image disk /kvm-hub/golden-images-disk-store/${OS_DISTRO}-golden-image.qcow2 to install '${qemu_kvm_hostname}' . . . "
 
-sudo cp -p /kvm-hub/golden-images-disk-store/${OS_DISTRO}-golden-image.qcow2 /kvm-hub/vms/${qemu_kvm_hostname}/${qemu_kvm_hostname}.qcow2
+sudo qemu-img convert -O qcow2 \
+  /kvm-hub/golden-images-disk-store/${OS_DISTRO}-golden-image.qcow2 \
+  /kvm-hub/vms/${qemu_kvm_hostname}/${qemu_kvm_hostname}.qcow2
 
 echo -e "✅"
 
@@ -168,6 +170,7 @@ VIRT_INSTALL_CMD="sudo virt-install \
   --machine q35 \
   --cpu host-model \
   --graphics none \
+  --watchdog none \
   --boot loader=${OVMF_CODE_PATH},\
 nvram.template=${OVMF_VARS_PATH},\
 nvram=/kvm-hub/vms/${qemu_kvm_hostname}/${qemu_kvm_hostname}_VARS.fd,menu=on"

@@ -305,6 +305,7 @@ sudo virt-install \
   --location "/mnt/iso-for-${infra_server_name}" \
   --extra-args "inst.ks=file:/${infra_server_name}_ks.cfg inst.stage2=cdrom inst.repo=cdrom console=ttyS0 nomodeset inst.text quiet" \
   --graphics none \
+  --watchdog none \
   --console pty,target_type=serial \
   --machine q35 \
   --cpu host-model \
