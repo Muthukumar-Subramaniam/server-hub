@@ -185,7 +185,7 @@ for ((i=1; i<=DISK_COUNT; i++)); do
 
     # Attach disk
     echo -ne "\n⚙️ Attaching vd${NEXT_DISK_LETTER} (${DISK_SIZE_GB}GB) to VM '$qemu_kvm_hostname' . . . "
-    if ! sudo virsh attach-disk "$qemu_kvm_hostname" "$DISK_PATH" "vd$NEXT_DISK_LETTER" --subdriver qcow2 --persistent; then
+    if ! sudo virsh attach-disk "$qemu_kvm_hostname" "$DISK_PATH" "vd$NEXT_DISK_LETTER" --subdriver qcow2 --persistent &>/dev/null; then
         echo -e "[ ❌ ]\n"
         exit 1
     fi
