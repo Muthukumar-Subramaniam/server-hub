@@ -177,7 +177,7 @@ for ((i=1; i<=DISK_COUNT; i++)); do
 
     # Create disk
     echo -ne "\n⚙️ Creating disk vd${NEXT_DISK_LETTER} (${DISK_SIZE_GB}GB) . . . "
-    if ! qemu-img create -f qcow2 "$DISK_PATH" "${DISK_SIZE_GB}G"; then
+    if ! qemu-img create -f qcow2 "$DISK_PATH" "${DISK_SIZE_GB}G" &>/dev/null; then
         echo -e "[ ❌ ]\n"
         exit 1
     fi
@@ -185,7 +185,7 @@ for ((i=1; i<=DISK_COUNT; i++)); do
 
     # Attach disk
     echo -ne "\n⚙️ Attaching vd${NEXT_DISK_LETTER} (${DISK_SIZE_GB}GB) to VM '$qemu_kvm_hostname' . . . "
-    if ! sudo virsh attach-disk "$qemu_kvm_hostname" "$DISK_PATH" "vd$NEXT_DISK_LETTER" --bus virtio --persistent; then
+    if ! sudo virsh attach-disk "$qemu_kvm_hostname" "$DISK_PATH" "vd$NEXT_DISK_LETTER" --persistent &>/dev/null; then
         echo -e "[ ❌ ]\n"
         exit 1
     fi
