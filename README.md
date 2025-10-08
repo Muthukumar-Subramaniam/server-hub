@@ -6,9 +6,8 @@ server-hub allows you to build and manage a virtual home lab, making it easy to 
 
 ## 🖥️ Automated Lab Environment for Provisioning and Managing Linux VMs
 
-### 🧠 Central Infra Server VM's OS
+### 🧠 Central Infra Server VM's OS  
 The central lab infrastructure server VM is designed to run on AlmaLinux 10 by default, providing all the essential services required for the lab environment.  
----
 
 ### 📦 VM Guest OS Provisioning
 
