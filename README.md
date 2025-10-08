@@ -1,11 +1,10 @@
 # 🛠️ Server-Hub
 ---
-
-**A one-stop automation toolkit to set up a central server for managing your home lab** — whether on **VMware Workstation**, **QEMU/KVM**, or even a **bare-metal physical setup**.
+server-hub allows you to build and manage a virtual home lab, making it easy to deploy, break, and rebuild Linux VMs effortlessly. It automates VM provisioning, manages the complete lifecycle of your VMs, and provides a flexible environment for learning, testing, and experimenting with Linux-based technologies.  
 
 > ⚠️ **DISCLAIMER:** This project is intended for **testing**, **development**, and **experimentation** purposes only.  
 
-## 🖥️ Automated VM Provisioning and Home Lab Management
+## 🖥️ Automated Lab Environment for Provisioning and Managing Linux VMs
 
 ### 🧠 Central Infra Server VM's OS
 
