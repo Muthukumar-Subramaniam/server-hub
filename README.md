@@ -1,5 +1,6 @@
 # 🛠️ Server-Hub  
 This project allows to build and manage a virtual home lab, making it easy to deploy, break, and rebuild Linux VMs effortlessly. It automates VM provisioning, manages the complete lifecycle of your VMs, and provides a flexible environment for learning, testing, and experimenting with Linux-based technologies.  
+Although many open-source alternatives exist, I built this project for the fun of creating something of my own and sharing it with anyone with similar interests.  
 
 > ⚠️ **DISCLAIMER:** This project is intended for **testing**, **development**, and **experimentation** purposes only.  
 
