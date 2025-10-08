@@ -25,7 +25,7 @@ The toolkits provide automated VM provisioning for all three major Linux familie
 
 ### 🧾 Minimum System Requirements of VMs
 
-> These are **minimum** recommended values. Feel free to **increase** based on your use case and workload.
+> These are the minimum recommended values. You can adjust them later based on your specific use case and workload.”
 
 #### 🔹 Central Infra Server VM
 - 🧠 **Memory**: 2 GB RAM
