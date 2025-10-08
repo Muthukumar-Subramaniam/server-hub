@@ -7,22 +7,14 @@ server-hub allows you to build and manage a virtual home lab, making it easy to 
 ## 🖥️ Automated Lab Environment for Provisioning and Managing Linux VMs
 
 ### 🧠 Central Infra Server VM's OS
-
-The central infra server runs on **AlmaLinux 10** by default.  
-You can also customize it to use any **Red Hat-compatible distribution**, such as:
-
-- **RHEL** (via developer subscription with minor tweaks)
-- **Rocky Linux**
-- **Oracle Linux**
-- **CentOS Stream**
-
+The central lab infrastructure server VM is designed to run on AlmaLinux 10 by default, providing all the essential services required for the lab environment.  
 ---
 
 ### 📦 VM Guest OS Provisioning
 
-All VM provisioning is **centrally managed** by the central infra server using automation scripts and configuration templates.
+The lab infrastructure server centrally manages all guest VM provisioning using automation scripts and configuration templates
 
-The toolkit supports automated provisioning for VMs across all **three major Linux families**, with **ready-to-use configurations** included for:
+The toolkits provide automated VM provisioning for all three major Linux families, including ready-to-use configurations for:
 
 | Distro Family    | Supported OSes                                | Provisioning Method           | Status                  |
 |------------------|-----------------------------------------------|-------------------------------|--------------------------|
@@ -30,8 +22,6 @@ The toolkit supports automated provisioning for VMs across all **three major Lin
 |                  | Rocky, Oracle Linux, RHEL, CentOS Stream       | Kickstart                     | 🔧 Customizable          |
 | Debian-based     | Ubuntu LTS                                     | Cloud-init (`cloud-config`)   | 🔧 Customizable
 | SUSE-based       | openSUSE Leap                                  | AutoYaST                      | 🔧 Customizable|
-
-> 🧪 This toolkit is designed for lab environments that require provisioning and managing heterogeneous Linux distributions for testing, experimentation, and development.
 
 ---
 
