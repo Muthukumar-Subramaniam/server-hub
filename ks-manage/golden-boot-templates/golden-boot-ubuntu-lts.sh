@@ -56,4 +56,6 @@ touch /root/golden-boot-ubuntu-lts-completed
 
 systemctl disable golden-boot-ubuntu-lts.service 
 
-reboot
+kexec -l /boot/vmlinuz --initrd=/boot/initrd.img --command-line="$(cat /proc/cmdline)"
+
+systemctl kexec

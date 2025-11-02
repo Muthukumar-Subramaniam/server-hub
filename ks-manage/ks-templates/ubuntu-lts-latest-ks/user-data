@@ -25,7 +25,7 @@ autoinstall:
       list:
         - root:get_shadow_password_super_mgmt_user
     runcmd:
-      - apt-get install -y chrony vim less bash-completion nfs-common tmux net-tools sysstat zip tcpdump traceroute wget tar inetutils-ping dnsutils rsync netcat-openbsd nmap lsof autofs
+      - apt-get install -y kexec-tools chrony vim less bash-completion nfs-common tmux net-tools sysstat zip tcpdump traceroute wget tar inetutils-ping dnsutils rsync netcat-openbsd nmap lsof autofs
       - apt-get remove -y lvm2 && apt-get autoremove -y 
       - /usr/bin/echo -e "HISTSIZE=-1\nHISTFILESIZE=-1" | tee -a /home/get_mgmt_super_user/.bashrc /root/.bashrc
       - var_PS1_variable_get_mgmt_super_user=$(curl -s -L http://get_web_server_name.get_ipv4_domain/ksmanager-hub/addons-for-kickstarts/PS1-env-variable-normal-user)

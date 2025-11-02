@@ -45,4 +45,6 @@ touch /root/golden-boot-redhat-based-completed
 
 systemctl disable golden-boot-redhat-based.service 
 
-reboot
+kexec -l /boot/vmlinuz-$(uname -r) --initrd=/boot/initramfs-$(uname -r).img --command-line="$(cat /proc/cmdline)"
+
+systemctl kexec
