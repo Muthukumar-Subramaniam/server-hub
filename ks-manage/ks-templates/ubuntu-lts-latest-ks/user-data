@@ -59,7 +59,7 @@ autoinstall:
       - echo '/server-hub -fstype=nfs,soft,timeo=5,retrans=2 get_nfs_server_name:/server-hub' > /etc/auto.master.d/auto-${local_lab_info}
       - echo '/lab-web-share -fstype=nfs,soft,timeo=5,retrans=2 get_nfs_server_name:/get_web_server_name.get_ipv4_domain' >> /etc/auto.master.d/auto-${local_lab_info}
       - echo '/lab-share -fstype=nfs,soft,timeo=5,retrans=2 get_nfs_server_name:/lab-share' >> /etc/auto.master.d/auto-${local_lab_info}
-      - reboot
+      - kexec -l /boot/vmlinuz --initrd=/boot/initrd.img --command-line="$(cat /proc/cmdline)" && systemctl kexec
 
   keyboard:
     layout: us
