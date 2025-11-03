@@ -69,7 +69,7 @@ fn_check_and_create_host_record() {
   		fi
 	done
 
-	if ! host "${kickstart_hostname}" &>/dev/null
+	if ! host "${kickstart_hostname}.${ipv4_domain}" "${dnsbinder_server_ipv4_address}" &>/dev/null
 	then
 		echo -e "\n❌ No DNS record found for \"${kickstart_hostname}\".\n"
 		while :
@@ -81,7 +81,7 @@ fn_check_and_create_host_record() {
 				echo -e "\n🛠️  Creating the DNS record for \"${kickstart_hostname}\" using the tool '${dnsbinder_script}' . . .\n"
 				"${dnsbinder_script}" -c "${kickstart_hostname}"
 
-				if host "${kickstart_hostname}" &>/dev/null
+				if host "${kickstart_hostname}.${ipv4_domain}" "${dnsbinder_server_ipv4_address}" &>/dev/null
 				then
 					echo -e "\n⏳ Proceeding further . . .\n"
 					break
@@ -101,7 +101,7 @@ fn_check_and_create_host_record() {
 		done
 	else
 		echo -e "\n✅ DNS record found for \"${kickstart_hostname}\" ! \n"
-		echo -e "ℹ️  FYI: $(host "${kickstart_hostname}")"
+		echo -e "ℹ️  FYI: $(host ${kickstart_hostname}.${ipv4_domain} ${dnsbinder_server_ipv4_address} | grep 'has address')"
 	fi
 }
 
@@ -116,7 +116,7 @@ done
 
 if $golden_image_creation_not_requested; then
 	fn_check_and_create_host_record "${1}"
-	ipv4_address=$(host "${kickstart_hostname}.${ipv4_domain}" | cut -d " " -f 4 | tr -d '[[:space:]]')
+	ipv4_address=$(host "${kickstart_hostname}.${ipv4_domain}" "${dnsbinder_server_ipv4_address}" | grep 'has address' | cut -d " " -f 4 | tr -d '[[:space:]]')
 fi
 
 # Function to validate MAC address
@@ -296,7 +296,7 @@ manufacturer=$(dmidecode -t1 | awk -F: '/Manufacturer/ {
 }')
 
 # Initialize variables
-disk_type_for_the_vm=""
+disk_type_for_the_vm="vda"
 whether_vga_console_is_required=""
 
 # Set values based on platform
@@ -351,7 +351,7 @@ fi
 
 if ! $golden_image_creation_not_requested; then
 	fn_check_and_create_host_record "${os_distribution}-golden-image"
-	ipv4_address=$(host "${kickstart_hostname}.${ipv4_domain}" | cut -d " " -f 4 | tr -d '[[:space:]]')
+	ipv4_address=$(host "${kickstart_hostname}.${ipv4_domain}" "${dnsbinder_server_ipv4_address}" | grep 'has address' | cut -d " " -f 4 | tr -d '[[:space:]]')
 	fn_check_and_create_mac_if_required
 	fn_create_host_kickstart_dir
 fi

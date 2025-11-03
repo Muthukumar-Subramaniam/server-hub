@@ -47,4 +47,8 @@ fi
 
 echo -e "\n⚙️  Invoking dnsbinder utility from lab infra server . . ."
 
-ssh -o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -t ${infra_mgmt_super_username}@${infra_server_ipv4_address} "sudo dnsbinder $@"
+if [ -f /kvm-hub/host_machine_is_lab_infra_server ]; then
+    sudo dnsbinder "$@"
+else
+    ssh -o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -t ${infra_mgmt_super_username}@${infra_server_ipv4_address} "sudo dnsbinder $@"
+fi
