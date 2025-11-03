@@ -98,7 +98,11 @@ echo -e "\n⚙️  Invoking ksmanager to create first boot environment for '${qe
 
 >/tmp/install-vm-logs-"${qemu_kvm_hostname}"
 
-ssh -o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -t ${infra_mgmt_super_username}@${infra_server_ipv4_address} "sudo ksmanager ${qemu_kvm_hostname}" --qemu-kvm --golden-image | tee -a /tmp/install-vm-logs-"${qemu_kvm_hostname}"
+if [ -f /kvm-hub/host_machine_is_lab_infra_server ]; then
+    sudo ksmanager ${qemu_kvm_hostname} --qemu-kvm --golden-image | tee -a /tmp/install-vm-logs-"${qemu_kvm_hostname}"
+else
+    ssh -o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -t ${infra_mgmt_super_username}@${infra_server_ipv4_address} "sudo ksmanager ${qemu_kvm_hostname}" --qemu-kvm --golden-image | tee -a /tmp/install-vm-logs-"${qemu_kvm_hostname}"
+fi
 
 MAC_ADDRESS=$( grep "MAC Address  :"  /tmp/install-vm-logs-"${qemu_kvm_hostname}" | awk -F': ' '{print $2}' | tr -d '[:space:]' )
 IPV4_ADDRESS=$( grep "IPv4 Address :"  /tmp/install-vm-logs-"${qemu_kvm_hostname}" | awk -F': ' '{print $2}' | tr -d '[:space:]' )
