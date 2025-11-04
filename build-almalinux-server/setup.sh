@@ -9,6 +9,15 @@ if [[ $UID -eq 0 ]]; then
 	exit 1
 fi
 
+HOST_MODE_ENABLED=false
+for INPUT_ARGS in "$@"; do
+    case "$INPUT_ARGS" in
+        --host-mode)
+            HOST_MODE_ENABLED=true
+            ;;
+    esac
+done
+
 if command -v ansible &>/dev/null; then
 	echo -e "\nAnsible is already installed, Proceeding further . . .\n"
 else
@@ -45,6 +54,7 @@ source /etc/environment
 
 echo -e "\nSetting motd . . .\n"
 
+if [[ $HOST_MODE_ENABLED == "false" ]]; then
 cat << EOF | sudo tee /etc/motd &>/dev/null
 +-------------------------------------------------------------+
 |               Welcome to your Lab Infra Server              |
@@ -58,6 +68,7 @@ cat << EOF | sudo tee /etc/motd &>/dev/null
 | https://github.com/Muthukumar-Subramaniam/server-hub/issues |
 +-------------------------------------------------------------+
 EOF
+fi
 
 echo -e "\nSetting up ssh custom config . . .\n"
 
@@ -78,8 +89,7 @@ done
 
 echo -e "\nUpdate Network Interface to conventional naming . . .\n"
 
-if ! ip link | grep -q eth0; then
-
+if ( [[ "$HOST_MODE_ENABLED" == "false" ]] ) && ( ! ip link show eth0 &>/dev/null ); then
 	sudo mkdir -p /etc/systemd/network
 	V_count=0
 	for v_interface in $(ls /sys/class/net | grep -v lo)
@@ -116,7 +126,9 @@ sudo grubby --update-kernel ALL --args selinux=0
 
 echo -e "\nRemove crashkernel memory reserve if present . . .\n"
 
-sudo grubby --update-kernel ALL --remove-args=crashkernel
+if [[ $HOST_MODE_ENABLED == "false" ]]; then
+	sudo grubby --update-kernel ALL --remove-args=crashkernel
+fi
 
 if [[ "$1" != "--invoked-by-automation" ]]; then
     echo -e "\nPlease reboot the server if you did not face any issue with setup script ! \n"
