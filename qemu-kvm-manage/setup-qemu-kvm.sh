@@ -62,13 +62,13 @@ sudo chmod +x /bin/virt-install
 echo -e "✅"
 
 virsh_network_name="default"
-virsh_network_definition="virbr0.xml"
-ipv4_virbr0=$(grep -oP "<ip address='\K[^']+" "$virsh_network_definition")
+virsh_network_definition="labbr0.xml"
+ipv4_labbr0=$(grep -oP "<ip address='\K[^']+" "$virsh_network_definition")
 
-if ( ip link show virbr0 &>/dev/null && ip addr show virbr0 | grep -q "$ipv4_virbr0" ); then
-    echo "✅ virbr0 already has IP $ipv4_virbr0 — skipping task."
+if ( ip link show labbr0 &>/dev/null && ip addr show labbr0 | grep -q "$ipv4_labbr0" ); then
+    echo "✅ labbr0 already has IP $ipv4_labbr0 — skipping task."
 else
-    echo -n -e "\n🛜 Setting up custom bridge network virbr0 for QEMU/KVM . . . "
+    echo -n -e "\n🛜 Setting up custom bridge network labbr0 for QEMU/KVM . . . "
     # your network setup logic here
     run_virsh_cmd() {
         sudo virsh "$@" &>/dev/null

@@ -35,12 +35,12 @@ echo -n -e "\n⚙️  Enabling DNS of lab infra with resolvectl . . . "
 if grep -q "${infra_server_ipv4_address}" <<< $(resolvectl); then
     echo -e "\e[32m[ ok ]\e[0m"
 else
-    if ip link show virbr0 &>/dev/null; then
-       sudo resolvectl dns virbr0 ${infra_server_ipv4_address}
-       sudo resolvectl domain virbr0 ${local_infra_domain_name} 
+    if ip link show labbr0 &>/dev/null; then
+       sudo resolvectl dns labbr0 ${infra_server_ipv4_address}
+       sudo resolvectl domain labbr0 ${local_infra_domain_name} 
        echo -e "\e[32m[ done ]\e[0m"
     else
-       echo -e "\n❌ virbr0 interface is not yet available! \n" 
+       echo -e "\n❌ labbr0 interface is not yet available! \n" 
        exit 1
     fi
 fi

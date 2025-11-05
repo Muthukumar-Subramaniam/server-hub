@@ -26,7 +26,7 @@ local_infra_domain_name=$(cat /kvm-hub/local_infra_domain_name)
 kvm_host_admin_user="$USER"
 scripts_location_to_manage_vms="/server-hub/qemu-kvm-manage/scripts-to-manage-vms"
 temp_dir_to_create_wrapper_scripts="/tmp/scripts-to-manage-vms"
-virsh_network_definition="/server-hub/qemu-kvm-manage/virbr0.xml"
+virsh_network_definition="/server-hub/qemu-kvm-manage/labbr0.xml"
 kvm_host_ipv4_address=$(grep -oP "<ip address='\K[^']+" "$virsh_network_definition")
 SSH_OPTS="-o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
 

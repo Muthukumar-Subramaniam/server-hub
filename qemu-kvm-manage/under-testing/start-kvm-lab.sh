@@ -1,11 +1,11 @@
 #!/bin/bash
-# Purpose: Bring up virbr0 and dependent lab services cleanly
+# Purpose: Bring up labbr0 and dependent lab services cleanly
 
 set -euo pipefail
 
 # ====== CONFIGURATION ======
 DUMMY_IF="dummy-vnet"
-BRIDGE_IF="virbr0"
+BRIDGE_IF="labbr0"
 LAB_SERVICES=("kea-dhcp4" "nfs-server" "nginx" "tftp.socket")
 DNS_ADDR="${dnsbinder_server_ipv4_address}"
 DNS_DOMAIN="${dnsbinder_domain}"
@@ -23,7 +23,7 @@ trap 'red "⚠️  Script interrupted or failed!"' ERR SIGINT
 yellow "🔁 Restarting libvirtd..."
 sudo systemctl restart libvirtd
 
-# ====== STEP 2: Wait for virbr0 ======
+# ====== STEP 2: Wait for labbr0 ======
 yellow "⏳ Waiting for $BRIDGE_IF to be created..."
 until ip link show "$BRIDGE_IF" &>/dev/null; do
     printf "."
@@ -42,7 +42,7 @@ else
     yellow "ℹ️ Dummy interface $DUMMY_IF already exists."
 fi
 
-# ====== STEP 4: Wait for virbr0 to come up ======
+# ====== STEP 4: Wait for labbr0 to come up ======
 yellow "⏳ Waiting for $BRIDGE_IF to come UP..."
 while [[ "$(cat /sys/class/net/$BRIDGE_IF/operstate 2>/dev/null)" != "up" ]]; do
     printf "."
@@ -54,7 +54,7 @@ green "✅ $BRIDGE_IF is UP and running!"
 yellow "🌐 Assign IP "$DNS_ADDR" on $BRIDGE_IF for lab infra services..."
 sudo ip addr add "${DNS_ADDR}/${LAB_CIDR}" dev "$BRIDGE_IF"
 
-# ====== STEP 5: Configure DNS for virbr0 ======
+# ====== STEP 5: Configure DNS for labbr0 ======
 yellow "🌐 Configuring DNS for $BRIDGE_IF..."
 sudo systemctl restart named
 sudo resolvectl dns "$BRIDGE_IF" "$DNS_ADDR"
@@ -71,4 +71,4 @@ green "✅ All lab services restarted."
 yellow "📋 Checking service statuses..."
 sudo systemctl status libvirtd named "${LAB_SERVICES[@]}" --no-pager -l || true
 
-green "🎉 Setup complete! virbr0 is up and all services are live."
+green "🎉 Setup complete! labbr0 is up and all services are live."
