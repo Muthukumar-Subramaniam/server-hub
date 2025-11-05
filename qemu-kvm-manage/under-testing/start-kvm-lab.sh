@@ -1,15 +1,15 @@
 #!/bin/bash
 # Purpose: Bring up virbr0 and dependent lab services cleanly
-# Author: Cooper (TARS approved 😎)
 
 set -euo pipefail
 
 # ====== CONFIGURATION ======
 DUMMY_IF="dummy-vnet"
 BRIDGE_IF="virbr0"
-LAB_SERVICES=("libvirtd" "named" "kea-dhcp4" "nfs-server" "nginx" "tftp.socket")
+LAB_SERVICES=("kea-dhcp4" "nfs-server" "nginx" "tftp.socket")
 DNS_ADDR="${dnsbinder_server_ipv4_address}"
-DNS_DOMAIN="${dnsbinder_domain:-lab.local}"
+DNS_DOMAIN="${dnsbinder_domain}"
+LAB_CIDR="${dnsbinder_cidr_prefix}"
 
 # ====== COLOR OUTPUT ======
 green() { echo -e "\e[32m$1\e[0m"; }
@@ -51,20 +51,24 @@ done
 echo
 green "✅ $BRIDGE_IF is UP and running!"
 
-# ====== STEP 5: Restart dependent services ======
+yellow "🌐 Assign IP "$DNS_ADDR" on $BRIDGE_IF for lab infra services..."
+sudo ip addr add "${DNS_ADDR}/${LAB_CIDR}" dev "$BRIDGE_IF"
+
+# ====== STEP 5: Configure DNS for virbr0 ======
+yellow "🌐 Configuring DNS for $BRIDGE_IF..."
+sudo systemctl restart named
+sudo resolvectl dns "$BRIDGE_IF" "$DNS_ADDR"
+sudo resolvectl domain "$BRIDGE_IF" "$DNS_DOMAIN"
+
+# ====== STEP 6: Restart dependent services ======
 yellow "🔁 Restarting dependent lab services..."
 for svc in "${LAB_SERVICES[@]}"; do
     sudo systemctl restart "$svc"
 done
 green "✅ All lab services restarted."
 
-# ====== STEP 6: Show service status ======
+# ====== STEP 7: Show service status ======
 yellow "📋 Checking service statuses..."
-sudo systemctl status "${LAB_SERVICES[@]}" --no-pager -l || true
-
-# ====== STEP 7: Configure DNS for virbr0 ======
-yellow "🌐 Configuring DNS for $BRIDGE_IF..."
-sudo resolvectl dns "$BRIDGE_IF" "$DNS_ADDR"
-sudo resolvectl domain "$BRIDGE_IF" "$DNS_DOMAIN"
+sudo systemctl status libvirtd named "${LAB_SERVICES[@]}" --no-pager -l || true
 
 green "🎉 Setup complete! virbr0 is up and all services are live."
