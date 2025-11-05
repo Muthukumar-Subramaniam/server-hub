@@ -26,9 +26,9 @@ if [ "$#" -ne 0 ]; then
     exit 1
 fi
 
-infra_server_ipv4_address=$(cat /kvm-hub/ipv4-address-address-of-infra-server-vm)
-infra_mgmt_super_username=$(cat /kvm-hub/infra-mgmt-super-username)
-local_infra_domain_name=$(cat /kvm-hub/local_infra_domain_name)
+infra_server_ipv4_address=$(cat /kvm-hub/lab_infra_server_ipv4_address)
+infra_mgmt_super_username=$(cat /kvm-hub/lab_infra_admin_username)
+lab_infra_domain_name=$(cat /kvm-hub/lab_infra_domain_name)
 source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/select-ovmf.sh
 
 echo -e "\n⚙️  Invoking ksmanager to create PXE environment to build a golden image . . .\n"

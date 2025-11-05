@@ -85,15 +85,15 @@ fn_shutdown_or_poweroff() {
     case "$selected_choice" in
         1)
             echo -e "\n🛑 Initiating graceful shutdown . . ."
-	    infra_mgmt_super_username=$(cat /kvm-hub/infra-mgmt-super-username)
-            local_infra_domain_name=$(cat /kvm-hub/local_infra_domain_name)
-	    echo -e "\n🔍 Checking SSH connectivity to ${qemu_kvm_hostname}.${local_infra_domain_name} . . ."
-            if nc -zw5 "${qemu_kvm_hostname}.${local_infra_domain_name}" 22; then
+	    infra_mgmt_super_username=$(cat /kvm-hub/lab_infra_admin_username)
+            lab_infra_domain_name=$(cat /kvm-hub/lab_infra_domain_name)
+	    echo -e "\n🔍 Checking SSH connectivity to ${qemu_kvm_hostname}.${lab_infra_domain_name} . . ."
+            if nc -zw5 "${qemu_kvm_hostname}.${lab_infra_domain_name}" 22; then
                 echo -e "\n🔗 SSH connectivity seems to be fine. Initiating graceful shutdown . . .\n"
                 ssh -o LogLevel=QUIET \
                     -o StrictHostKeyChecking=no \
                     -o UserKnownHostsFile=/dev/null \
-                    "${infra_mgmt_super_username}@${qemu_kvm_hostname}.${local_infra_domain_name}" \
+                    "${infra_mgmt_super_username}@${qemu_kvm_hostname}.${lab_infra_domain_name}" \
                     "sudo shutdown -h now"
 
                 echo -e "\n⏳ Waiting for VM '${qemu_kvm_hostname}' to shut down . . ."
@@ -102,7 +102,7 @@ fn_shutdown_or_poweroff() {
                 done
                 echo -e "\n✅ VM has been shut down successfully, Proceeding further."
             else
-                echo -e "\n❌ SSH connection issue with ${qemu_kvm_hostname}.${local_infra_domain_name}.\n❌ Cannot perform graceful shutdown.\n"
+                echo -e "\n❌ SSH connection issue with ${qemu_kvm_hostname}.${lab_infra_domain_name}.\n❌ Cannot perform graceful shutdown.\n"
 		exit 1
             fi
             ;;

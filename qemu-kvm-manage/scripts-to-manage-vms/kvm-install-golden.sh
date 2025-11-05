@@ -20,9 +20,9 @@ if sudo dmidecode -s system-manufacturer | grep -qi 'QEMU'; then
     exit 1
 fi
 
-infra_server_ipv4_address=$(cat /kvm-hub/ipv4-address-address-of-infra-server-vm)
-infra_mgmt_super_username=$(cat /kvm-hub/infra-mgmt-super-username)
-local_infra_domain_name=$(cat /kvm-hub/local_infra_domain_name)
+infra_server_ipv4_address=$(cat /kvm-hub/lab_infra_server_ipv4_address)
+infra_mgmt_super_username=$(cat /kvm-hub/lab_infra_admin_username)
+lab_infra_domain_name=$(cat /kvm-hub/lab_infra_domain_name)
 source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/select-ovmf.sh
 
 ATTACH_CONSOLE="no"
@@ -134,15 +134,15 @@ fi
 
 mkdir -p /kvm-hub/vms/${qemu_kvm_hostname}
 
-echo -n -e "\n📎 Updating hosts file for ${qemu_kvm_hostname}.${local_infra_domain_name} . . . "
+echo -n -e "\n📎 Updating hosts file for ${qemu_kvm_hostname}.${lab_infra_domain_name} . . . "
 
-echo "${IPV4_ADDRESS} ${qemu_kvm_hostname}.${local_infra_domain_name} ${qemu_kvm_hostname}" | sudo tee -a /etc/hosts &>/dev/null
+echo "${IPV4_ADDRESS} ${qemu_kvm_hostname}.${lab_infra_domain_name} ${qemu_kvm_hostname}" | sudo tee -a /etc/hosts &>/dev/null
 
 echo -e "✅"
 
 echo -n -e "\n📎 Creating alias '${qemu_kvm_hostname}' to assist with future SSH logins . . . "
 
-echo "alias ${qemu_kvm_hostname}=\"ssh -o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ${infra_mgmt_super_username}@${qemu_kvm_hostname}.${local_infra_domain_name}\"" >> /kvm-hub/ssh-assist-aliases-for-vms-on-qemu-kvm
+echo "alias ${qemu_kvm_hostname}=\"ssh -o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ${infra_mgmt_super_username}@${qemu_kvm_hostname}.${lab_infra_domain_name}\"" >> /kvm-hub/ssh-assist-aliases-for-vms-on-qemu-kvm
 
 source "${HOME}/.bashrc"
 

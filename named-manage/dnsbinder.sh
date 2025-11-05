@@ -261,9 +261,9 @@ fn_configure_named_dns_server() {
 	print_notify "\nFetching network information from the system . . . "  "nskip"
 
 	if KVM_HOST_MODE_SET; then
-		v_dns_host_short_name=$(cat /kvm-hub/local_infra_server_name)
+		v_dns_host_short_name=$(cat /kvm-hub/lab_infra_server_shortname)
 		v_primary_interface='labbr0'
-		v_primary_ip=$(cat /kvm-hub/ipv4-address-address-of-infra-server-vm)
+		v_primary_ip=$(cat /kvm-hub/lab_infra_server_ipv4_address)
 		v_network_gateway=$(ip r | grep -v default | grep "${v_primary_interface}" | head -n 1 | awk '{ print $9 }')
 	else
 		v_dns_host_short_name=$(hostname -s)

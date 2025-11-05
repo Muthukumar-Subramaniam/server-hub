@@ -20,9 +20,9 @@ if sudo dmidecode -s system-manufacturer | grep -qi 'QEMU'; then
     exit 1
 fi
 
-infra_server_ipv4_address=$(< /kvm-hub/ipv4-address-address-of-infra-server-vm)
-infra_mgmt_super_username=$(< /kvm-hub/infra-mgmt-super-username)
-local_infra_domain_name=$(< /kvm-hub/local_infra_domain_name)
+infra_server_ipv4_address=$(< /kvm-hub/lab_infra_server_ipv4_address)
+infra_mgmt_super_username=$(< /kvm-hub/lab_infra_admin_username)
+lab_infra_domain_name=$(< /kvm-hub/lab_infra_domain_name)
 
 if [[ -n "${KVM_TOOL_EXECUTED_FROM:-}" ]]; then
     echo -e "\n❌ Detected execution from the lab infra server."
@@ -37,7 +37,7 @@ if grep -q "${infra_server_ipv4_address}" <<< $(resolvectl); then
 else
     if ip link show labbr0 &>/dev/null; then
        sudo resolvectl dns labbr0 ${infra_server_ipv4_address}
-       sudo resolvectl domain labbr0 ${local_infra_domain_name} 
+       sudo resolvectl domain labbr0 ${lab_infra_domain_name} 
        echo -e "\e[32m[ done ]\e[0m"
     else
        echo -e "\n❌ labbr0 interface is not yet available! \n" 

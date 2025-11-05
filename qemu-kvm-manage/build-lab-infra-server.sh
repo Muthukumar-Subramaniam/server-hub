@@ -174,11 +174,11 @@ while true; do
   echo
   fn_instruct_on_valid_domain_name
   echo
-  read -rp "🌐 Enter your local Infra Domain Name [ default : lab.local ] : " local_infra_domain_name
-  if [[ -z "${local_infra_domain_name}" ]]; then
-	  local_infra_domain_name="lab.local"
+  read -rp "🌐 Enter your local Infra Domain Name [ default : lab.local ] : " lab_infra_domain_name
+  if [[ -z "${lab_infra_domain_name}" ]]; then
+	  lab_infra_domain_name="lab.local"
   fi
-  if [[ "${#local_infra_domain_name}" -le 63 ]] && [[ "${local_infra_domain_name}" =~ ^[[:alnum:]]+([-.][[:alnum:]]+)*(\.[[:alnum:]]+){0,2}\.local$ ]]
+  if [[ "${#lab_infra_domain_name}" -le 63 ]] && [[ "${lab_infra_domain_name}" =~ ^[[:alnum:]]+([-.][[:alnum:]]+)*(\.[[:alnum:]]+){0,2}\.local$ ]]
   then
 	break
   fi
@@ -200,13 +200,13 @@ echo    "============================================"
 echo -e "  🌐 IPv4 Address : ${ipv4_address}"
 echo -e "  🌐 IPv4 Netmask : ${ipv4_netmask}"
 echo -e "  🌐 IPv4 Gateway : ${ipv4_gateway}"
-echo -e "  🌐 DNS Domain   : ${local_infra_domain_name}"
+echo -e "  🌐 DNS Domain   : ${lab_infra_domain_name}"
 echo    "============================================"
 
-echo "$ipv4_address" >/kvm-hub/ipv4-address-address-of-infra-server-vm
-echo "$mgmt_super_user" >/kvm-hub/infra-mgmt-super-username
-echo "$local_infra_domain_name" >/kvm-hub/local_infra_domain_name
-echo "$infra_server_name" >/kvm-hub/local_infra_server_name
+echo "$ipv4_address" >/kvm-hub/lab_infra_server_ipv4_address
+echo "$mgmt_super_user" >/kvm-hub/lab_infra_admin_username
+echo "$lab_infra_domain_name" >/kvm-hub/lab_infra_domain_name
+echo "$infra_server_name" >/kvm-hub/lab_infra_server_shortname
 
 mkdir -p "/kvm-hub/vms/${infra_server_name}"
 
@@ -218,7 +218,7 @@ sed -i "s/get_ipv4_netmask/${ipv4_netmask}/g" "${KS_FILE}"
 sed -i "s/get_ipv4_gateway/${ipv4_gateway}/g" "${KS_FILE}"
 sed -i "s/get_mgmt_super_user/${mgmt_super_user}/g" "${KS_FILE}"
 sed -i "s/get_infra_server_name/${infra_server_name}/g" "${KS_FILE}"
-sed -i "s/get_local_infra_domain_name/${local_infra_domain_name}/g" "${KS_FILE}"
+sed -i "s/get_lab_infra_domain_name/${lab_infra_domain_name}/g" "${KS_FILE}"
 
 awk -v val="$shadow_password_super_mgmt_user" '
 {
@@ -241,11 +241,11 @@ sudo mount -o loop "${ISO_DIR}/${ISO_NAME}" /mnt/iso-for-${infra_server_name} &>
 
 echo -e "✅"
 
-echo -n -e "\n📎 Updating hosts file for ${qemu_kvm_hostname}.${local_infra_domain_name} . . . "
+echo -n -e "\n📎 Updating hosts file for ${qemu_kvm_hostname}.${lab_infra_domain_name} . . . "
 
-sudo sed -i "/${infra_server_name}.${local_infra_domain_name}/d" /etc/hosts 
+sudo sed -i "/${infra_server_name}.${lab_infra_domain_name}/d" /etc/hosts 
 
-echo "${ipv4_address} ${infra_server_name}.${local_infra_domain_name} ${infra_server_name}" | sudo tee -a /etc/hosts &>/dev/null 
+echo "${ipv4_address} ${infra_server_name}.${lab_infra_domain_name} ${infra_server_name}" | sudo tee -a /etc/hosts &>/dev/null 
 
 echo -e "✅"
 
@@ -253,9 +253,9 @@ echo -n -e "\n📎 Creating alias '${infra_server_name}' to assist with future S
 
 touch /kvm-hub/ssh-assist-aliases-for-vms-on-qemu-kvm
 
-sed -i "/${infra_server_name}.${local_infra_domain_name}/d" /kvm-hub/ssh-assist-aliases-for-vms-on-qemu-kvm
+sed -i "/${infra_server_name}.${lab_infra_domain_name}/d" /kvm-hub/ssh-assist-aliases-for-vms-on-qemu-kvm
 
-echo "alias ${infra_server_name}=\"ssh -o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ${mgmt_super_user}@${infra_server_name}.${local_infra_domain_name}\"" >> /kvm-hub/ssh-assist-aliases-for-vms-on-qemu-kvm
+echo "alias ${infra_server_name}=\"ssh -o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ${mgmt_super_user}@${infra_server_name}.${lab_infra_domain_name}\"" >> /kvm-hub/ssh-assist-aliases-for-vms-on-qemu-kvm
 
 if ! grep -q "ssh-assist-aliases-for-vms-on-qemu-kvm" "${HOME}/.bashrc" ; then
 	echo -e "\nsource /kvm-hub/ssh-assist-aliases-for-vms-on-qemu-kvm" >> "${HOME}/.bashrc"
@@ -265,7 +265,7 @@ source "${HOME}/.bashrc"
 
 echo -e "✅"
 
-echo -n -e "\n📎 Updating SSH Custom Config for \'${local_infra_domain_name}\' domain to assist with future SSH logins . . . "
+echo -n -e "\n📎 Updating SSH Custom Config for \'${lab_infra_domain_name}\' domain to assist with future SSH logins . . . "
 
 SSH_CUSTOM_CONFIG_FILE="$HOME/.ssh/config.custom"
 
@@ -273,9 +273,9 @@ if [[ ! -f "${SSH_CUSTOM_CONFIG_FILE}" ]]; then
 	touch "${SSH_CUSTOM_CONFIG_FILE}"
 fi
 
-if ! grep -q "$local_infra_domain_name" "$SSH_CUSTOM_CONFIG_FILE"; then
+if ! grep -q "$lab_infra_domain_name" "$SSH_CUSTOM_CONFIG_FILE"; then
   cat <<EOF >> "$SSH_CUSTOM_CONFIG_FILE"
-Host *.${local_infra_domain_name} ${ipv4_address}
+Host *.${lab_infra_domain_name} ${ipv4_address}
     User ${mgmt_super_user}
     IdentityFile ~/.ssh/id_rsa
     ServerAliveInterval 60

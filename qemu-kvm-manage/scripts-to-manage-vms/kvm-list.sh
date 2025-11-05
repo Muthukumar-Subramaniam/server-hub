@@ -29,8 +29,8 @@ if [ "$#" -ne 0 ]; then
 fi
 
 # Load infra variables
-infra_mgmt_super_username=$(< /kvm-hub/infra-mgmt-super-username)
-local_infra_domain_name=$(< /kvm-hub/local_infra_domain_name)
+infra_mgmt_super_username=$(< /kvm-hub/lab_infra_admin_username)
+lab_infra_domain_name=$(< /kvm-hub/lab_infra_domain_name)
 
 mapfile -t vm_list < <(sudo virsh list --all | awk 'NR>2 && $2 != "" {print $2}')
 
@@ -66,7 +66,7 @@ for vm_name in "${vm_list[@]}"; do
 
     # If VM is running, check systemd + distro via single SSH
     if [[ "$current_vm_state" == "running" ]]; then
-        ssh_output=$(ssh $ssh_options "${infra_mgmt_super_username}@${vm_name}.${local_infra_domain_name}" \
+        ssh_output=$(ssh $ssh_options "${infra_mgmt_super_username}@${vm_name}.${lab_infra_domain_name}" \
             'systemctl is-system-running; \
              source /etc/os-release 2>/dev/null && echo "$PRETTY_NAME" || echo "[ N/A ]"' \
             2>/dev/null </dev/null || true)

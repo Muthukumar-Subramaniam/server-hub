@@ -5,7 +5,7 @@
 #----------------------------------------------------------------------------------------#
 
 DIR_PATH_SCRIPTS_TO_MANAGE_VMS='/server-hub/qemu-kvm-manage/scripts-to-manage-vms'
-INFRA_SERVER_VM_NAME=$(< /kvm-hub/local_infra_server_name)
+INFRA_SERVER_VM_NAME=$(< /kvm-hub/lab_infra_server_shortname)
 
 if [[ "$EUID" -eq 0 ]]; then
     echo -e "\n⛔ Running as root user is not allowed."
