@@ -4,7 +4,7 @@
 # please open an issue at: https://github.com/Muthukumar-Subramaniam/server-hub/issues   #
 #----------------------------------------------------------------------------------------#
 
-ISO_DIR="/kvm-hub/iso-files"
+ISO_DIR="/iso-files"
 ISO_NAME="AlmaLinux-10-latest-x86_64-dvd.iso"
 
 if [[ "$EUID" -eq 0 ]]; then

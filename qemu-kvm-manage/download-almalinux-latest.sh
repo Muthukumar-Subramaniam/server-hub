@@ -3,14 +3,12 @@
 # If you encounter any issues with this script, or have suggestions or feature requests, #
 # please open an issue at: https://github.com/Muthukumar-Subramaniam/server-hub/issues   #
 #----------------------------------------------------------------------------------------#
-ISO_DIR="/kvm-hub/iso-files"
+ISO_DIR="/iso-files"
 ISO_NAME="AlmaLinux-10-latest-x86_64-dvd.iso"
 ISO_URL="https://repo.almalinux.org/almalinux/10/isos/x86_64/$ISO_NAME"
 CHECKSUM_URL="https://repo.almalinux.org/almalinux/10/isos/x86_64/CHECKSUM"
-sudo mkdir -p /kvm-hub
-sudo chown -R $USER:qemu /kvm-hub
-chmod -R g+s /kvm-hub
-mkdir -p "$ISO_DIR"
+sudo mkdir -p "$ISO_DIR"
+sudo chown -R $USER:$(id -g) "$ISO_DIR"
 
 # Create directory if it doesn't exist
 
