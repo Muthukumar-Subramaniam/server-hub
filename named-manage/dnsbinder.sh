@@ -216,6 +216,11 @@ print_warning "FYI :
 
 fn_configure_named_dns_server() {
 
+	KVM_HOST_MODE_SET=false
+	if ip link show labbr0 &>/dev/null; then
+        	KVM_HOST_MODE_SET=true
+	fi
+
 	server_is_hosted_on_gcp="false"
 
 	if grep -q -i google <<< $(sudo dmidecode -s system-manufacturer)
@@ -255,10 +260,17 @@ fn_configure_named_dns_server() {
 
 	print_notify "\nFetching network information from the system . . . "  "nskip"
 
-	v_dns_host_short_name=$(hostname -s)
-	v_primary_interface=$(ip r | grep default | awk '{ print $5 }')
-	v_primary_ip=$(ip r | grep -v default | grep "${v_primary_interface}" | head -n 1 | awk '{ print $9 }')
-	v_network_gateway=$(ip r | grep default | awk '{ print $3 }')
+	if KVM_HOST_MODE_SET; then
+		v_dns_host_short_name=$(cat /kvm-hub/local_infra_server_name)
+		v_primary_interface='labbr0'
+		v_primary_ip=$(cat /kvm-hub/ipv4-address-address-of-infra-server-vm)
+		v_network_gateway=$(ip r | grep -v default | grep "${v_primary_interface}" | head -n 1 | awk '{ print $9 }')
+	else
+		v_dns_host_short_name=$(hostname -s)
+		v_primary_interface=$(ip r | grep default | awk '{ print $5 }')
+		v_primary_ip=$(ip r | grep -v default | grep "${v_primary_interface}" | head -n 1 | awk '{ print $9 }')
+		v_network_gateway=$(ip r | grep default | awk '{ print $3 }')
+	fi
 
 	fn_split_network_into_cidr24subnets
 
@@ -292,12 +304,17 @@ fn_configure_named_dns_server() {
 
 	print_notify "\nConfiguring named.conf . . . " "nskip"
 
-	sed -i "s/listen-on port 53 {\s*127.0.0.1;\s*};/listen-on port 53 { 127.0.0.1; ${v_primary_ip}; };/" /etc/named.conf
+	if KVM_HOST_MODE_SET; then
+		sed -i "s/listen-on port 53 {\s*127.0.0.1;\s*};/listen-on port 53 { ${v_primary_ip}; };/" /etc/named.conf
+	else
+		sed -i "s/listen-on port 53 {\s*127.0.0.1;\s*};/listen-on port 53 { 127.0.0.1; ${v_primary_ip}; };/" /etc/named.conf
+	fi
+
+	sed -i '/^[[:space:]]*[^#].*listen-on-v6/s/^/#/' /etc/named.conf
 
 	sed -i "s/allow-query\s*{\s*localhost;\s*};/allow-query     { localhost; ${v_network}\/${v_cidr}; };/" /etc/named.conf
 
 	sed -i '/dnssec-validation yes;/d' /etc/named.conf
-
 
 	if "${server_is_hosted_on_gcp}" ; then
 		sed -i '/recursion yes;/a # BEGIN google-dns-servers-as-forwarders\n\n        forwarders {\n                169.254.169.254;\n        };\n\n        dnssec-validation no;\n# END google-dns-servers-as-forwarders' /etc/named.conf
@@ -416,43 +433,64 @@ EOF
 
 	print_success "[ done ]"
 
-	if ! "${server_is_hosted_on_gcp}" ; then
-
+        if ! "${server_is_hosted_on_gcp}" ; then
 		print_notify "\nUpdating dnsbinder related global variables to /etc/environment . . . " "nskip"
+		declare -A dnsbinder_environment_map=(
+			["dnsbinder_domain"]="$v_given_domain"
+			["dnsbinder_network_cidr"]="$v_network_and_cidr"
+			["dnsbinder_cidr_prefix"]="$v_cidr"
+			["dnsbinder_first24_subnet"]="$v_first_subnet_part"
+			["dnsbinder_last24_subnet"]="$v_last_subnet_part"
+			["dnsbinder_netmask"]="$dnsbinder_netmask"
+			["dnsbinder_gateway"]="$v_network_gateway"
+			["dnsbinder_broadcast"]="${v_last_subnet_part}.255"
+			["dnsbinder_server_ipv4_address"]="$v_primary_ip"
+			["dnsbinder_server_short_name"]="$v_dns_host_short_name"
+			["dnsbinder_server_fqdn"]="${v_dns_host_short_name}.${v_given_domain}"
+		)
 
-		echo "dnsbinder_domain=\"${v_given_domain}\"" >> /etc/environment
-		echo "dnsbinder_network_cidr=\"${v_network_and_cidr}\"" >> /etc/environment
-		echo "dnsbinder_cidr_prefix=\"${v_cidr}\"" >> /etc/environment
-		echo "dnsbinder_first24_subnet=\"${v_first_subnet_part}\"" >> /etc/environment
-		echo "dnsbinder_last24_subnet=\"${v_last_subnet_part}\"" >> /etc/environment
-		echo "dnsbinder_netmask=\"${dnsbinder_netmask}\"" >> /etc/environment
-		echo "dnsbinder_gateway=\"${v_network_gateway}\"" >> /etc/environment
-		echo "dnsbinder_broadcast=\"${v_last_subnet_part}.255\"" >> /etc/environment
-		echo "dnsbinder_server_ipv4_address=\"${v_primary_ip}\"" >> /etc/environment
-		echo "dnsbinder_server_short_name=\"${v_dns_host_short_name}\"" >> /etc/environment
-		echo "dnsbinder_server_fqdn=\"${v_dns_host_short_name}.${v_given_domain}\"" >> /etc/environment
+		target_environment_file="/etc/environment"
+
+		# Ensure the environment file exists
+		touch "$target_environment_file"
+
+		# Iterate through all key-value pairs and update or append as necessary
+		for environment_key in "${!dnsbinder_environment_map[@]}"; do
+			environment_value="${dnsbinder_environment_map[$environment_key]}"
+			if grep -q "^${environment_key}=" "$target_environment_file"; then
+				# Update existing variable line
+				sed -i "s|^${environment_key}=.*|${environment_key}=\"${environment_value}\"|" "$target_environment_file"
+			else
+				# Append new variable if not already present
+				echo "${environment_key}=\"${environment_value}\"" | tee -a "$target_environment_file" > /dev/null
+			fi
+		done
 
 		source /etc/environment
 
-		print_notify "\nUpdating Network Manager to point the local dns server and domain . . . " "nskip"
-
-		v_active_connection_name=$(nmcli connection show --active | grep "${v_primary_interface}" | head -n 1 | awk '{ print $1 }')
-
-		nmcli connection modify "${v_active_connection_name}" ipv4.dns-search "${v_given_domain}" &>/dev/null
-
-		nmcli connection modify "${v_active_connection_name}" ipv4.dns "127.0.0.1,8.8.8.8,8.8.4.4"  &>/dev/null
-
-		nmcli connection reload "${v_active_connection_name}" &>/dev/null
-
-		nmcli connection up "${v_active_connection_name}" &>/dev/null
-
-		print_success "[ done ]"
+		if ! KVM_HOST_MODE_SET; then
+			print_notify "\nUpdating Network Manager to point the local dns server and domain . . . " "nskip"
+			v_active_connection_name=$(nmcli connection show --active | grep "${v_primary_interface}" | head -n 1 | awk '{ print $1 }')
+			nmcli connection modify "${v_active_connection_name}" ipv4.dns-search "${v_given_domain}" &>/dev/null
+			nmcli connection modify "${v_active_connection_name}" ipv4.dns "127.0.0.1,8.8.8.8,8.8.4.4"  &>/dev/null
+			nmcli connection reload "${v_active_connection_name}" &>/dev/null
+			nmcli connection up "${v_active_connection_name}" &>/dev/null
+			print_success "[ done ]"
+		else
+			print_notify "\nUpdating systemd-resolvd to point the local dns server and domain . . . " "nskip"
+			if command -v resolvectl &>/dev/null; then
+  				resolvectl dns labbr0 "$v_primary_ip"
+  				resolvectl domain labbr0 "$v_given_domain"
+			fi
+		fi
 	fi
 
 	print_notify "\nMake named service as a dependency for network-online.target . . . " "nskip"
 
-	if [ ! -f /etc/systemd/system/network-online.target.wants/named.service ]; then
-		ln -s /usr/lib/systemd/system/named.service /etc/systemd/system/network-online.target.wants/named.service 
+	if ! KVM_HOST_MODE_SET; then
+		if [ ! -f /etc/systemd/system/network-online.target.wants/named.service ]; then
+			ln -s /usr/lib/systemd/system/named.service /etc/systemd/system/network-online.target.wants/named.service 
+		fi
 	fi
 
 	print_success "[ done ]"

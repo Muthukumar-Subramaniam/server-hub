@@ -41,7 +41,7 @@ During the process, the VM will reboot twice:
 
 To start the deployment, run:
 ```bash
-./build-server-vm.sh
+./build-lab-infra-server.sh
 ```
 
 ---
@@ -50,10 +50,10 @@ To start the deployment, run:
 
 Use the auto-created SSH alias.
 
-If your server name is `infra-server`, you can connect by simply running:
+If your server name is `lab-infra-server`, you can connect by simply running:
 
 ```bash
-infra-server
+lab-infra-server
 ```
 
 If you get `command not found`, reload your shell environment and try again:
