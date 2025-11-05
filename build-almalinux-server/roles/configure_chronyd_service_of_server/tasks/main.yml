@@ -17,6 +17,7 @@
       # Use Google's NTP pool as time source
       pool time.google.com iburst
       # Allow NTP client access from local network.
+      bindaddress {{ ansible_env.dnsbinder_server_ipv4_address }}
       allow {{ ansible_env.dnsbinder_network_cidr }}
       # Serve time even if not synchronized to a time source.
       local stratum 10
