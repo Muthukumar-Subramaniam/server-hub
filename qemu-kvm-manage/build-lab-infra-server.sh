@@ -72,11 +72,11 @@ fi
 #Get Server Name
 while true; do
   echo
-  read -rp "⌨️  Enter your local Infra Server VM name [default: server]: " infra_server_name
+  read -rp "⌨️  Enter your local Infra Server VM name [default: lab-infra-server]: " infra_server_name
 
   # If empty, use default
   if [[ -z "$infra_server_name" ]]; then
-    infra_server_name="server"
+    infra_server_name="lab-infra-server"
     break
   fi
 
@@ -203,6 +203,11 @@ echo -e "  🌐 IPv4 Gateway : ${ipv4_gateway}"
 echo -e "  🌐 DNS Domain   : ${local_infra_domain_name}"
 echo    "============================================"
 
+echo "$ipv4_address" >/kvm-hub/ipv4-address-address-of-infra-server-vm
+echo "$mgmt_super_user" >/kvm-hub/infra-mgmt-super-username
+echo "$local_infra_domain_name" >/kvm-hub/local_infra_domain_name
+echo "$infra_server_name" >/kvm-hub/local_infra_server_name
+
 mkdir -p "/kvm-hub/vms/${infra_server_name}"
 
 KS_FILE="/kvm-hub/vms/${infra_server_name}/${infra_server_name}_ks.cfg"
@@ -235,11 +240,6 @@ sudo mkdir -p /mnt/iso-for-${infra_server_name}
 sudo mount -o loop "${ISO_DIR}/${ISO_NAME}" /mnt/iso-for-${infra_server_name} &>/dev/null
 
 echo -e "✅"
-
-echo "$ipv4_address" >/kvm-hub/ipv4-address-address-of-infra-server-vm
-echo "$mgmt_super_user" >/kvm-hub/infra-mgmt-super-username
-echo "$local_infra_domain_name" >/kvm-hub/local_infra_domain_name
-echo "$infra_server_name" >/kvm-hub/local_infra_server_name
 
 echo -n -e "\n📎 Updating hosts file for ${qemu_kvm_hostname}.${local_infra_domain_name} . . . "
 
