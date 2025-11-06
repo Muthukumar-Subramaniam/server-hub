@@ -76,21 +76,14 @@ prepare_lab_infra_config() {
 
   echo -e "\n✅ Using Lab Infra Server name: \033[1m${lab_infra_server_shortname}\033[0m"
   echo ""
-  # Prompt for valid lowercase-only username
-  while true; do
-    echo
-    read -rp "👤 Enter your Lab Infra Admin username: " lab_infra_admin_username
-    if [[ "$lab_infra_admin_username" =~ ^[a-z][a-z0-9_-]*$ ]]; then
-      break
-    else
-      echo -e "❌\n Invalid username. Only lowercase letters, numbers, hyphens, and underscores allowed. Must start with a letter.\n"
-    fi
-  done
+
+  lab_infra_admin_username="$USER"
+  echo -e "\n👤 Using current user '${lab_infra_admin_username}' as Lab Infra Global user. '\n"
 
   # Prompt for password, validate length, confirm match
   while true; do
     echo
-    read -s -p "🔒 Enter your Lab Infra Admin password: " lab_admin_password_plain
+    read -s -p "🔒 Enter your Lab Infra Global password: " lab_admin_password_plain
     echo
     if [[ -z "$lab_admin_password_plain" ]]; then
       echo -e "\n❌ Password cannot be empty. Please try again.\n"
@@ -105,7 +98,7 @@ prepare_lab_infra_config() {
     fi
 
     echo
-    read -s -p "🔒 Re-enter your Lab Infra Admin password: " confirm_password
+    read -s -p "🔒 Re-enter your Lab Infra Global password: " confirm_password
     echo
     if [[ "$lab_admin_password_plain" != "$confirm_password" ]]; then
       echo -e "\n❌ Passwords do not match. Please try again.\n"
@@ -393,6 +386,102 @@ deploy_lab_infra_server_host() {
   prepare_lab_infra_config
   echo "🧩  Starting deployment of lab infra server directly on the KVM host..."
   echo ""
+    # -----------------------------
+  # Deployment mode flag
+  # -----------------------------
+  lab_infra_server_mode_is_host=true
+
+  if [[ -f "$LAB_ENV_VARS_FILE" ]]; then
+    if grep -q "^lab_infra_server_mode_is_host=" "$LAB_ENV_VARS_FILE"; then
+      sed -i "s/^lab_infra_server_mode_is_host=.*/lab_infra_server_mode_is_host=${lab_infra_server_mode_is_host}/" "$LAB_ENV_VARS_FILE"
+    else
+      echo "lab_infra_server_mode_is_host=${lab_infra_server_mode_is_host}" >> "$LAB_ENV_VARS_FILE"
+    fi
+  fi
+
+  # -----------------------------
+  # Install required packages
+  # -----------------------------
+  echo -e "\n📦 Installing required packages on host via dnf . . .\n"
+
+  REQUIRED_PACKAGES=(
+    bash-completion vim git bind-utils bind wget tar net-tools cifs-utils zip
+    tftp-server kea kea-hooks syslinux nginx nginx-mod-stream tmux
+    rsync sysstat tcpdump traceroute nc samba-client lsof nfs-utils
+    nmap tuned tree yum-utils
+  )
+
+  # Install packages, skipping already installed ones
+  sudo dnf install -y "${REQUIRED_PACKAGES[@]}"
+
+  echo -e "\n✅ All required packages installed on host successfully.\n"
+
+  # -----------------------------
+  # Install Ansible if not already installed
+  # -----------------------------
+  if command -v ansible &>/dev/null; then
+      echo -e "\n✅ Ansible is already installed. Proceeding further...\n"
+  else
+      echo -e "\n📦 Installing Ansible on the host . . .\n"
+
+      # Install Python dependencies
+      sudo dnf install python3-pip python3-cryptography -y
+
+      # Install Ansible and related packages
+      pip3 install --user packaging
+      pip3 install --user ansible
+      pip3 install --user argcomplete
+
+      # Enable global shell completion
+      activate-global-python-argcomplete
+
+      echo -e "\n✅ Ansible installation completed successfully.\n"
+  fi
+
+  # ---------------------------
+  # Lab Infra DNS configuration
+  # ---------------------------
+  echo -e "\n🌐 Setting up Lab Infra DNS with custom utility dnsbinder . . .\n"
+  sudo bash /server-hub/named-manage/dnsbinder.sh --setup "${lab_infra_domain_name}"
+
+  # Set mgmt_super_user in environment using lab_infra_admin_username
+  if ! grep -q mgmt_super_user /etc/environment; then
+      echo "mgmt_super_user=\"${lab_infra_admin_username}\"" | sudo tee -a /etc/environment &>/dev/null
+  fi
+
+  # Set mgmt_interface_name in environment
+  if ! grep -q mgmt_interface_name /etc/environment; then
+      echo "mgmt_interface_name=\"labbr0\"" | sudo tee -a /etc/environment &>/dev/null
+  fi  
+
+  # Reload environment to include new variables
+  source /etc/environment
+
+  echo -e "\n🌐 Reserving DNS Records for DHCP lease . . .\n"
+
+  # Loop through IPs 201–254 to create DHCP lease DNS entries
+  for IPOCTET in $(seq 201 254); do
+    sudo bash /server-hub/named-manage/dnsbinder.sh -ci dhcp-lease${IPOCTET} ${dnsbinder_last24_subnet}.${IPOCTET}
+  done
+
+  # -----------------------------
+  # Ansible playbook execution
+  # -----------------------------
+
+  echo -e "\n🚀 Executing Ansible playbook to configure Lab Infra Services . . .\n"
+
+  sed -i "/remote_user/c\remote_user=${lab_infra_admin_username}" /server-hub/build-almalinux-server/ansible.cfg
+
+  ANSIBLE_HOME="/server-hub/build-almalinux-server/"
+
+  # Run ansible-playbook that congigures the essential services
+  ansible-playbook /server-hub/build-almalinux-server/build-server.yaml
+  
+  echo -e "\n✅ Ansible playbook execution completed successfully.\n"
+
+  # Next steps: host-specific setup will follow
+  # -----------------------------
+
 }
 
 #-------------------------------------------------------------

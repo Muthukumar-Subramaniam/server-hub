@@ -9,11 +9,6 @@ if [[ $UID -eq 0 ]]; then
 	exit 1
 fi
 
-HOST_MODE_SET=false
-if ip link show labbr0 &>/dev/null; then
-	HOST_MODE_SET=true
-fi
-
 if command -v ansible &>/dev/null; then
 	echo -e "\nAnsible is already installed, Proceeding further . . .\n"
 else
@@ -36,6 +31,11 @@ if ! grep -q mgmt_super_user /etc/environment;then
 	echo "mgmt_super_user=\"${mgmt_super_user}\"" | sudo tee -a /etc/environment &>/dev/null
 fi
 
+# Set mgmt_interface_name in environment
+if ! grep -q mgmt_interface_name /etc/environment; then
+  echo "mgmt_interface_name=\"eth0\"" | sudo tee -a /etc/environment &>/dev/null
+fi
+
 echo -e "\nSetting Up ansible.cfg . . . \n"
 
 sed -i "/remote_user/c\remote_user=$USER" ansible.cfg 
@@ -50,7 +50,6 @@ source /etc/environment
 
 echo -e "\nSetting motd . . .\n"
 
-if ! $HOST_MODE_SET; then
 cat << EOF | sudo tee /etc/motd &>/dev/null
 +-------------------------------------------------------------+
 |               Welcome to your Lab Infra Server              |
@@ -64,7 +63,6 @@ cat << EOF | sudo tee /etc/motd &>/dev/null
 | https://github.com/Muthukumar-Subramaniam/server-hub/issues |
 +-------------------------------------------------------------+
 EOF
-fi
 
 echo -e "\nSetting up ssh custom config . . .\n"
 
@@ -85,7 +83,8 @@ done
 
 echo -e "\nUpdate Network Interface to conventional naming . . .\n"
 
-if ( ! $HOST_MODE_SET ) && ( ! ip link show eth0 &>/dev/null ); then
+if ! ip link | grep -q eth0; then
+
 	sudo mkdir -p /etc/systemd/network
 	V_count=0
 	for v_interface in $(ls /sys/class/net | grep -v lo)
@@ -122,9 +121,7 @@ sudo grubby --update-kernel ALL --args selinux=0
 
 echo -e "\nRemove crashkernel memory reserve if present . . .\n"
 
-if ! $HOST_MODE_SET; then
-	sudo grubby --update-kernel ALL --remove-args=crashkernel
-fi
+sudo grubby --update-kernel ALL --remove-args=crashkernel
 
 if [[ "$1" != "--invoked-by-automation" ]]; then
     echo -e "\nPlease reboot the server if you did not face any issue with setup script ! \n"
