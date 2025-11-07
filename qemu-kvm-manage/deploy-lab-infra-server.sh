@@ -49,6 +49,20 @@ prepare_lab_infra_config() {
 
   echo -e "\n✅ Pre-flight checks passed: QEMU/KVM environment is ready."
 
+  # ISO setup
+  ISO_DIR="/iso-files"
+  ISO_NAME="AlmaLinux-10-latest-x86_64-dvd.iso"
+
+  if [[ ! -f "${ISO_DIR}/${ISO_NAME}" ]]; then
+      echo -e "\n❌ ISO file not found: ${ISO_DIR}/${ISO_NAME}"
+      echo -e "⬇️ Please download it using the script \033[1mdownload-almalinux-latest.sh\033[0m\n"
+      exit 1
+  fi
+
+  echo -e "✅ ISO file found: ${ISO_DIR}/${ISO_NAME}\n"
+
+  default_linux_distro_iso_path="${ISO_DIR}/${ISO_NAME}"
+
   # Get Infra Server VM Name
   while true; do
     echo
@@ -267,17 +281,6 @@ deploy_lab_infra_server_vm() {
   prepare_lab_infra_config
   echo "🖥️  Starting deployment of lab infra server on a dedicated VM..."
   echo ""
-  # ISO setup
-  ISO_DIR="/iso-files"
-  ISO_NAME="AlmaLinux-10-latest-x86_64-dvd.iso"
-
-  if [[ ! -f "${ISO_DIR}/${ISO_NAME}" ]]; then
-      echo -e "\n❌ ISO file not found: ${ISO_DIR}/${ISO_NAME}"
-      echo -e "⬇️ Please download it using the script \033[1mdownload-almalinux-latest.sh\033[0m\n"
-      exit 1
-  fi
-
-  echo -e "✅ ISO file found: ${ISO_DIR}/${ISO_NAME}\n"
 
   # VM directory and disk path
   VM_DIR="/kvm-hub/vms/${lab_infra_server_shortname}"
@@ -454,6 +457,11 @@ deploy_lab_infra_server_host() {
       echo "mgmt_interface_name=\"labbr0\"" | sudo tee -a /etc/environment &>/dev/null
   fi  
 
+  # Set default_linux_distro_iso_path in environment
+  if ! grep -q default_linux_distro_iso_path /etc/environment; then
+      echo "default_linux_distro_iso_path=\"${default_linux_distro_iso_path}\"" | sudo tee -a /etc/environment &>/dev/null
+  fi
+
   # Reload environment to include new variables
   source /etc/environment
 
@@ -463,6 +471,19 @@ deploy_lab_infra_server_host() {
   for IPOCTET in $(seq 201 254); do
     sudo bash /server-hub/named-manage/dnsbinder.sh -ci dhcp-lease${IPOCTET} ${dnsbinder_last24_subnet}.${IPOCTET}
   done
+
+  echo -e "\n🧩 Checking SELinux status . . .\n"
+
+  if sestatus 2>/dev/null | grep -q "disabled"; then
+    echo -e "✅ SELinux is already disabled.\n"
+  else
+    echo -e "⚙️  Disabling SELinux for current boot and persistently . . .\n"
+    # Disable for current boot
+    sudo setenforce 0 2>/dev/null || true
+    # Disable for all future boots
+    sudo grubby --update-kernel ALL --args selinux=0
+    echo -e "✅ SELinux has been disabled.\n"
+  fi
 
   # -----------------------------
   # Ansible playbook execution
@@ -477,11 +498,21 @@ deploy_lab_infra_server_host() {
   # Run ansible-playbook that congigures the essential services
   ansible-playbook /server-hub/build-almalinux-server/build-server.yaml
   
-  echo -e "\n✅ Ansible playbook execution completed successfully.\n"
+    echo -e "\n🧩 Checking SELinux status . . .\n"
 
-  # Next steps: host-specific setup will follow
-  # -----------------------------
+  if sestatus 2>/dev/null | grep -q "disabled"; then
+    echo -e "✅ SELinux is already disabled.\n"
+  else
+    echo -e "⚙️  Disabling SELinux for current boot and persistently . . .\n"
+    # Disable for current boot
+    sudo setenforce 0 2>/dev/null || true
+    # Disable for all future boots
+    sudo grubby --update-kernel ALL --args selinux=0
+    echo -e "✅ SELinux has been disabled.\n"
+  fi
 
+  echo -e "\n✅ Successfully deployed Lab Infra Server ${lab_infra_server_shortname}.${lab_infra_domain_name} your machine )!\n"
+  
 }
 
 #-------------------------------------------------------------

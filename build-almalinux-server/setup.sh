@@ -36,6 +36,11 @@ if ! grep -q mgmt_interface_name /etc/environment; then
   echo "mgmt_interface_name=\"eth0\"" | sudo tee -a /etc/environment &>/dev/null
 fi
 
+# Set default_linux_distro_iso_path in environment
+if ! grep -q default_linux_distro_iso_path /etc/environment; then
+  echo "default_linux_distro_iso_path=\"/dev/sr0\"" | sudo tee -a /etc/environment &>/dev/null
+fi
+
 echo -e "\nSetting Up ansible.cfg . . . \n"
 
 sed -i "/remote_user/c\remote_user=$USER" ansible.cfg 
