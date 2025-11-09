@@ -5,7 +5,7 @@
       "socket-name": "/run/kea/kea4-ctrl-socket"
     },
     "interfaces-config": {
-      "interfaces": [ "eth0" ]
+      "interfaces": [ "{{ ansible_env.mgmt_interface_name }}" ]
     },
     "lease-database": {
       "type": "memfile"

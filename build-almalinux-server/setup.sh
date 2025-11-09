@@ -41,6 +41,9 @@ if ! grep -q default_linux_distro_iso_path /etc/environment; then
   echo "default_linux_distro_iso_path=\"/dev/sr0\"" | sudo tee -a /etc/environment &>/dev/null
 fi
 
+# Backup environment file
+sudo cp -p /etc/environment /root/environment_bkp_$(date +%F)
+
 echo -e "\nSetting Up ansible.cfg . . . \n"
 
 sed -i "/remote_user/c\remote_user=$USER" ansible.cfg 

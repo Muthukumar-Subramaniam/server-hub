@@ -47,8 +47,6 @@ prepare_lab_infra_config() {
     exit 1
   fi
 
-  echo -e "\n✅ Pre-flight checks passed: QEMU/KVM environment is ready."
-
   # ISO setup
   ISO_DIR="/iso-files"
   ISO_NAME="AlmaLinux-10-latest-x86_64-dvd.iso"
@@ -62,6 +60,8 @@ prepare_lab_infra_config() {
   echo -e "✅ ISO file found: ${ISO_DIR}/${ISO_NAME}\n"
 
   default_linux_distro_iso_path="${ISO_DIR}/${ISO_NAME}"
+
+  echo -e "\n✅ Pre-flight checks passed: QEMU/KVM environment is ready."
 
   # Get Infra Server VM Name
   while true; do
@@ -461,6 +461,9 @@ deploy_lab_infra_server_host() {
   if ! grep -q default_linux_distro_iso_path /etc/environment; then
       echo "default_linux_distro_iso_path=\"${default_linux_distro_iso_path}\"" | sudo tee -a /etc/environment &>/dev/null
   fi
+
+  # Backup environment file
+  sudo cp -p /etc/environment /root/environment_bkp_$(date +%F)
 
   # Reload environment to include new variables
   source /etc/environment
