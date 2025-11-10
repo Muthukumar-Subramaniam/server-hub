@@ -38,11 +38,17 @@ ntp_pool_name="${dnsbinder_server_short_name}"
 web_server_name="${dnsbinder_server_short_name}"
 ##rhel_activation_key=$(cat /server-hub/rhel-activation-key.base64 | base64 -d)
 time_of_last_update=$(date | sed  "s/ /-/g")
-shadow_password_super_mgmt_user=$(grep "${mgmt_super_user}" /etc/shadow | cut -d ":" -f 2)
 dnsbinder_script='/server-hub/named-manage/dnsbinder.sh'
 ksmanager_main_dir='/server-hub/ks-manage'
 ksmanager_hub_dir="/${web_server_name}.${ipv4_domain}/ksmanager-hub"
 ipxe_web_dir="/${web_server_name}.${ipv4_domain}/ipxe"
+shadow_password_super_mgmt_user=$(grep "${mgmt_super_user}" /etc/shadow | cut -d ":" -f 2)
+if [ -d "/kvm-hub" ]; then
+	if [ -f "/kvm-hub/lab-environment-vars" ]; then
+		source /kvm-hub/lab-environment-vars
+		shadow_password_super_mgmt_user=$lab_admin_shadow_password
+	fi
+fi
 
 mkdir -p "${ksmanager_hub_dir}"
 mkdir -p "${ipxe_web_dir}"
@@ -55,7 +61,7 @@ fn_check_and_create_host_record() {
 		then
 			echo -e "\n🚀 Create Kickstart Host Profiles for PXE Boot.\n"
 			echo -e "📝 Points to Keep in Mind While Entering the Hostname:\n"
-    			echo -e "   🔹 Use only lowercase letters, numbers, and hyphens (-).\n   🔹 Also, must not start or end with a hyphen.\n"
+    		echo -e "   🔹 Use only lowercase letters, numbers, and hyphens (-).\n   🔹 Also, must not start or end with a hyphen.\n"
 			read -r -p "🖥️ Please enter the hostname for which Kickstarts are required: " kickstart_hostname
 		else
 			kickstart_hostname="${1}"
@@ -421,11 +427,11 @@ fn_set_environment() {
 		sed -i "s/get_ipv4_address/${ipv4_address}/g" "${working_file}"
 		sed -i "s/get_ipv4_netmask/${ipv4_netmask}/g" "${working_file}"
 		sed -i "s/get_ipv4_prefix/${ipv4_prefix}/g" "${working_file}"
-    		sed -i "s/get_ipv4_gateway/${ipv4_gateway}/g" "${working_file}"
+    	sed -i "s/get_ipv4_gateway/${ipv4_gateway}/g" "${working_file}"
 		sed -i "s/get_ipv4_nameserver/${ipv4_nameserver}/g" "${working_file}"
 		sed -i "s/get_ipv4_nfsserver/${ipv4_nfsserver}/g" "${working_file}"
 		sed -i "s/get_ipv4_domain/${ipv4_domain}/g" "${working_file}"
-    		sed -i "s/get_hostname/${kickstart_hostname}/g" "${working_file}"
+    	sed -i "s/get_hostname/${kickstart_hostname}/g" "${working_file}"
 		sed -i "s/get_ntp_pool_name/${ntp_pool_name}/g" "${working_file}"
 		sed -i "s/get_web_server_name/${web_server_name}/g" "${working_file}" 
 		sed -i "s/get_win_hostname/${win_hostname}/g" "${working_file}"

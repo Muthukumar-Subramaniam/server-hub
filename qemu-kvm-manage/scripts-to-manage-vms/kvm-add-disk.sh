@@ -4,21 +4,7 @@
 # please open an issue at: https://github.com/Muthukumar-Subramaniam/server-hub/issues   #
 #----------------------------------------------------------------------------------------#
 
-if [[ "$EUID" -eq 0 ]]; then
-    echo -e "\n⛔ Running as root user is not allowed."
-    echo -e "\n🔐 This script should be run as a user who has sudo privileges, but *not* using sudo.\n"
-    exit 1
-fi
-
-# Check if we're inside a QEMU guest
-if sudo dmidecode -s system-manufacturer | grep -qi 'QEMU'; then
-    echo "❌❌❌  FATAL: WRONG PLACE, BUDDY! ❌❌❌"
-    echo -e "\n⚠️ Note:"
-    echo -e "  🔹 This script is meant to be run on the *host* system managing QEMU/KVM VMs."
-    echo -e "  🔹 You’re currently inside a QEMU guest VM, which makes absolutely no sense.\n"
-    echo "💥 ABORTING EXECUTION 💥"
-    exit 1
-fi
+source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/defaults.sh
 
 # Function to show help
 fn_show_help() {
@@ -85,15 +71,13 @@ fn_shutdown_or_poweroff() {
     case "$selected_choice" in
         1)
             echo -e "\n🛑 Initiating graceful shutdown . . ."
-	    infra_mgmt_super_username=$(cat /kvm-hub/lab_infra_admin_username)
-            lab_infra_domain_name=$(cat /kvm-hub/lab_infra_domain_name)
 	    echo -e "\n🔍 Checking SSH connectivity to ${qemu_kvm_hostname}.${lab_infra_domain_name} . . ."
             if nc -zw5 "${qemu_kvm_hostname}.${lab_infra_domain_name}" 22; then
                 echo -e "\n🔗 SSH connectivity seems to be fine. Initiating graceful shutdown . . .\n"
                 ssh -o LogLevel=QUIET \
                     -o StrictHostKeyChecking=no \
                     -o UserKnownHostsFile=/dev/null \
-                    "${infra_mgmt_super_username}@${qemu_kvm_hostname}.${lab_infra_domain_name}" \
+                    "${lab_infra_admin_username}@${qemu_kvm_hostname}.${lab_infra_domain_name}" \
                     "sudo shutdown -h now"
 
                 echo -e "\n⏳ Waiting for VM '${qemu_kvm_hostname}' to shut down . . ."
@@ -108,9 +92,9 @@ fn_shutdown_or_poweroff() {
             ;;
         2)
             echo -e "\n⚡ Forcing power off . . ."
-	    sudo virsh destroy "${qemu_kvm_hostname}" &>/dev/null
-	    sleep 1
-	    echo -e "✅ VM '$qemu_kvm_hostname' is stopped successfully. \n"
+	        sudo virsh destroy "${qemu_kvm_hostname}" &>/dev/null
+	        sleep 1
+	        echo -e "✅ VM '$qemu_kvm_hostname' is stopped successfully. \n"
             ;;
         q)
             echo -e "\n👋 Quitting without any action.\n"

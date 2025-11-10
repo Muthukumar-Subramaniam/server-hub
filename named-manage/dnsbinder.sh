@@ -260,11 +260,12 @@ fn_configure_named_dns_server() {
 
 	print_notify "\nFetching network information from the system . . . "  "nskip"
 
-	if KVM_HOST_MODE_SET; then
-		v_dns_host_short_name=$(cat /kvm-hub/lab_infra_server_shortname)
+	if $KVM_HOST_MODE_SET; then
+		source /kvm-hub/lab-environment-vars
+		v_dns_host_short_name=$lab_infra_server_shortname
 		v_primary_interface='labbr0'
-		v_primary_ip=$(cat /kvm-hub/lab_infra_server_ipv4_address)
-		v_network_gateway=$(ip r | grep -v default | grep "${v_primary_interface}" | head -n 1 | awk '{ print $9 }')
+		v_primary_ip=$lab_infra_server_ipv4_address
+		v_network_gateway=$lab_infra_server_ipv4_gateway
 	else
 		v_dns_host_short_name=$(hostname -s)
 		v_primary_interface=$(ip r | grep default | awk '{ print $5 }')
@@ -433,7 +434,7 @@ EOF
 
 	print_success "[ done ]"
 
-        if ! "${server_is_hosted_on_gcp}" ; then
+    if ! "${server_is_hosted_on_gcp}" ; then
 		print_notify "\nUpdating dnsbinder related global variables to /etc/environment . . . " "nskip"
 		declare -A dnsbinder_environment_map=(
 			["dnsbinder_domain"]="$v_given_domain"
@@ -468,7 +469,7 @@ EOF
 
 		source /etc/environment
 
-		if ! KVM_HOST_MODE_SET; then
+		if ! $KVM_HOST_MODE_SET; then
 			print_notify "\nUpdating Network Manager to point the local dns server and domain . . . " "nskip"
 			v_active_connection_name=$(nmcli connection show --active | grep "${v_primary_interface}" | head -n 1 | awk '{ print $1 }')
 			nmcli connection modify "${v_active_connection_name}" ipv4.dns-search "${v_given_domain}" &>/dev/null
@@ -480,14 +481,14 @@ EOF
 			print_notify "\nUpdating systemd-resolvd to point the local dns server and domain . . . " "nskip"
 			if command -v resolvectl &>/dev/null; then
   				resolvectl dns labbr0 "$v_primary_ip"
-  				resolvectl domain labbr0 "$v_given_domain"
+  				resolvectl domain labbr0 "~$v_given_domain"
 			fi
 		fi
 	fi
 
 	print_notify "\nMake named service as a dependency for network-online.target . . . " "nskip"
 
-	if ! KVM_HOST_MODE_SET; then
+	if ! $KVM_HOST_MODE_SET; then
 		if [ ! -f /etc/systemd/system/network-online.target.wants/named.service ]; then
 			ln -s /usr/lib/systemd/system/named.service /etc/systemd/system/network-online.target.wants/named.service 
 		fi

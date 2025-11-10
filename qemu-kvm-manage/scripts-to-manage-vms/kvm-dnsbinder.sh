@@ -4,25 +4,7 @@
 # please open an issue at: https://github.com/Muthukumar-Subramaniam/server-hub/issues   #
 #----------------------------------------------------------------------------------------#
 
-if [[ "$EUID" -eq 0 ]]; then
-    echo -e "\n⛔ Running as root user is not allowed."
-    echo -e "\n🔐 This script should be run as a user who has sudo privileges, but *not* using sudo.\n"
-    exit 1
-fi
-
-# Check if we're inside a QEMU guest
-if sudo dmidecode -s system-manufacturer | grep -qi 'QEMU'; then
-    echo "❌❌❌  FATAL: WRONG PLACE, BUDDY! ❌❌❌"
-    echo -e "\n⚠️ Note:"
-    echo -e "  🔹 This script is meant to be run on the *host* system managing QEMU/KVM VMs."
-    echo -e "  🔹 You’re currently inside a QEMU guest VM, which makes absolutely no sense.\n"
-    echo "💥 ABORTING EXECUTION 💥"
-    exit 1
-fi
-
-infra_server_ipv4_address=$(< /kvm-hub/lab_infra_server_ipv4_address)
-infra_mgmt_super_username=$(< /kvm-hub/lab_infra_admin_username)
-lab_infra_domain_name=$(< /kvm-hub/lab_infra_domain_name)
+source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/defaults.sh
 
 if [[ -n "${KVM_TOOL_EXECUTED_FROM:-}" ]]; then
     echo -e "\n❌ Detected execution from the lab infra server."
@@ -32,12 +14,12 @@ fi
 
 echo -n -e "\n⚙️  Enabling DNS of lab infra with resolvectl . . . "
 
-if grep -q "${infra_server_ipv4_address}" <<< $(resolvectl); then
+if grep -q "${lab_infra_server_ipv4_address}" <<< $(resolvectl); then
     echo -e "\e[32m[ ok ]\e[0m"
 else
     if ip link show labbr0 &>/dev/null; then
-       sudo resolvectl dns labbr0 ${infra_server_ipv4_address}
-       sudo resolvectl domain labbr0 ${lab_infra_domain_name} 
+       sudo resolvectl dns labbr0 ${lab_infra_server_ipv4_address}
+       sudo resolvectl domain labbr0 ~${lab_infra_domain_name} 
        echo -e "\e[32m[ done ]\e[0m"
     else
        echo -e "\n❌ labbr0 interface is not yet available! \n" 
@@ -47,8 +29,8 @@ fi
 
 echo -e "\n⚙️  Invoking dnsbinder utility from lab infra server . . ."
 
-if [ -f /kvm-hub/host_machine_is_lab_infra_server ]; then
+if $lab_infra_server_mode_is_host; then
     sudo dnsbinder "$@"
 else
-    ssh -o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -t ${infra_mgmt_super_username}@${infra_server_ipv4_address} "sudo dnsbinder $@"
+    ssh -o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -t ${lab_infra_admin_username}@${lab_infra_server_ipv4_address} "sudo dnsbinder $@"
 fi

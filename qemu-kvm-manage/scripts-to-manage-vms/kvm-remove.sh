@@ -4,26 +4,8 @@
 # please open an issue at: https://github.com/Muthukumar-Subramaniam/server-hub/issues   #
 #----------------------------------------------------------------------------------------#
 
-INFRA_SERVER_VM_NAME=$(< /kvm-hub/lab_infra_server_shortname)
-ALIAS_FILE_OF_LAB_NODES='/kvm-hub/ssh-assist-aliases-for-vms-on-qemu-kvm'
+source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/defaults.sh
 ETC_HOSTS_FILE='/etc/hosts'
-lab_infra_domain_name=$(< /kvm-hub/lab_infra_domain_name)
-
-if [[ "$EUID" -eq 0 ]]; then
-    echo -e "\n⛔ Running as root user is not allowed."
-    echo -e "\n🔐 This script should be run as a user who has sudo privileges, but *not* using sudo.\n"
-    exit 1
-fi
-
-# Check if we're inside a QEMU guest
-if sudo dmidecode -s system-manufacturer | grep -qi 'QEMU'; then
-    echo "❌❌❌  FATAL: WRONG PLACE, BUDDY! ❌❌❌"
-    echo -e "\n⚠️ Note:"
-    echo -e "  🔹 This script is meant to be run on the *host* system managing QEMU/KVM VMs."
-    echo -e "  🔹 You’re currently inside a QEMU guest VM, which makes absolutely no sense.\n"
-    echo "💥 ABORTING EXECUTION 💥"
-    exit 1
-fi
 
 # Function to show help
 fn_show_help() {
@@ -79,8 +61,8 @@ if ! sudo virsh list --all | awk '{print $2}' | grep -Fxq "$qemu_kvm_hostname"; 
 fi
 
 # Confirm deletion
-if [[ "$qemu_kvm_hostname" == "$INFRA_SERVER_VM_NAME" ]]; then
-    echo -e "\n⚠️  WARNING: You are about to delete your lab infra server VM : $INFRA_SERVER_VM_NAME !"
+if [[ "$qemu_kvm_hostname" == "$lab_infra_server_shortname" ]]; then
+    echo -e "\n⚠️  WARNING: You are about to delete your lab infra server VM : $lab_infra_server_shortname !"
     read -r -p "If you know what you are doing, confirm by typing 'delete-lab-infra-server' : " confirmation
 
     if [[ "$confirmation" != "delete-lab-infra-server" ]]; then
@@ -104,6 +86,5 @@ if [ -n "${qemu_kvm_hostname}" ]; then
 fi
 dot_escaped_domain=$(echo "$lab_infra_domain_name" | sed 's/\./\\./g')
 sudo sed -i "/[[:space:]]${qemu_kvm_hostname}\.${dot_escaped_domain}[[:space:]]/d" "${ETC_HOSTS_FILE}"
-sudo sed -i "/^alias ${qemu_kvm_hostname}=/d" "${ALIAS_FILE_OF_LAB_NODES}"
 
 echo -e "✅ VM \"$qemu_kvm_hostname\" deleted successfully. \n"

@@ -3,34 +3,14 @@
 # If you encounter any issues with this script, or have suggestions or feature requests, #
 # please open an issue at: https://github.com/Muthukumar-Subramaniam/server-hub/issues   #
 #----------------------------------------------------------------------------------------#
-set -uo pipefail
 
-# Prevent running as root
-if [[ "$EUID" -eq 0 ]]; then
-    echo -e "\n⛔ Running as root user is not allowed."
-    echo -e "\n🔐 This script should be run as a user who has sudo privileges, but *not* using sudo.\n"
-    exit 1
-fi
-
-# Prevent running inside a QEMU guest
-if sudo dmidecode -s system-manufacturer 2>/dev/null | grep -qi 'QEMU'; then
-    echo "❌❌❌  FATAL: WRONG PLACE, BUDDY! ❌❌❌"
-    echo -e "\n⚠️ Note:"
-    echo -e "  🔹 This script is meant to be run on the *host* system managing QEMU/KVM VMs."
-    echo -e "  🔹 You’re currently inside a QEMU guest VM, which makes absolutely no sense.\n"
-    echo "💥 ABORTING EXECUTION 💥"
-    exit 1
-fi
+source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/defaults.sh
 
 # Check if any arguments are passed
 if [ "$#" -ne 0 ]; then
     echo -e "\n❌ $(basename $0) does not take any arguments.\n"
     exit 1
 fi
-
-# Load infra variables
-infra_mgmt_super_username=$(< /kvm-hub/lab_infra_admin_username)
-lab_infra_domain_name=$(< /kvm-hub/lab_infra_domain_name)
 
 mapfile -t vm_list < <(sudo virsh list --all | awk 'NR>2 && $2 != "" {print $2}')
 
@@ -41,7 +21,7 @@ ssh_options="-o StrictHostKeyChecking=no \
              -o ConnectTimeout=5 \
              -o ConnectionAttempts=1 \
              -o ServerAliveInterval=5 \
-	     -o PreferredAuthentications=publickey \
+	         -o PreferredAuthentications=publickey \
              -o ServerAliveCountMax=1"
 
 # Color codes
@@ -66,20 +46,17 @@ for vm_name in "${vm_list[@]}"; do
 
     # If VM is running, check systemd + distro via single SSH
     if [[ "$current_vm_state" == "running" ]]; then
-        ssh_output=$(ssh $ssh_options "${infra_mgmt_super_username}@${vm_name}.${lab_infra_domain_name}" \
+        ssh_output=$(ssh $ssh_options "${lab_infra_admin_username}@${vm_name}.${lab_infra_domain_name}" \
             'systemctl is-system-running; \
              source /etc/os-release 2>/dev/null && echo "$PRETTY_NAME" || echo "[ N/A ]"' \
             2>/dev/null </dev/null || true)
         if [[ ! -z "$ssh_output" ]]; then
         	current_os_state=$(echo "$ssh_output" | sed -n '1p')
-		if [[ -z "$current_os_state" ]]; then
-			current_os_state="Not-Ready"
-		fi
-        	os_distro=$(echo "$ssh_output" | sed -n '2p')
-	else
-               current_os_state="Not-Ready"
-               os_distro="[ N/A ]"
-	fi
+            os_distro=$(echo "$ssh_output" | sed -n '2p')	
+	    else
+            current_os_state="Not-Ready"
+            os_distro="[ N/A ]"
+	    fi
     fi
 
     # Determine line color based on OS state

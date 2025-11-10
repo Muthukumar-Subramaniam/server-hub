@@ -4,21 +4,8 @@
 # please open an issue at: https://github.com/Muthukumar-Subramaniam/server-hub/issues   #
 #----------------------------------------------------------------------------------------#
 
-if [[ "$EUID" -eq 0 ]]; then
-    echo -e "\n⛔ Running as root user is not allowed."
-    echo -e "\n🔐 This script should be run as a user who has sudo privileges, but *not* using sudo.\n"
-    exit 1
-fi
-
-# Check if we're inside a QEMU guest
-if sudo dmidecode -s system-manufacturer | grep -qi 'QEMU'; then
-    echo "❌❌❌  FATAL: WRONG PLACE, BUDDY! ❌❌❌"
-    echo -e "\n⚠️ Note:"
-    echo -e "  🔹 This script is meant to be run on the *host* system managing QEMU/KVM VMs."
-    echo -e "  🔹 You’re currently inside a QEMU guest VM, which makes absolutely no sense.\n"
-    echo "💥 ABORTING EXECUTION 💥"
-    exit 1
-fi
+source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/defaults.sh
+source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/select-ovmf.sh
 
 # Check if any arguments are passed
 if [ "$#" -ne 0 ]; then
@@ -26,19 +13,14 @@ if [ "$#" -ne 0 ]; then
     exit 1
 fi
 
-infra_server_ipv4_address=$(cat /kvm-hub/lab_infra_server_ipv4_address)
-infra_mgmt_super_username=$(cat /kvm-hub/lab_infra_admin_username)
-lab_infra_domain_name=$(cat /kvm-hub/lab_infra_domain_name)
-source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/select-ovmf.sh
-
 echo -e "\n⚙️  Invoking ksmanager to create PXE environment to build a golden image . . .\n"
 
 >/tmp/kvm-build-golden-qcow2-disk.log
 
-if [ -f /kvm-hub/host_machine_is_lab_infra_server ]; then
+if $lab_infra_server_mode_is_host; then
     sudo ksmanager ${qemu_kvm_hostname} --qemu-kvm --create-golden-image | tee -a /tmp/kvm-build-golden-qcow2-disk.log
 else
-    ssh -o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -t ${infra_mgmt_super_username}@${infra_server_ipv4_address} "sudo ksmanager ${qemu_kvm_hostname}" --qemu-kvm --create-golden-image | tee -a /tmp/kvm-build-golden-qcow2-disk.log
+    ssh -o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -t ${lab_infra_admin_username}@${lab_infra_server_ipv4_address} "sudo ksmanager ${qemu_kvm_hostname}" --qemu-kvm --create-golden-image | tee -a /tmp/kvm-build-golden-qcow2-disk.log
 fi
 
 MAC_ADDRESS=$( grep "MAC Address  :"  /tmp/kvm-build-golden-qcow2-disk.log | awk -F': ' '{print $2}' | tr -d '[:space:]' )
@@ -46,7 +28,7 @@ qemu_kvm_hostname=$( grep "Hostname     :"  /tmp/kvm-build-golden-qcow2-disk.log
 
 if [ -z ${MAC_ADDRESS} ]; then
 	echo -e "\n❌ Something went wrong while executing ksmanager ! "
-	echo -e "🛠️ Please check your Infra Server VM at ${infra_server_ipv4_address} for the root cause. \n"
+	echo -e "🛠️ Please check your Lab Infra Server for the root cause. \n"
 	exit 1
 fi
 

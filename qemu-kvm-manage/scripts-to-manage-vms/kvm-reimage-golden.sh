@@ -4,24 +4,8 @@
 # please open an issue at: https://github.com/Muthukumar-Subramaniam/server-hub/issues   #
 #----------------------------------------------------------------------------------------#
 
+source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/defaults.sh
 DIR_PATH_SCRIPTS_TO_MANAGE_VMS='/server-hub/qemu-kvm-manage/scripts-to-manage-vms'
-INFRA_SERVER_VM_NAME=$(< /kvm-hub/lab_infra_server_shortname)
-
-if [[ "$EUID" -eq 0 ]]; then
-    echo -e "\n⛔ Running as root user is not allowed."
-    echo -e "\n🔐 This script should be run as a user who has sudo privileges, but *not* using sudo.\n"
-    exit 1
-fi
-
-# Check if we're inside a QEMU guest
-if sudo dmidecode -s system-manufacturer | grep -qi 'QEMU'; then
-    echo "❌❌❌  FATAL: WRONG PLACE, BUDDY! ❌❌❌"
-    echo -e "\n⚠️ Note:"
-    echo -e "  🔹 This script is meant to be run on the *host* system managing QEMU/KVM VMs."
-    echo -e "  🔹 You’re currently inside a QEMU guest VM, which makes absolutely no sense.\n"
-    echo "💥 ABORTING EXECUTION 💥"
-    exit 1
-fi
 
 ATTACH_CONSOLE="no"
 qemu_kvm_hostname=""
@@ -77,9 +61,9 @@ if [ -z "$qemu_kvm_hostname" ]; then
     fi
 fi
 
-if [[ "$qemu_kvm_hostname" == "$INFRA_SERVER_VM_NAME" ]]; then
+if [[ "$qemu_kvm_hostname" == "$lab_infra_server_shortname" ]]; then
     echo "❌❌❌  FATAL: WRONG VM, BUDDY! ❌❌❌"
-    echo "You are trying to re-image the lab infra server VM $INFRA_SERVER_VM_NAME."
+    echo "You are trying to re-image the lab infra server VM $lab_infra_server_shortname."
     echo "This VM runs the very services that make re-imaging possible."
     echo "All essential services for your lab environment runs on this VM."
     exit 1

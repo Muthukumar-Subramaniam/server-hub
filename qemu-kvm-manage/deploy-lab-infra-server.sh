@@ -7,23 +7,7 @@
 # Description : Interactive script to deploy the Lab Infra Server
 #               on either a dedicated KVM VM or directly on the KVM host.
 
-# Disallow running as root
-if [[ "$EUID" -eq 0 ]]; then
-  echo -e "\n⛔  Running as root user is not allowed."
-  echo -e "\n🔐  Please run this script as a regular user with sudo privileges,"
-  echo -e "    but *not* using sudo directly.\n"
-  exit 1
-fi
-
-# Disallow running inside a QEMU guest
-if sudo dmidecode -s system-manufacturer 2>/dev/null | grep -qi 'QEMU'; then
-  echo -e "\n❌❌❌  FATAL: WRONG PLACE, BUDDY! ❌❌❌"
-  echo -e "\n⚠️  Note:"
-  echo -e "  🔹 This script must be run on the *host* system managing QEMU/KVM VMs."
-  echo -e "  🔹 You're currently inside a QEMU guest VM — aborting before chaos ensues.\n"
-  echo "💥  ABORTING EXECUTION 💥"
-  exit 1
-fi
+source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/defaults.sh
 
 set -euo pipefail
 IFS=$'\n\t'

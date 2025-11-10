@@ -4,25 +4,7 @@
 # please open an issue at: https://github.com/Muthukumar-Subramaniam/server-hub/issues   #
 #----------------------------------------------------------------------------------------#
 
-if [[ "$EUID" -eq 0 ]]; then
-    echo -e "\n⛔ Running as root user is not allowed."
-    echo -e "\n🔐 This script should be run as a user who has sudo privileges, but *not* using sudo.\n"
-    exit 1
-fi
-
-# Check if we're inside a QEMU guest
-if sudo dmidecode -s system-manufacturer | grep -qi 'QEMU'; then
-    echo "❌❌❌  FATAL: WRONG PLACE, BUDDY! ❌❌❌"
-    echo -e "\n⚠️ Note:"
-    echo -e "  🔹 This script is meant to be run on the *host* system managing QEMU/KVM VMs."
-    echo -e "  🔹 You’re currently inside a QEMU guest VM, which makes absolutely no sense.\n"
-    echo "💥 ABORTING EXECUTION 💥"
-    exit 1
-fi
-
-infra_server_ipv4_address=$(cat /kvm-hub/lab_infra_server_ipv4_address)
-infra_mgmt_super_username=$(cat /kvm-hub/lab_infra_admin_username)
-lab_infra_domain_name=$(cat /kvm-hub/lab_infra_domain_name)
+source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/defaults.sh
 source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/select-ovmf.sh
 
 ATTACH_CONSOLE="no"
@@ -95,13 +77,12 @@ fi
 
 echo -e "\n⚙️  Invoking ksmanager to create PXE environment for '${qemu_kvm_hostname}' . . .\n"
 
-
 >/tmp/install-vm-logs-"${qemu_kvm_hostname}"
 
 if [ -f /kvm-hub/host_machine_is_lab_infra_server ]; then
     sudo ksmanager ${qemu_kvm_hostname} --qemu-kvm | tee -a /tmp/install-vm-logs-"${qemu_kvm_hostname}"
 else
-    ssh -o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -t ${infra_mgmt_super_username}@${infra_server_ipv4_address} "sudo ksmanager ${qemu_kvm_hostname}" --qemu-kvm | tee -a /tmp/install-vm-logs-"${qemu_kvm_hostname}"
+    ssh -o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -t ${lab_infra_admin_username}@${lab_infra_server_ipv4_address} "sudo ksmanager ${qemu_kvm_hostname}" --qemu-kvm | tee -a /tmp/install-vm-logs-"${qemu_kvm_hostname}"
 fi
 
 MAC_ADDRESS=$( grep "MAC Address  :"  /tmp/install-vm-logs-"${qemu_kvm_hostname}" | awk -F': ' '{print $2}' | tr -d '[:space:]' )
@@ -109,7 +90,7 @@ IPV4_ADDRESS=$( grep "IPv4 Address :"  /tmp/install-vm-logs-"${qemu_kvm_hostname
 
 if [ -z ${MAC_ADDRESS} ]; then
 	echo -e "\n❌ Something went wrong while executing ksmanager ! "
-	echo -e "🛠️ Please check your Infra Server VM at ${infra_server_ipv4_address} for the root cause. \n"
+	echo -e "🛠️ Please check your Infra Server VM at ${lab_infra_server_ipv4_address} for the root cause. \n"
 	exit 1
 fi
 
@@ -123,7 +104,7 @@ echo -e "✅"
 
 echo -n -e "\n📎 Creating alias '${qemu_kvm_hostname}' to assist with future SSH logins . . . "
 
-echo "alias ${qemu_kvm_hostname}=\"ssh -o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ${infra_mgmt_super_username}@${qemu_kvm_hostname}.${lab_infra_domain_name}\"" >> /kvm-hub/ssh-assist-aliases-for-vms-on-qemu-kvm
+echo "alias ${qemu_kvm_hostname}=\"ssh -o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ${lab_infra_admin_username}@${qemu_kvm_hostname}.${lab_infra_domain_name}\"" >> /kvm-hub/ssh-assist-aliases-for-vms-on-qemu-kvm
 
 source "${HOME}/.bashrc"
 
@@ -159,11 +140,11 @@ eval "$VIRT_INSTALL_CMD"
 if sudo virsh list | grep -q "${qemu_kvm_hostname}"; then
     if [ "$ATTACH_CONSOLE" != "yes" ]; then
         echo -e "\n✅ Successfully initiated installtion of VM ${qemu_kvm_hostname} ! "
-	echo " It might take sometime for installation to complete and OS to get Ready."
+	      echo " It might take sometime for installation to complete and OS to get Ready."
         echo  " You could monitor the status with kvm-list."
         echo -e " If you want to access console, Run 'kvm-console ${qemu_kvm_hostname}'."
     else
-	echo -e "\n✅ Successfully completed installation of VM ${qemu_kvm_hostname} ! "
+	      echo -e "\n✅ Successfully completed installation of VM ${qemu_kvm_hostname} ! "
     fi
 else
     echo -e "\n❌ Failed to initiate installation of VM ${qemu_kvm_hostname} ! \n"

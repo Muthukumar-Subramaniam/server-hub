@@ -20,6 +20,14 @@ if sudo dmidecode -s system-manufacturer | grep -qi 'QEMU'; then
     exit 1
 fi
 
+LAB_ENV_VARS_FILE="/kvm-hub/lab_environment_vars"
+if [ -f "$LAB_ENV_VARS_FILE" ]; then
+    source "$LAB_ENV_VARS_FILE"
+else
+    echo -e "\n❌ Lab environment variables file not found at $LAB_ENV_VARS_FILE\n"
+    exit 1
+fi
+
 # Function to show help
 fn_show_help() {
     cat <<EOF
@@ -85,15 +93,13 @@ fn_shutdown_or_poweroff() {
     case "$selected_choice" in
         1)
             echo -e "\n🛑 Initiating graceful shutdown . . ."
-	    infra_mgmt_super_username=$(cat /kvm-hub/lab_infra_admin_username)
-            lab_infra_domain_name=$(cat /kvm-hub/lab_infra_domain_name)
-	    echo -e "\n🔍 Checking SSH connectivity to ${qemu_kvm_hostname}.${lab_infra_domain_name} . . ."
+	        echo -e "\n🔍 Checking SSH connectivity to ${qemu_kvm_hostname}.${lab_infra_domain_name} . . ."
             if nc -zw5 "${qemu_kvm_hostname}.${lab_infra_domain_name}" 22; then
                 echo -e "\n🔗 SSH connectivity seems to be fine. Initiating graceful shutdown . . .\n"
                 ssh -o LogLevel=QUIET \
                     -o StrictHostKeyChecking=no \
                     -o UserKnownHostsFile=/dev/null \
-                    "${infra_mgmt_super_username}@${qemu_kvm_hostname}.${lab_infra_domain_name}" \
+                    "${lab_infra_admin_username}@${qemu_kvm_hostname}.${lab_infra_domain_name}" \
                     "sudo shutdown -h now"
 
                 echo -e "\n⏳ Waiting for VM '${qemu_kvm_hostname}' to shut down . . ."
@@ -103,14 +109,14 @@ fn_shutdown_or_poweroff() {
                 echo -e "\n✅ VM has been shut down successfully, Proceeding further."
             else
                 echo -e "\n❌ SSH connection issue with ${qemu_kvm_hostname}.${lab_infra_domain_name}.\n❌ Cannot perform graceful shutdown.\n"
-		exit 1
+		        exit 1
             fi
             ;;
         2)
             echo -e "\n⚡ Forcing power off . . ."
-	    sudo virsh destroy "${qemu_kvm_hostname}" &>/dev/null
-	    sleep 1
-	    echo -e "✅ VM '$qemu_kvm_hostname' is stopped successfully. \n"
+	        sudo virsh destroy "${qemu_kvm_hostname}" &>/dev/null
+	        sleep 1
+	        echo -e "✅ VM '$qemu_kvm_hostname' is stopped successfully. \n"
             ;;
         q)
             echo -e "\n👋 Quitting without any action.\n"
@@ -142,10 +148,10 @@ resize_vm_memory() {
             continue
         fi
 
-	if (( vm_mem_gib < 2 || (vm_mem_gib & (vm_mem_gib - 1)) != 0 )); then
+	    if (( vm_mem_gib < 2 || (vm_mem_gib & (vm_mem_gib - 1)) != 0 )); then
     	    echo -e "\n❌ VM memory size must be a power of 2 (2, 4, 8...)\n"
             continue
-	fi
+	    fi
 
         if (( vm_mem_gib >= host_mem_gib )); then
             echo -e "\n❌ VM memory size must be less than host memory ${host_mem_gib} GiB\n"
@@ -157,8 +163,8 @@ resize_vm_memory() {
         sudo virsh setmaxmem "$qemu_kvm_hostname" "$vm_mem_kib" --config && \
         sudo virsh setmem "$qemu_kvm_hostname" "$vm_mem_kib" --config && \
         echo -e "✅ VM memory updated to ${vm_mem_gib} GiB, Proceeding to power on the VM.\n"
-	sudo virsh start "${qemu_kvm_hostname}" 2>/dev/null
-	echo -e "✅ VM '${qemu_kvm_hostname}' is started successfully after Memory resize. \n"
+	    sudo virsh start "${qemu_kvm_hostname}" 2>/dev/null
+	    echo -e "✅ VM '${qemu_kvm_hostname}' is started successfully after Memory resize. \n"
         break
     done
 }
@@ -198,8 +204,8 @@ resize_vm_cpu() {
         sudo virsh setvcpus "$qemu_kvm_hostname" "$new_vcpus_of_vm" --maximum --config && \
         sudo virsh setvcpus "$qemu_kvm_hostname" "$new_vcpus_of_vm" --config && \
         echo -e "✅ vCPU count updated to $new_vcpus_of_vm, Proceeding to power on the VM.\n"
-	sudo virsh start "${qemu_kvm_hostname}" 2>/dev/null
-	echo -e "✅ VM '$qemu_kvm_hostname' is started successfully after vCPU resize. \n"
+	    sudo virsh start "${qemu_kvm_hostname}" 2>/dev/null
+	    echo -e "✅ VM '$qemu_kvm_hostname' is started successfully after vCPU resize. \n"
         break
     done
 }
@@ -240,43 +246,41 @@ resize_vm_disk() {
 
         echo "📂 Growing disk by ${grow_size_gib} GiB . . ."
         if sudo qemu-img resize "$vm_qcow2_disk_path" +${grow_size_gib}G; then
-	    total_vm_disk_size=$(( current_disk_gib + grow_size_gib ))
+	        total_vm_disk_size=$(( current_disk_gib + grow_size_gib ))
             echo -e "\n✅ Disk of VM '${qemu_kvm_hostname}' resized to ${total_vm_disk_size} GiB, Proceeding to power on the VM."
 
-	    sudo virsh start "${qemu_kvm_hostname}" 2>/dev/null
-	    echo -e "✅ VM '$qemu_kvm_hostname' is started successfully after disk resize."
+	        sudo virsh start "${qemu_kvm_hostname}" 2>/dev/null
+	        echo -e "✅ VM '$qemu_kvm_hostname' is started successfully after disk resize."
 
             echo -e "\n🛠️ Attempting to re-size root file system of VM '$qemu_kvm_hostname' . . ."
-	    infra_mgmt_super_username=$(cat /kvm-hub/lab_infra_admin_username)
-            lab_infra_domain_name=$(cat /kvm-hub/lab_infra_domain_name)
-	    SSH_TARGET_HOST="${qemu_kvm_hostname}.${lab_infra_domain_name}"
-	    MAX_SSH_WAIT_SECONDS=120
+	        SSH_TARGET_HOST="${qemu_kvm_hostname}.${lab_infra_domain_name}"
+	        MAX_SSH_WAIT_SECONDS=120
             SSH_RETRY_INTERVAL_SECONDS=5
             SSH_OPTS="-o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
             echo -n -e "\n⏳ Waiting up to $MAX_SSH_WAIT_SECONDS seconds for SSH connection on $SSH_TARGET_HOST . . . "
             ssh_start_time=$(date +%s)
             while true; do
-              sleep "$SSH_RETRY_INTERVAL_SECONDS"
-              if ssh $SSH_OPTS ${infra_mgmt_super_username}@${SSH_TARGET_HOST} "true" &>/dev/null; then
-                echo "[SSH-Active]"
-                break
-              fi
-              ssh_current_time=$(date +%s)
-              ssh_elapsed_time=$((ssh_current_time - ssh_start_time))
-              if [ "$ssh_elapsed_time" -ge "$MAX_SSH_WAIT_SECONDS" ]; then
-                echo -e "\n❌ Timed out waiting for SSH after $MAX_SSH_WAIT_SECONDS seconds."
-            	echo -e "📌 Execute rootfs-extender utility manually from $SSH_TARGET_HOST once booted.\n"
-                exit 1
-              fi
+                sleep "$SSH_RETRY_INTERVAL_SECONDS"
+                if ssh $SSH_OPTS ${lab_infra_admin_username}@${SSH_TARGET_HOST} "true" &>/dev/null; then
+                    echo "[SSH-Active]"
+                    break
+                fi
+                ssh_current_time=$(date +%s)
+                ssh_elapsed_time=$((ssh_current_time - ssh_start_time))
+                if [ "$ssh_elapsed_time" -ge "$MAX_SSH_WAIT_SECONDS" ]; then
+                    echo -e "\n❌ Timed out waiting for SSH after $MAX_SSH_WAIT_SECONDS seconds."
+            	    echo -e "📌 Execute rootfs-extender utility manually from $SSH_TARGET_HOST once booted.\n"
+                    exit 1
+                fi
             done
             echo -e "\n🛠️ Executing rootfs-extender utility on $SSH_TARGET_HOST . . . "
-	    TMP_SCRIPT="/tmp/rootfs-extender.sh"
-            rsync -az -e "ssh $SSH_OPTS" "${fs_resize_scipt}" "${infra_mgmt_super_username}@${SSH_TARGET_HOST}:${TMP_SCRIPT}"
-            ssh $SSH_OPTS -t ${infra_mgmt_super_username}@${SSH_TARGET_HOST} "sudo bash ${TMP_SCRIPT} localhost && rm -f ${TMP_SCRIPT}"
-	    echo -e "\n✅ Successfully extended the size of OS disk and the root filesystem of ${SSH_TARGET_HOST} to ${total_vm_disk_size} GiB.\n"
+	        TMP_SCRIPT="/tmp/rootfs-extender.sh"
+            rsync -az -e "ssh $SSH_OPTS" "${fs_resize_scipt}" "${lab_infra_admin_username}@${SSH_TARGET_HOST}:${TMP_SCRIPT}"
+            ssh $SSH_OPTS -t ${lab_infra_admin_username}@${SSH_TARGET_HOST} "sudo bash ${TMP_SCRIPT} localhost && rm -f ${TMP_SCRIPT}"
+	        echo -e "\n✅ Successfully extended the size of OS disk and the root filesystem of ${SSH_TARGET_HOST} to ${total_vm_disk_size} GiB.\n"
         else
             echo -e "\n❌ Disk resize of VM '${qemu_kvm_hostname}' failed ! \n"
-	    exit 1
+	        exit 1
         fi
         break
     done
