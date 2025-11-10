@@ -4,36 +4,16 @@
 # please open an issue at: https://github.com/Muthukumar-Subramaniam/server-hub/issues   #
 #----------------------------------------------------------------------------------------#
 
-if [[ "$EUID" -eq 0 ]]; then
-    echo -e "\n⛔ Running as root user is not allowed."
-    echo -e "\n🔐 This script should be run as a user who has sudo privileges, but *not* using sudo.\n"
-    exit 1
-fi
+source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/defaults.sh
 
-# Check if we're inside a QEMU guest
-if sudo dmidecode -s system-manufacturer | grep -qi 'QEMU'; then
-    echo "❌❌❌  FATAL: WRONG PLACE, BUDDY! ❌❌❌"
-    echo -e "\n⚠️  Note:"
-    echo -e "  🔹 This script is meant to be run on the *host* system managing QEMU/KVM VMs."
-    echo -e "  🔹 You’re currently inside a QEMU guest VM, which makes absolutely no sense.\n"
-    echo "💥 ABORTING EXECUTION 💥"
-    exit 1
-fi
-
-infra_server_ipv4_address=$(cat /kvm-hub/lab_infra_server_ipv4_address)
-infra_mgmt_super_username=$(cat /kvm-hub/lab_infra_admin_username)
-lab_infra_domain_name=$(cat /kvm-hub/lab_infra_domain_name)
-kvm_host_admin_user="$USER"
 scripts_location_to_manage_vms="/server-hub/qemu-kvm-manage/scripts-to-manage-vms"
 temp_dir_to_create_wrapper_scripts="/tmp/scripts-to-manage-vms"
-virsh_network_definition="/server-hub/qemu-kvm-manage/labbr0.xml"
-kvm_host_ipv4_address=$(grep -oP "<ip address='\K[^']+" "$virsh_network_definition")
 SSH_OPTS="-o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
 
 echo -n "[STEP] Authorize SSH public key of infra server VM . . . "
-get_user_host_ssh_pub_key=$(ssh ${SSH_OPTS} ${infra_mgmt_super_username}@${infra_server_ipv4_address} "cat .ssh/id_rsa.pub" | cut -d " " -f3)
+get_user_host_ssh_pub_key=$(ssh ${SSH_OPTS} ${lab_infra_admin_username}@${lab_infra_server_ipv4_address} "cat .ssh/id_rsa.pub" | cut -d " " -f3)
 if ! grep -q "${get_user_host_ssh_pub_key}" ~/.ssh/authorized_keys; then
-	ssh ${SSH_OPTS} ${infra_mgmt_super_username}@${infra_server_ipv4_address} "cat .ssh/id_rsa.pub" >> ~/.ssh/authorized_keys
+	ssh ${SSH_OPTS} ${lab_infra_admin_username}@${lab_infra_server_ipv4_address} "cat .ssh/id_rsa.pub" >> ~/.ssh/authorized_keys
 fi
 echo "[ok]"
 
@@ -56,7 +36,7 @@ for EACH_ARG in "\$@"; do
 	exit 1
     fi
 done
-ssh \${SSH_OPTIONS} -t ${kvm_host_admin_user}@${kvm_host_ipv4_address} "export KVM_TOOL_EXECUTED_FROM='\${INFRA_SERVER_NAME}';${FILENAME} \$@"
+ssh \${SSH_OPTIONS} -t ${lab_infra_admin_username}@${lab_infra_server_ipv4_gateway} "export KVM_TOOL_EXECUTED_FROM='\${INFRA_SERVER_NAME}';${FILENAME} \$@"
 exit
 EOF
 done
@@ -64,8 +44,8 @@ done
 echo "[ok]"
 
 echo -n "[STEP] Syncing wrapper scripts to infra server VM . . . "
-rsync -az -e "ssh $SSH_OPTS" "$temp_dir_to_create_wrapper_scripts" ${infra_mgmt_super_username}@${infra_server_ipv4_address}:
-ssh ${SSH_OPTS} ${infra_mgmt_super_username}@${infra_server_ipv4_address} "chmod +x -R scripts-to-manage-vms;sudo rsync -az scripts-to-manage-vms/* /bin/ && rm -rf scripts-to-manage-vms"
+rsync -az -e "ssh $SSH_OPTS" "$temp_dir_to_create_wrapper_scripts" ${lab_infra_admin_username}@${lab_infra_server_ipv4_address}:
+ssh ${SSH_OPTS} ${lab_infra_admin_username}@${lab_infra_server_ipv4_address} "chmod +x -R scripts-to-manage-vms;sudo rsync -az scripts-to-manage-vms/* /bin/ && rm -rf scripts-to-manage-vms"
 rm -rf "$temp_dir_to_create_wrapper_scripts"
 echo "[ok]"
 
