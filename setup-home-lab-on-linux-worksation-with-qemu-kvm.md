@@ -41,28 +41,17 @@ During the process, the VM will reboot twice:
 
 To start the deployment, run:
 ```bash
-./build-lab-infra-server.sh
+./deploy-lab-infra-server.sh
 ```
 
 ---
 
 ## Step 5 – SSH Into the Deployed Infra Server VM if you want to explore the configurations
 
-Use the auto-created SSH alias.
-
-If your server name is `lab-infra-server`, you can connect by simply running:
+If your server name is `lab-infra-server` and your domain is `lab.local` , you can connect by simply running:
 
 ```bash
-lab-infra-server
-```
-
-If you get `command not found`, reload your shell environment and try again:
-
-```bash
-source ~/.bashrc
-```
-```
-infra-server
+ssh lab-infra-server.lab.local
 ```
 
 ---
@@ -90,6 +79,7 @@ kvm-resize                    # Resize Memory,CPU or Disk of a VM
 kvm-add-disk                  # Add additional disk(s) to an existing VM
 kvm-remove                    # Remove/delete a VM
 kvm-dnsbinder                 # Bind and manage the lab infra DNS
+kvm-lab-health                # Health check of vital lab infra services
 ```
 
 ---
