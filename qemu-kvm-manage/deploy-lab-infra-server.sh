@@ -7,8 +7,6 @@
 # Description : Interactive script to deploy the Lab Infra Server
 #               on either a dedicated KVM VM or directly on the KVM host.
 
-source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/defaults.sh
-
 set -euo pipefail
 IFS=$'\n\t'
 

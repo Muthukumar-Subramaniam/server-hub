@@ -64,18 +64,6 @@
     dest: "{{ ipxe_tftp_target }}"
     mode: '0644'
 
-- name: Update ListenDatagram of tftp.socket by mapping IP Address
-  become: true
-  lineinfile:
-    path: /usr/lib/systemd/system/tftp.socket
-    regexp: '^ListenDatagram='
-    line: "ListenDatagram={{ ansible_env.dnsbinder_server_ipv4_address }}:69"
-
-- name: Reload systemd-daemon to reflect changes with tftp.socket
-  become: true
-  systemd:
-    name: daemon-reload
-
 - name: Enable and Start kea-dhcp4,kea-ctrl-agent and tftp.socket
   become: true
   systemd_service:
