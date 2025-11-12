@@ -72,16 +72,6 @@ cat << EOF | sudo tee /etc/motd &>/dev/null
 +-------------------------------------------------------------+
 EOF
 
-echo -e "\nSetting up ssh custom config . . .\n"
-
-local_lab_info=$(echo "${dnsbinder_domain}" | sed "s/\./-/g")
-cat << EOF | sudo tee "/etc/ssh/ssh_config.d/999-${local_lab_info}.conf" &>/dev/null
-Host *.${dnsbinder_domain}
-  StrictHostKeyChecking no
-  UserKnownHostsFile /dev/null
-  LogLevel QUIET
-EOF
-
 echo -e "\nReserve Records for DHCP lease DNS . . .\n"
 
 for IP in $(seq 201 254)

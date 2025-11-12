@@ -162,7 +162,8 @@ prepare_lab_infra_config() {
   echo -e "\n🔍 Checking for SSH public key on local workstation . . ."
 
   SSH_DIR="$HOME/.ssh"
-  SSH_PUB_KEY_FILE="$SSH_DIR/id_rsa.pub"
+  SSH_PRIVATE_KEY_FILE="$SSH_DIR/kvm_lab_global_id_rsa"
+  SSH_PUB_KEY_FILE="$SSH_DIR/kvm_lab_global_id_rsa.pub"
 
   # Ensure ~/.ssh directory exists
   if [[ ! -d "$SSH_DIR" ]]; then
@@ -173,16 +174,17 @@ prepare_lab_infra_config() {
 
   # Check if SSH public key exists
   if [[ ! -f "$SSH_PUB_KEY_FILE" ]]; then
-      echo -e "\n❌ SSH key not found on this local workstation."
+      echo -e "\n❌ SSH keys for the kvm lab not found on this local workstation."
       echo -e "\n🔐 Generating a new RSA key pair . . ."
-      ssh-keygen -t rsa -b 4096 -N "" -f "$SSH_DIR/id_rsa" -C "${lab_infra_admin_username}@${lab_infra_domain_name}" &>/dev/null
-      echo -e "\n✅ New SSH key generated: $SSH_PUB_KEY_FILE"
+      ssh-keygen -t rsa -b 4096 -N "" -f "$SSH_PRIVATE_KEY_FILE" -C "${lab_infra_domain_name}" &>/dev/null
+      echo -e "\n✅ New SSH keys generated successfully:\n   🔹 Private Key: $SSH_PRIVATE_KEY_FILE\n   🔹 Public Key : $SSH_PUB_KEY_FILE\n"
   else
-      echo -e "\n✅ SSH public key already exists: $SSH_PUB_KEY_FILE"
+      echo -e "\n✅ SSH keys for the kvm lab found on this local workstation.\n"
   fi
 
   # Read the public key into an explanatory variable
   lab_infra_ssh_public_key=$(<"$SSH_PUB_KEY_FILE")
+  lab_infra_ssh_private_key=$(<"$SSH_PRIVATE_KEY_FILE")
 
   # Print confirmation
   echo -e "\n✅ Lab Infra SSH public key is ready for user \033[1m${lab_infra_admin_username}\033[0m on domain \033[1m${lab_infra_domain_name}\033[0m:\n\033[1m${lab_infra_ssh_public_key}\033[0m\n"
@@ -212,10 +214,7 @@ prepare_lab_infra_config() {
   if ! grep -q "$lab_infra_domain_name" "$SSH_CUSTOM_CONFIG_FILE"; then
     cat <<EOF >> "$SSH_CUSTOM_CONFIG_FILE"
 Host *.${lab_infra_domain_name} ${lab_infra_server_ipv4_address}
-    User ${lab_infra_admin_username}
-    IdentityFile ~/.ssh/id_rsa
-    ServerAliveInterval 60
-    ServerAliveCountMax 30
+    IdentityFile ${SSH_PRIVATE_KEY_FILE}
     StrictHostKeyChecking no
     UserKnownHostsFile /dev/null
     LogLevel QUIET
@@ -245,11 +244,14 @@ lab_infra_server_shortname="${lab_infra_server_shortname}"
 lab_infra_domain_name="${lab_infra_domain_name}"
 lab_infra_admin_username="${lab_infra_admin_username}"
 lab_admin_shadow_password='${lab_admin_shadow_password}'
+lab_infra_ssh_private_key='${lab_infra_ssh_private_key}'
 lab_infra_ssh_public_key='${lab_infra_ssh_public_key}'
 lab_infra_server_ipv4_gateway="${lab_infra_server_ipv4_gateway}"
 lab_infra_server_ipv4_netmask="${lab_infra_server_ipv4_netmask}"
 lab_infra_server_ipv4_address="${lab_infra_server_ipv4_address}"
 EOF
+
+  chmod 600 "$LAB_ENV_VARS_FILE"
 
   echo -e "✅ Lab environment variables saved successfully.\n"
 
@@ -318,6 +320,9 @@ deploy_lab_infra_server_vm() {
       "${KS_FILE}" > "${KS_FILE}"_tmp_ksmanager && mv "${KS_FILE}"_tmp_ksmanager "${KS_FILE}"
 
   awk -v val="$lab_infra_ssh_public_key" '{ gsub(/get_ssh_public_key_of_qemu_host_machine/, val) } 1' \
+      "${KS_FILE}" > "${KS_FILE}"_tmp_ksmanager && mv "${KS_FILE}"_tmp_ksmanager "${KS_FILE}"
+
+  awk -v val="$lab_infra_ssh_private_key" '{ gsub(/get_ssh_private_key_of_qemu_host_machine/, val) } 1' \
       "${KS_FILE}" > "${KS_FILE}"_tmp_ksmanager && mv "${KS_FILE}"_tmp_ksmanager "${KS_FILE}"
 
   echo -e "✅ Kickstart file prepared at ${KS_FILE}\n"

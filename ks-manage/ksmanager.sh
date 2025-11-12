@@ -395,9 +395,9 @@ if ! $invoked_with_golden_image; then
 
 	rsync -a -q --delete "${ksmanager_main_dir}"/addons-for-kickstarts/ "${ksmanager_hub_dir}"/addons-for-kickstarts/
 
-	rsync -a -q "/home/${mgmt_super_user}/.ssh/authorized_keys" "${ksmanager_hub_dir}"/addons-for-kickstarts/
+	rsync -a -q "/home/${mgmt_super_user}/.ssh/{authorized_keys,kvm_lab_global_id_rsa.pub,kvm_lab_global_id_rsa}" "${ksmanager_hub_dir}"/addons-for-kickstarts/
 
-	chmod +r "${ksmanager_hub_dir}"/addons-for-kickstarts/authorized_keys
+	chmod +r "${ksmanager_hub_dir}"/addons-for-kickstarts/{authorized_keys,kvm_lab_global_id_rsa.pub,kvm_lab_global_id_rsa}
 
 	mkdir -p "${ksmanager_hub_dir}"/golden-boot-mac-configs
 fi
