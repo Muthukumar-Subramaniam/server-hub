@@ -35,11 +35,10 @@ autoinstall:
       - echo "get_mgmt_super_user ALL=(ALL) NOPASSWD:ALL" >/etc/sudoers.d/get_mgmt_super_user
       - mkdir -p /home/get_mgmt_super_user/.ssh /root/.ssh
       - chmod 0700 /home/get_mgmt_super_user/.ssh /root/.ssh
-      - curl -fsSL http://get_web_server_name.get_ipv4_domain/ksmanager-hub/addons-for-kickstarts/authorized_keys -o /home/get_mgmt_super_user/.ssh/authorized_keys
-      - curl -fsSL http://get_web_server_name.get_ipv4_domain/ksmanager-hub/addons-for-kickstarts/kvm_lab_global_id_rsa.pub -o /home/get_mgmt_super_user/.ssh/kvm_lab_global_id_rsa.pub
-      - curl -fsSL http://get_web_server_name.get_ipv4_domain/ksmanager-hub/addons-for-kickstarts/kvm_lab_global_id_rsa -o /home/get_mgmt_super_user/.ssh/kvm_lab_global_id_rsa
-      - cp -p /home/get_mgmt_super_user/.ssh/{authorized_keys,kvm_lab_global_id_rsa.pub,kvm_lab_global_id_rsa} /root/.ssh/
-      - chmod 0600 /home/get_mgmt_super_user/.ssh/{authorized_keys,kvm_lab_global_id_rsa} /root/.ssh/{authorized_keys,kvm_lab_global_id_rsa}
+      - curl -fsSL http://get_web_server_name.get_ipv4_domain/ksmanager-hub/addons-for-kickstarts/authorized_keys -o /home/get_mgmt_super_user/.ssh/authorized_keys && cp -p /home/get_mgmt_super_user/.ssh/authorized_keys /root/.ssh/authorized_keys
+      - curl -fsSL http://get_web_server_name.get_ipv4_domain/ksmanager-hub/addons-for-kickstarts/kvm_lab_global_id_rsa.pub -o /home/get_mgmt_super_user/.ssh/kvm_lab_global_id_rsa.pub && cp -p /home/get_mgmt_super_user/.ssh/kvm_lab_global_id_rsa.pub /root/.ssh/kvm_lab_global_id_rsa.pub
+      - curl -fsSL http://get_web_server_name.get_ipv4_domain/ksmanager-hub/addons-for-kickstarts/kvm_lab_global_id_rsa -o /home/get_mgmt_super_user/.ssh/kvm_lab_global_id_rsa && cp -p /home/get_mgmt_super_user/.ssh/kvm_lab_global_id_rsa /root/.ssh/kvm_lab_global_id_rsa
+      - chmod 0600 /home/get_mgmt_super_user/.ssh/authorized_keys /root/.ssh/authorized_keys /home/get_mgmt_super_user/.ssh/kvm_lab_global_id_rsa /root/.ssh/kvm_lab_global_id_rsa
       - chmod 0644 /home/get_mgmt_super_user/.ssh/kvm_lab_global_id_rsa.pub /root/.ssh/kvm_lab_global_id_rsa.pub
       - chown -R get_mgmt_super_user:get_mgmt_super_user /home/get_mgmt_super_user/.ssh
       - touch /etc/cloud/cloud-init.disabled
