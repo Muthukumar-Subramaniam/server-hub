@@ -273,15 +273,18 @@
         <notification>Running custom post-script</notification>
         <source><![CDATA[
 	#!/bin/bash
-        /usr/bin/mkdir /etc/zypp/repos.d/original
-        /usr/bin/mv /etc/zypp/repos.d/*-update.repo /etc/zypp/repos.d/openSUSE* /etc/zypp/repos.d/original/
-        /usr/bin/unlink /usr/bin/python3 && /usr/bin/ln -s /usr/bin/python3.11 /usr/bin/python3
+  /usr/bin/mkdir /etc/zypp/repos.d/original
+  /usr/bin/mv /etc/zypp/repos.d/*-update.repo /etc/zypp/repos.d/openSUSE* /etc/zypp/repos.d/original/
+  /usr/bin/unlink /usr/bin/python3 && /usr/bin/ln -s /usr/bin/python3.11 /usr/bin/python3
 	/usr/bin/wget -O /etc/motd http://get_web_server_name.get_ipv4_domain/ksmanager-hub/addons-for-kickstarts/motd.txt
 	/usr/bin/mkdir -p /home/get_mgmt_super_user/.ssh /root/.ssh
 	/usr/bin/chmod 0700 /home/get_mgmt_super_user/.ssh /root/.ssh
 	/usr/bin/wget -O /home/get_mgmt_super_user/.ssh/authorized_keys http://get_web_server_name.get_ipv4_domain/ksmanager-hub/addons-for-kickstarts/authorized_keys
-	/usr/bin/wget -O /root/.ssh/authorized_keys http://get_web_server_name.get_ipv4_domain/ksmanager-hub/addons-for-kickstarts/authorized_keys
-	/usr/bin/chmod 0600 /home/get_mgmt_super_user/.ssh/authorized_keys /root/.ssh/authorized_keys
+	/usr/bin/wget -O /home/get_mgmt_super_user/.ssh/kvm_lab_global_id_rsa.pub http://get_web_server_name.get_ipv4_domain/ksmanager-hub/addons-for-kickstarts/kvm_lab_global_id_rsa.pub
+  /usr/bin/wget -O /home/get_mgmt_super_user/.ssh/kvm_lab_global_id_rsa http://get_web_server_name.get_ipv4_domain/ksmanager-hub/addons-for-kickstarts/kvm_lab_global_id_rsa
+  /usr/bin/cp -p /home/get_mgmt_super_user/.ssh/{authorized_keys,kvm_lab_global_id_rsa.pub,kvm_lab_global_id_rsa} /root/.ssh/
+	/usr/bin/chmod 0600 /home/get_mgmt_super_user/.ssh/{authorized_keys,kvm_lab_global_id_rsa} /root/.ssh/{authorized_keys,kvm_lab_global_id_rsa}
+  /usr/bin/chmod 0644 /home/get_mgmt_super_user/.ssh/kvm_lab_global_id_rsa.pub /root/.ssh/kvm_lab_global_id_rsa.pub
 	/usr/bin/chown -R get_mgmt_super_user:users /home/get_mgmt_super_user/.ssh
 	/usr/bin/echo -e "HISTSIZE=-1\nHISTFILESIZE=-1" | /usr/bin/tee -a /home/get_mgmt_super_user/.bashrc /root/.bashrc
 	var_PS1_variable_get_mgmt_super_user=$(/usr/bin/curl -s -L http://get_web_server_name.get_ipv4_domain/ksmanager-hub/addons-for-kickstarts/PS1-env-variable-normal-user)
@@ -298,7 +301,7 @@
 	/usr/bin/get_golden_image_creation_not_requested || /usr/bin/wget -O /root/golden-boot-opensuse-leap.sh http://get_web_server_name.get_ipv4_domain/ksmanager-hub/kickstarts/get_hostname.get_ipv4_domain/golden-boot-opensuse-leap.sh
 	/usr/bin/get_golden_image_creation_not_requested || /usr/bin/ln -s /etc/systemd/system/golden-boot-opensuse-leap.service /etc/systemd/system/multi-user.target.wants/golden-boot-opensuse-leap.service
 	local_lab_info=$(/usr/bin/echo 'get_ipv4_domain' | /usr/bin/sed "s/\./-/g")
-	/usr/bin/echo -e "Host *.get_ipv4_domain\n  StrictHostKeyChecking no\n  UserKnownHostsFile /dev/null\n  LogLevel QUIET" > /etc/ssh/ssh_config.d/999-${local_lab_info}.conf
+  /usr/bin/mkdir -p /etc/ssh/ssh_config.d && /usr/bin/echo -e "Host *.get_ipv4_domain\n  IdentityFile ~/.ssh/kvm_lab_global_id_rsa\n  StrictHostKeyChecking no\n  UserKnownHostsFile /dev/null\n  LogLevel QUIET" > /etc/ssh/ssh_config.d/999-kvm-lab-global.conf
 	/usr/bin/ln -s /usr/lib/systemd/system/autofs.service /etc/systemd/system/multi-user.target.wants/autofs.service
 	/usr/bin/mkdir /server-hub /lab-share /lab-web-share
 	/usr/bin/sed -i 's/^[[:space:]]*#\+[[:space:]]*\(+dir:\/etc\/auto\.master\.d\)/\1/' /etc/auto.master

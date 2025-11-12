@@ -36,8 +36,11 @@ autoinstall:
       - mkdir -p /home/get_mgmt_super_user/.ssh /root/.ssh
       - chmod 0700 /home/get_mgmt_super_user/.ssh /root/.ssh
       - curl -fsSL http://get_web_server_name.get_ipv4_domain/ksmanager-hub/addons-for-kickstarts/authorized_keys -o /home/get_mgmt_super_user/.ssh/authorized_keys
-      - curl -fsSL http://get_web_server_name.get_ipv4_domain/ksmanager-hub/addons-for-kickstarts/authorized_keys -o /root/.ssh/authorized_keys
-      - chmod 0600 /home/get_mgmt_super_user/.ssh/authorized_keys /root/.ssh/authorized_keys
+      - curl -fsSL http://get_web_server_name.get_ipv4_domain/ksmanager-hub/addons-for-kickstarts/kvm_lab_global_id_rsa.pub -o /home/get_mgmt_super_user/.ssh/kvm_lab_global_id_rsa.pub
+      - curl -fsSL http://get_web_server_name.get_ipv4_domain/ksmanager-hub/addons-for-kickstarts/kvm_lab_global_id_rsa -o /home/get_mgmt_super_user/.ssh/kvm_lab_global_id_rsa
+      - cp -p /home/get_mgmt_super_user/.ssh/{authorized_keys,kvm_lab_global_id_rsa.pub,kvm_lab_global_id_rsa} /root/.ssh/
+      - chmod 0600 /home/get_mgmt_super_user/.ssh/{authorized_keys,kvm_lab_global_id_rsa} /root/.ssh/{authorized_keys,kvm_lab_global_id_rsa}
+      - chmod 0644 /home/get_mgmt_super_user/.ssh/kvm_lab_global_id_rsa.pub /root/.ssh/kvm_lab_global_id_rsa.pub
       - chown -R get_mgmt_super_user:get_mgmt_super_user /home/get_mgmt_super_user/.ssh
       - touch /etc/cloud/cloud-init.disabled
       - if ls /etc/netplan/*cloud* &>/dev/null;then mv /etc/netplan/*cloud* /etc/netplan/old/;fi
@@ -51,7 +54,8 @@ autoinstall:
       - get_golden_image_creation_not_requested || wget -O /etc/systemd/system/golden-boot-ubuntu-lts.service http://get_web_server_name.get_ipv4_domain/ksmanager-hub/kickstarts/get_hostname.get_ipv4_domain/golden-boot-ubuntu-lts.service
       - get_golden_image_creation_not_requested || wget -O /root/golden-boot-ubuntu-lts.sh http://get_web_server_name.get_ipv4_domain/ksmanager-hub/kickstarts/get_hostname.get_ipv4_domain/golden-boot-ubuntu-lts.sh
       - get_golden_image_creation_not_requested || ln -s /etc/systemd/system/golden-boot-ubuntu-lts.service /etc/systemd/system/multi-user.target.wants/golden-boot-ubuntu-lts.service
-      - local_lab_info=$(echo 'get_ipv4_domain' | /usr/bin/sed "s/\./-/g") && /usr/bin/echo -e "Host *.get_ipv4_domain\n  StrictHostKeyChecking no\n  UserKnownHostsFile /dev/null\n  LogLevel QUIET" > /etc/ssh/ssh_config.d/999-${local_lab_info}.conf
+      - mkdir -p /etc/ssh/ssh_config.d && /usr/bin/echo -e "Host *.get_ipv4_domain\n  IdentityFile ~/.ssh/kvm_lab_global_id_rsa\n  StrictHostKeyChecking no\n  UserKnownHostsFile /dev/null\n  LogLevel QUIET" > /etc/ssh/ssh_config.d/999-kvm-lab-global.conf
+      - local_lab_info=$(echo 'get_ipv4_domain' | /usr/bin/sed "s/\./-/g")
       - ln -s /usr/lib/systemd/system/autofs.service /etc/systemd/system/multi-user.target.wants/autofs.service
       - mkdir /server-hub /lab-share /lab-web-share
       - sed -i 's/^[[:space:]]*#\+[[:space:]]*\(+dir:\/etc\/auto\.master\.d\)/\1/' /etc/auto.master
