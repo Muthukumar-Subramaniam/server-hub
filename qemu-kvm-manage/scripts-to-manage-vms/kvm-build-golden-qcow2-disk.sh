@@ -18,13 +18,13 @@ echo -e "\n⚙️  Invoking ksmanager to create PXE environment to build a golde
 >/tmp/kvm-build-golden-qcow2-disk.log
 
 if $lab_infra_server_mode_is_host; then
-    sudo ksmanager ${qemu_kvm_hostname} --qemu-kvm --create-golden-image | tee -a /tmp/kvm-build-golden-qcow2-disk.log
+    sudo ksmanager --qemu-kvm --create-golden-image | tee -a /tmp/kvm-build-golden-qcow2-disk.log
 else
-    ssh -o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -t ${lab_infra_admin_username}@${lab_infra_server_ipv4_address} "sudo ksmanager ${qemu_kvm_hostname}" --qemu-kvm --create-golden-image | tee -a /tmp/kvm-build-golden-qcow2-disk.log
+    ssh -o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -t ${lab_infra_admin_username}@${lab_infra_server_ipv4_address} "sudo ksmanager --qemu-kvm --create-golden-image" | tee -a /tmp/kvm-build-golden-qcow2-disk.log
 fi
 
 MAC_ADDRESS=$( grep "MAC Address  :"  /tmp/kvm-build-golden-qcow2-disk.log | awk -F': ' '{print $2}' | tr -d '[:space:]' )
-qemu_kvm_hostname=$( grep "Hostname     :"  /tmp/kvm-build-golden-qcow2-disk.log | awk -F': ' '{print $2}' | tr -d '[:space:]' | cut -d "." -f 1 )
+qemu_kvm_hostname=$( grep "Hostname     :"  /tmp/kvm-build-golden-qcow2-disk.log | awk -F': ' '{print $2}' | tr -d '[:space:]' )
 
 if [ -z ${MAC_ADDRESS} ]; then
 	echo -e "\n❌ Something went wrong while executing ksmanager ! "

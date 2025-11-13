@@ -4,9 +4,6 @@
 # Source environment defaults
 source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/defaults.sh
 
-# Combine hostname and domain name for display
-target_lab_infra_fqdn="${lab_infra_server_shortname}.${lab_infra_domain_name}"
-
 # Define port numbers
 PORT_DNS=53
 PORT_DHCP=67
@@ -39,7 +36,7 @@ done
 # -------------------------------------------------------------
 echo "-------------------------------------------------------------"
 echo "KVM Lab Infra Health Check"
-echo "Lab Infra Server : ${target_lab_infra_fqdn} ( ${lab_infra_server_ipv4_address} )"
+echo "Lab Infra Server : ${lab_infra_server_hostname} ( ${lab_infra_server_ipv4_address} )"
 echo "-------------------------------------------------------------"
 
 active_services=0

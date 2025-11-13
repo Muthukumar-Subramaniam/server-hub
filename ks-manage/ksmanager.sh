@@ -67,15 +67,39 @@ fn_check_and_create_host_record() {
 			kickstart_hostname="${1}"
 		fi
 
-		if [[ ! "${kickstart_hostname}" =~ ^[a-z0-9-]+$ || "${kickstart_hostname}" =~ ^- || "${kickstart_hostname}" =~ -$ ]]; then
-    			echo -e "❌ Invalid hostname ! \n   🔹 Use only lowercase letters, numbers, and hyphens (-).\n   🔹 Also, must not start or end with a hyphen.\n"
-    			exit 1
+		# Validate and normalize hostname to FQDN
+		if [[ "${kickstart_hostname}" == *.${ipv4_domain} ]]; then
+			local stripped_hostname="${kickstart_hostname%.${ipv4_domain}}"
+			# Verify the stripped part doesn't contain dots (ensure it's just hostname.domain, not host.something.domain)
+			if [[ "${stripped_hostname}" == *.* ]]; then
+				echo -e "❌ Invalid hostname ! \n   🔹 If providing a domain, use format: hostname.${ipv4_domain}\n"
+				exit 1
+			fi
+			# Validate the hostname part
+			if [[ ! "${stripped_hostname}" =~ ^[a-z0-9-]+$ || "${stripped_hostname}" =~ ^- || "${stripped_hostname}" =~ -$ ]]; then
+				echo -e "❌ Invalid hostname ! \n   🔹 Use only lowercase letters, numbers, and hyphens (-).\n   🔹 Also, must not start or end with a hyphen.\n"
+				exit 1
+			fi
+			# Keep as FQDN
+		elif [[ "${kickstart_hostname}" == *.* ]]; then
+			echo -e "❌ Invalid hostname ! \n   🔹 If providing a domain, it must match: ${ipv4_domain}\n"
+			exit 1
 		else
-			break
-  		fi
+			# Bare hostname provided - validate and convert to FQDN
+			if [[ ! "${kickstart_hostname}" =~ ^[a-z0-9-]+$ || "${kickstart_hostname}" =~ ^- || "${kickstart_hostname}" =~ -$ ]]; then
+				echo -e "❌ Invalid hostname ! \n   🔹 Use only lowercase letters, numbers, and hyphens (-).\n   🔹 Also, must not start or end with a hyphen.\n"
+				exit 1
+			fi
+			kickstart_hostname="${kickstart_hostname}.${ipv4_domain}"
+		fi
+
+		break
 	done
 
-	if ! host "${kickstart_hostname}.${ipv4_domain}" "${dnsbinder_server_ipv4_address}" &>/dev/null
+	# Extract short hostname for use with tools that need it
+	kickstart_short_hostname="${kickstart_hostname%%.*}"
+
+	if ! host "${kickstart_hostname}" "${dnsbinder_server_ipv4_address}" &>/dev/null
 	then
 		echo -e "\n❌ No DNS record found for \"${kickstart_hostname}\".\n"
 		while :
@@ -87,7 +111,7 @@ fn_check_and_create_host_record() {
 				echo -e "\n🛠️  Creating the DNS record for \"${kickstart_hostname}\" using the tool '${dnsbinder_script}' . . .\n"
 				"${dnsbinder_script}" -c "${kickstart_hostname}"
 
-				if host "${kickstart_hostname}.${ipv4_domain}" "${dnsbinder_server_ipv4_address}" &>/dev/null
+				if host "${kickstart_hostname}" "${dnsbinder_server_ipv4_address}" &>/dev/null
 				then
 					echo -e "\n⏳ Proceeding further . . .\n"
 					break
@@ -107,7 +131,7 @@ fn_check_and_create_host_record() {
 		done
 	else
 		echo -e "\n✅ DNS record found for \"${kickstart_hostname}\" ! \n"
-		echo -e "ℹ️  FYI: $(host ${kickstart_hostname}.${ipv4_domain} ${dnsbinder_server_ipv4_address} | grep 'has address')"
+		echo -e "ℹ️  FYI: $(host ${kickstart_hostname} ${dnsbinder_server_ipv4_address} | grep 'has address')"
 	fi
 }
 
@@ -122,7 +146,7 @@ done
 
 if $golden_image_creation_not_requested; then
 	fn_check_and_create_host_record "${1}"
-	ipv4_address=$(host "${kickstart_hostname}.${ipv4_domain}" "${dnsbinder_server_ipv4_address}" | grep 'has address' | cut -d " " -f 4 | tr -d '[[:space:]]')
+	ipv4_address=$(host "${kickstart_hostname}" "${dnsbinder_server_ipv4_address}" | grep 'has address' | cut -d " " -f 4 | tr -d '[[:space:]]')
 fi
 
 # Function to validate MAC address
@@ -315,7 +339,7 @@ elif [[ "$manufacturer" == *qemu* ]]; then
 fi
 
 fn_create_host_kickstart_dir() {
-	host_kickstart_dir="${ksmanager_hub_dir}/kickstarts/${kickstart_hostname}.${ipv4_domain}"
+	host_kickstart_dir="${ksmanager_hub_dir}/kickstarts/${kickstart_hostname}"
 	mkdir -p "${host_kickstart_dir}"
 	rm -rf "${host_kickstart_dir}"/*
 }
@@ -357,7 +381,7 @@ fi
 
 if ! $golden_image_creation_not_requested; then
 	fn_check_and_create_host_record "${os_distribution}-golden-image"
-	ipv4_address=$(host "${kickstart_hostname}.${ipv4_domain}" "${dnsbinder_server_ipv4_address}" | grep 'has address' | cut -d " " -f 4 | tr -d '[[:space:]]')
+	ipv4_address=$(host "${kickstart_hostname}" "${dnsbinder_server_ipv4_address}" | grep 'has address' | cut -d " " -f 4 | tr -d '[[:space:]]')
 	fn_check_and_create_mac_if_required
 	fn_create_host_kickstart_dir
 fi
@@ -431,7 +455,7 @@ fn_set_environment() {
 		sed -i "s/get_ipv4_nameserver/${ipv4_nameserver}/g" "${working_file}"
 		sed -i "s/get_ipv4_nfsserver/${ipv4_nfsserver}/g" "${working_file}"
 		sed -i "s/get_ipv4_domain/${ipv4_domain}/g" "${working_file}"
-    	sed -i "s/get_hostname/${kickstart_hostname}/g" "${working_file}"
+    	sed -i "s/get_hostname/${kickstart_short_hostname}/g" "${working_file}"
 		sed -i "s/get_ntp_pool_name/${ntp_pool_name}/g" "${working_file}"
 		sed -i "s/get_web_server_name/${web_server_name}/g" "${working_file}" 
 		sed -i "s/get_win_hostname/${win_hostname}/g" "${working_file}"
@@ -517,7 +541,7 @@ fn_update_kea_dhcp_reservations() {
   local kea_reservations_json=""
   while read -r kea_hostname kea_hw_address kea_ip_address; do
     kea_reservations_json+="{
-      \"hostname\": \"$kea_hostname.$ipv4_domain\",
+      \"hostname\": \"$kea_hostname\",
       \"hw-address\": \"$kea_hw_address\",
       \"ip-address\": \"$kea_ip_address\"
     },"
@@ -578,7 +602,7 @@ if systemctl is-active --quiet kea-ctrl-agent; then
 fi
 
 echo -e "\nℹ️  FYI:\n"
-echo -e "  🖥️  Hostname     : ${kickstart_hostname}.${ipv4_domain}"
+echo -e "  🖥️  Hostname     : ${kickstart_hostname}"
 echo -e "  🆔  MAC Address  : ${mac_address_of_host}"
 echo -e "  🌐  IPv4 Address : ${ipv4_address}"
 echo -e "  🌐  IPv4 Netmask : ${ipv4_netmask}"

@@ -46,7 +46,7 @@ for vm_name in "${vm_list[@]}"; do
 
     # If VM is running, check systemd + distro via single SSH
     if [[ "$current_vm_state" == "running" ]]; then
-        ssh_output=$(ssh $ssh_options "${lab_infra_admin_username}@${vm_name}.${lab_infra_domain_name}" \
+        ssh_output=$(ssh $ssh_options "${lab_infra_admin_username}@${vm_name}" \
             'systemctl is-system-running; \
              source /etc/os-release 2>/dev/null && echo "$PRETTY_NAME" || echo "[ N/A ]"' \
             2>/dev/null </dev/null || true)

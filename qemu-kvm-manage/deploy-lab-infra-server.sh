@@ -158,6 +158,10 @@ prepare_lab_infra_config() {
   # Print the final validated domain name
   echo -e "\n✅ Lab Infra Domain Name set to: \033[1m${lab_infra_domain_name}\033[0m\n"
 
+  lab_infra_server_hostname="${lab_infra_server_shortname}.${lab_infra_domain_name}"
+  
+  echo -e "\n✅ Lab Infra Server Hostname set to: \033[1m${lab_infra_server_hostname}\033[0m\n"
+
   # SSH public key logic
   echo -e "\n🔍 Checking for SSH public key on local workstation . . ."
 
@@ -223,15 +227,15 @@ EOF
 
   echo -e " ✅ SSH Custom Config updated.\n"
 
-  echo -n -e "\n📎 Updating /etc/hosts for ${lab_infra_server_shortname}.${lab_infra_domain_name} . . . "
+  echo -n -e "\n📎 Updating /etc/hosts for ${lab_infra_server_hostname} . . . "
 
   # Remove any existing entry
-  sudo sed -i "/${lab_infra_server_shortname}.${lab_infra_domain_name}/d" /etc/hosts 
+  sudo sed -i "/${lab_infra_server_hostname}/d" /etc/hosts 
 
   # Add new entry
-  echo "${lab_infra_server_ipv4_address} ${lab_infra_server_shortname}.${lab_infra_domain_name} ${lab_infra_server_shortname}" | sudo tee -a /etc/hosts &>/dev/null
+  echo "${lab_infra_server_ipv4_address} ${lab_infra_server_hostname}" | sudo tee -a /etc/hosts &>/dev/null
 
-  echo -e " ✅ /etc/hosts updated successfully with ${lab_infra_server_shortname}.${lab_infra_domain_name} .\n"
+  echo -e " ✅ /etc/hosts updated successfully with ${lab_infra_server_hostname} .\n"
 
 
   # Save all lab environment variables to file
@@ -240,7 +244,7 @@ EOF
   echo -e "💾 Saving Lab Environment variables to: $LAB_ENV_VARS_FILE ..."
 
 cat > "$LAB_ENV_VARS_FILE" <<EOF
-lab_infra_server_shortname="${lab_infra_server_shortname}"
+lab_infra_server_hostname="${lab_infra_server_hostname}"
 lab_infra_domain_name="${lab_infra_domain_name}"
 lab_infra_admin_username="${lab_infra_admin_username}"
 lab_admin_shadow_password='${lab_admin_shadow_password}'
@@ -267,19 +271,19 @@ deploy_lab_infra_server_vm() {
   echo ""
 
   # VM directory and disk path
-  VM_DIR="/kvm-hub/vms/${lab_infra_server_shortname}"
-  VM_DISK_PATH="${VM_DIR}/${lab_infra_server_shortname}.qcow2"
+  VM_DIR="/kvm-hub/vms/${lab_infra_server_hostname}"
+  VM_DISK_PATH="${VM_DIR}/${lab_infra_server_hostname}.qcow2"
 
   # Create VM directory if it doesn't exist
   mkdir -p "$VM_DIR"
 
   # Check if VM disk already exists
   if [[ -f "$VM_DISK_PATH" ]]; then
-      echo -e "\n❌ Lab Infra VM '${lab_infra_server_shortname}' already exists at $VM_DISK_PATH. Aborting to avoid overwrite.\n"
+      echo -e "\n❌ Lab Infra VM '${lab_infra_server_hostname}' already exists at $VM_DISK_PATH. Aborting to avoid overwrite.\n"
       exit 1
   fi
 
-  echo -e "✅ Lab Infra VM '${lab_infra_server_shortname}' does not exist. Ready to create.\n"
+  echo -e "✅ Lab Infra VM '${lab_infra_server_hostname}' does not exist. Ready to create.\n"
 
   lab_infra_server_mode_is_host=false
 
@@ -292,19 +296,19 @@ deploy_lab_infra_server_vm() {
     fi
   fi
 
-  echo -n -e "\n📦 Mounting ISO ${ISO_DIR}/${ISO_NAME} on /mnt/iso-for-${lab_infra_server_shortname} for VM installation . . . "
+  echo -n -e "\n📦 Mounting ISO ${ISO_DIR}/${ISO_NAME} on /mnt/iso-for-${lab_infra_server_hostname} for VM installation . . . "
 
-  sudo mkdir -p /mnt/iso-for-${lab_infra_server_shortname}
-  sudo mount -o loop "${ISO_DIR}/${ISO_NAME}" /mnt/iso-for-${lab_infra_server_shortname} &>/dev/null
+  sudo mkdir -p /mnt/iso-for-${lab_infra_server_hostname}
+  sudo mount -o loop "${ISO_DIR}/${ISO_NAME}" /mnt/iso-for-${lab_infra_server_hostname} &>/dev/null
 
-  echo -e " ✅ ISO mounted successfully on /mnt/iso-for-${lab_infra_server_shortname} .\n"
+  echo -e " ✅ ISO mounted successfully on /mnt/iso-for-${lab_infra_server_hostname} .\n"
 
   # -----------------------------
   # Kickstart file preparation
   # -----------------------------
   echo -e "\n📄 Preparing Kickstart file for unattended installation of Lab Infra VM . . .\n"
 
-  KS_FILE="${VM_DIR}/${lab_infra_server_shortname}_ks.cfg"
+  KS_FILE="${VM_DIR}/${lab_infra_server_hostname}_ks.cfg"
 
   cp -f almalinux-template-ks.cfg "${KS_FILE}" 
   sudo chown "$USER:qemu" "${KS_FILE}"
@@ -313,7 +317,7 @@ deploy_lab_infra_server_vm() {
   sed -i "s/get_ipv4_netmask/${lab_infra_server_ipv4_netmask}/g" "${KS_FILE}"
   sed -i "s/get_ipv4_gateway/${lab_infra_server_ipv4_gateway}/g" "${KS_FILE}"
   sed -i "s/get_mgmt_super_user/${lab_infra_admin_username}/g" "${KS_FILE}"
-  sed -i "s/get_infra_server_name/${lab_infra_server_shortname}/g" "${KS_FILE}"
+  sed -i "s/get_infra_server_name/${lab_infra_server_hostname}/g" "${KS_FILE}"
   sed -i "s/get_lab_infra_domain_name/${lab_infra_domain_name}/g" "${KS_FILE}"
 
   awk -v val="$lab_admin_shadow_password" '{ gsub(/get_shadow_password_super_mgmt_user/, val) } 1' \
@@ -332,21 +336,21 @@ deploy_lab_infra_server_vm() {
   # -----------------------------
   # Launch VM via virt-install
   # -----------------------------
-  echo -e "\n🚀 Buckle up! We are about to view the Infra Server VM (${lab_infra_server_shortname}) deployment from console!\n"
+  echo -e "\n🚀 Buckle up! We are about to view the Infra Server VM (${lab_infra_server_hostname}) deployment from console!\n"
   source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/select-ovmf.sh
 
   sudo virt-install \
-    --name "${lab_infra_server_shortname}" \
+    --name "${lab_infra_server_hostname}" \
     --features acpi=on,apic=on \
     --memory 2048 \
     --vcpus 2 \
-    --disk path="${VM_DIR}/${lab_infra_server_shortname}.qcow2",size=30,bus=virtio \
+    --disk path="${VM_DIR}/${lab_infra_server_hostname}.qcow2",size=30,bus=virtio \
     --disk path="$ISO_DIR/$ISO_NAME",device=cdrom,bus=sata \
     --os-variant almalinux9 \
     --network network=default,model=virtio \
     --initrd-inject="${KS_FILE}" \
-    --location "/mnt/iso-for-${lab_infra_server_shortname}" \
-    --extra-args "inst.ks=file:/${lab_infra_server_shortname}_ks.cfg inst.stage2=cdrom inst.repo=cdrom console=ttyS0 nomodeset inst.text quiet" \
+    --location "/mnt/iso-for-${lab_infra_server_hostname}" \
+    --extra-args "inst.ks=file:/${lab_infra_server_hostname}_ks.cfg inst.stage2=cdrom inst.repo=cdrom console=ttyS0 nomodeset inst.text quiet" \
     --graphics none \
     --watchdog none \
     --console pty,target_type=serial \
@@ -354,19 +358,19 @@ deploy_lab_infra_server_vm() {
     --cpu host-model \
     --boot loader=${OVMF_CODE_PATH},\
 nvram.template=${OVMF_VARS_PATH},\
-nvram="${VM_DIR}/${lab_infra_server_shortname}_VARS.fd",menu=on
+nvram="${VM_DIR}/${lab_infra_server_hostname}_VARS.fd",menu=on
 
   # -----------------------------
   # Check deployment status
   # -----------------------------
-  if sudo virsh list | grep -q "${lab_infra_server_shortname}"; then
-    echo -e "\n✅ Successfully deployed your Infra Server VM (${lab_infra_server_shortname})!\n"
+  if sudo virsh list | grep -q "${lab_infra_server_hostname}"; then
+    echo -e "\n✅ Successfully deployed your Infra Server VM (${lab_infra_server_hostname})!\n"
   else
-    echo -e "\n❌ Failed to deploy your Infra Server VM (${lab_infra_server_shortname})!\n🔍 Please check where it went wrong.\n"
+    echo -e "\n❌ Failed to deploy your Infra Server VM (${lab_infra_server_hostname})!\n🔍 Please check where it went wrong.\n"
   fi
 
   # Cleanup ISO mount
-  sudo umount -l /mnt/iso-for-${lab_infra_server_shortname} &>/dev/null
+  sudo umount -l /mnt/iso-for-${lab_infra_server_hostname} &>/dev/null
 
   exit
 }
@@ -501,7 +505,7 @@ deploy_lab_infra_server_host() {
     echo -e "✅ SELinux has been disabled.\n"
   fi
 
-  echo -e "\n✅ Successfully deployed Lab Infra Server ${lab_infra_server_shortname}.${lab_infra_domain_name} your machine )!\n"
+  echo -e "\n✅ Successfully deployed Lab Infra Server ${lab_infra_server_hostname} your machine )!\n"
   
 }
 

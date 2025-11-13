@@ -4,29 +4,7 @@
 # please open an issue at: https://github.com/Muthukumar-Subramaniam/server-hub/issues   #
 #----------------------------------------------------------------------------------------#
 
-if [[ "$EUID" -eq 0 ]]; then
-    echo -e "\n⛔ Running as root user is not allowed."
-    echo -e "\n🔐 This script should be run as a user who has sudo privileges, but *not* using sudo.\n"
-    exit 1
-fi
-
-# Check if we're inside a QEMU guest
-if sudo dmidecode -s system-manufacturer | grep -qi 'QEMU'; then
-    echo "❌❌❌  FATAL: WRONG PLACE, BUDDY! ❌❌❌"
-    echo -e "\n⚠️ Note:"
-    echo -e "  🔹 This script is meant to be run on the *host* system managing QEMU/KVM VMs."
-    echo -e "  🔹 You’re currently inside a QEMU guest VM, which makes absolutely no sense.\n"
-    echo "💥 ABORTING EXECUTION 💥"
-    exit 1
-fi
-
-LAB_ENV_VARS_FILE="/kvm-hub/lab_environment_vars"
-if [ -f "$LAB_ENV_VARS_FILE" ]; then
-    source "$LAB_ENV_VARS_FILE"
-else
-    echo -e "\n❌ Lab environment variables file not found at $LAB_ENV_VARS_FILE\n"
-    exit 1
-fi
+source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/defaults.sh
 
 # Function to show help
 fn_show_help() {
@@ -57,23 +35,7 @@ if [[ "$1" == -* ]]; then
 fi
 
 # Use first argument or prompt for hostname
-if [ -n "$1" ]; then
-    qemu_kvm_hostname="$1"
-else
-    read -rp "⌨️ Please enter the Hostname of the VM to be resized : " qemu_kvm_hostname
-    if [[ -n "${KVM_TOOL_EXECUTED_FROM:-}" && "${KVM_TOOL_EXECUTED_FROM}" == "${qemu_kvm_hostname}" ]]; then
-	echo -e "\n❌ This operation is not allowed to avoid self-referential KVM actions that could destabilize the infra server."
-    	echo -e "⚠️ Note:"
-	echo -e "  🔹 You are running a KVM management related action for the lab infra server from the infra server itself."
-	echo -e "  🔹 If you still need to perform this operation, you need to do this from the Linux workstation running the QEMU/KVM setup.\n"
-	exit 1
-    fi
-fi
-
-if [[ ! "${qemu_kvm_hostname}" =~ ^[a-z0-9-]+$ || "${qemu_kvm_hostname}" =~ ^- || "${qemu_kvm_hostname}" =~ -$ ]]; then
-    echo -e "\n❌ VM hostname '$qemu_kvm_hostname' is invalid.\n"
-    exit 1
-fi
+source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/input-hostname.sh "$1"
 
 # Check if VM exists in 'virsh list --all'
 if ! sudo virsh list --all | awk '{print $2}' | grep -Fxq "$qemu_kvm_hostname"; then
@@ -93,13 +55,13 @@ fn_shutdown_or_poweroff() {
     case "$selected_choice" in
         1)
             echo -e "\n🛑 Initiating graceful shutdown . . ."
-	        echo -e "\n🔍 Checking SSH connectivity to ${qemu_kvm_hostname}.${lab_infra_domain_name} . . ."
-            if nc -zw5 "${qemu_kvm_hostname}.${lab_infra_domain_name}" 22; then
+	        echo -e "\n🔍 Checking SSH connectivity to ${qemu_kvm_hostname} . . ."
+            if nc -zw5 "${qemu_kvm_hostname}" 22; then
                 echo -e "\n🔗 SSH connectivity seems to be fine. Initiating graceful shutdown . . .\n"
                 ssh -o LogLevel=QUIET \
                     -o StrictHostKeyChecking=no \
                     -o UserKnownHostsFile=/dev/null \
-                    "${lab_infra_admin_username}@${qemu_kvm_hostname}.${lab_infra_domain_name}" \
+                    "${lab_infra_admin_username}@${qemu_kvm_hostname}" \
                     "sudo shutdown -h now"
 
                 echo -e "\n⏳ Waiting for VM '${qemu_kvm_hostname}' to shut down . . ."
@@ -108,7 +70,7 @@ fn_shutdown_or_poweroff() {
                 done
                 echo -e "\n✅ VM has been shut down successfully, Proceeding further."
             else
-                echo -e "\n❌ SSH connection issue with ${qemu_kvm_hostname}.${lab_infra_domain_name}.\n❌ Cannot perform graceful shutdown.\n"
+                echo -e "\n❌ SSH connection issue with ${qemu_kvm_hostname}.\n❌ Cannot perform graceful shutdown.\n"
 		        exit 1
             fi
             ;;
@@ -253,7 +215,7 @@ resize_vm_disk() {
 	        echo -e "✅ VM '$qemu_kvm_hostname' is started successfully after disk resize."
 
             echo -e "\n🛠️ Attempting to re-size root file system of VM '$qemu_kvm_hostname' . . ."
-	        SSH_TARGET_HOST="${qemu_kvm_hostname}.${lab_infra_domain_name}"
+	        SSH_TARGET_HOST="${qemu_kvm_hostname}"
 	        MAX_SSH_WAIT_SECONDS=120
             SSH_RETRY_INTERVAL_SECONDS=5
             SSH_OPTS="-o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"

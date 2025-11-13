@@ -49,22 +49,7 @@ while [[ $# -gt 0 ]]; do
 done
 
 # If hostname still not set, prompt
-if [ -z "$qemu_kvm_hostname" ]; then
-    echo
-    read -p "🖥️  Please enter the hostname of the VM to be installed : " qemu_kvm_hostname
-    if [[ -n "${KVM_TOOL_EXECUTED_FROM:-}" && "${KVM_TOOL_EXECUTED_FROM}" == "${qemu_kvm_hostname}" ]]; then
-	echo -e "\n❌ This operation is not allowed to avoid self-referential KVM actions that could destabilize the infra server."
-    	echo -e "⚠️ Note:"
-	echo -e "  🔹 You are running a KVM management related action for the lab infra server from the infra server itself."
-	echo -e "  🔹 If you still need to perform this operation, you need to do this from the Linux workstation running the QEMU/KVM setup.\n"
-	exit 1
-    fi
-fi
-
-if [[ ! "${qemu_kvm_hostname}" =~ ^[a-z0-9-]+$ || "${qemu_kvm_hostname}" =~ ^- || "${qemu_kvm_hostname}" =~ -$ ]]; then
-    echo -e "\n❌ VM hostname '$qemu_kvm_hostname' is invalid.\n"
-    exit 1
-fi
+source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/input-hostname.sh "$qemu_kvm_hostname"
 
 # Check if VM exists in 'virsh list --all'
 if sudo virsh list --all | awk '{print $2}' | grep -Fxq "$qemu_kvm_hostname"; then
@@ -116,9 +101,9 @@ fi
 
 mkdir -p /kvm-hub/vms/${qemu_kvm_hostname}
 
-echo -n -e "\n📎 Updating hosts file for ${qemu_kvm_hostname}.${lab_infra_domain_name} . . . "
+echo -n -e "\n📎 Updating hosts file for ${qemu_kvm_hostname} . . . "
 
-echo "${IPV4_ADDRESS} ${qemu_kvm_hostname}.${lab_infra_domain_name} ${qemu_kvm_hostname}" | sudo tee -a /etc/hosts &>/dev/null
+echo "${IPV4_ADDRESS} ${qemu_kvm_hostname}" | sudo tee -a /etc/hosts &>/dev/null
 
 echo -e "✅"
 

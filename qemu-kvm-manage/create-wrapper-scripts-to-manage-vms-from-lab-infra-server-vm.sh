@@ -26,7 +26,7 @@ cat > "${temp_dir_to_create_wrapper_scripts}/${FILENAME}" << EOF
 #!/bin/bash
 # Who am I?
 SSH_OPTIONS="${SSH_OPTS}"
-INFRA_SERVER_NAME="\$(hostname -s)"
+INFRA_SERVER_NAME="\$(hostname -f)"
 for EACH_ARG in "\$@"; do
     if [[ "\${EACH_ARG}" == "\${INFRA_SERVER_NAME}" ]]; then
 	echo -e "\n❌ This operation is not allowed to avoid self-referential KVM actions that could destabilize the infra server."
