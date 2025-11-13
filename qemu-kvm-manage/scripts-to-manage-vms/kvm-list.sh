@@ -27,11 +27,9 @@ COLOR_YELLOW=$'\033[0;33m'
 COLOR_RED=$'\033[0;31m'
 COLOR_RESET=$'\033[0m'
 
-# Collect results in an array
 declare -a results=()
 
 for vm_name in "${vm_list[@]}"; do
-(
     current_vm_state="[ N/A ]"
     current_os_state="[ N/A ]"
     os_distro="[ N/A ]"
@@ -44,7 +42,7 @@ for vm_name in "${vm_list[@]}"; do
              source /etc/os-release 2>/dev/null && echo "$PRETTY_NAME" || echo "[ N/A ]"' \
             2>/dev/null </dev/null || true)
 
-        if [[ ! -z "$ssh_output" ]]; then
+        if [[ -n "$ssh_output" ]]; then
             current_os_state=$(echo "$ssh_output" | sed -n '1p')
             os_distro=$(echo "$ssh_output" | sed -n '2p')
         else
@@ -59,13 +57,10 @@ for vm_name in "${vm_list[@]}"; do
         *) color="$COLOR_YELLOW" ;;
     esac
 
-    echo -e "${color}${vm_name}|${current_vm_state}|${current_os_state}|${os_distro}${COLOR_RESET}"
-) &
-done | while IFS= read -r line; do results+=("$line"); done
+    results+=("${color}${vm_name}|${current_vm_state}|${current_os_state}|${os_distro}${COLOR_RESET}")
+done
 
-wait
-
-# Extract max column widths (strip color codes for length calc)
+# Compute dynamic widths
 max_vm=8; max_vmstate=8; max_osstate=8; max_osdistro=9
 for entry in "${results[@]}"; do
     clean=$(echo "$entry" | sed 's/\x1b\[[0-9;]*m//g')
@@ -76,16 +71,17 @@ for entry in "${results[@]}"; do
     (( ${#distro} > max_osdistro )) && max_osdistro=${#distro}
 done
 
-# Print header dynamically
-printf "%-${max_vm}s %-${max_vmstate}s %-${max_osstate}s %-${max_osdistro}s\n" "VM-Name" "VM-State" "OS-State" "OS-Distro"
+# Header
+printf "%-${max_vm}s %-${max_vmstate}s %-${max_osstate}s %-${max_osdistro}s\n" \
+    "VM-Name" "VM-State" "OS-State" "OS-Distro"
 printf -- '-%.0s' $(seq 1 $((max_vm + max_vmstate + max_osstate + max_osdistro + 3)))
 echo
 
-# Print rows sorted: running first
-{
-    for entry in "${results[@]}"; do
-        echo "$entry"
-    done | sort -t'|' -k2
-} | while IFS='|' read -r vm state os distro; do
-    printf "%-${max_vm}s %-${max_vmstate}s %-${max_osstate}s %-${max_osdistro}s\n" "$vm" "$state" "$os" "$distro"
-done
+# Output sorted by VM-State (running first)
+for entry in "${results[@]}"; do
+    clean=$(echo "$entry" | sed 's/\x1b\[[0-9;]*m//g')
+    IFS='|' read -r vm state os distro <<< "$clean"
+    printf "%-${max_vm}s %-${max_vmstate}s %-${max_osstate}s %-${max_osdistro}s\n" \
+        "$vm" "$state" "$os" "$distro"
+done | sort -k2,2r
+
