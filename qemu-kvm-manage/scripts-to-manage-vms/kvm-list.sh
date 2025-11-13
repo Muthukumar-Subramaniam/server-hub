@@ -91,11 +91,15 @@ echo
 # ────────────────────────────────────────────────────────────────
 # Sort and print with colors
 # ────────────────────────────────────────────────────────────────
-# Sorting by VM-State (running first), using clean_results as key reference
+# Assign sort weight: running = 1, everything else = 2
 sorted_indices=($(for i in "${!clean_results[@]}"; do
     IFS='|' read -r vm state _ <<< "${clean_results[$i]}"
-    printf "%s %s\n" "$i" "$state"
-done | sort -k2,2r | awk '{print $1}'))
+    case "$state" in
+        running) weight=1 ;;
+        *) weight=2 ;;
+    esac
+    printf "%d %s %s\n" "$weight" "$vm" "$i"
+done | sort -k1,1n -k2,2 | awk '{print $3}'))
 
 for idx in "${sorted_indices[@]}"; do
     raw="${results[$idx]}"
