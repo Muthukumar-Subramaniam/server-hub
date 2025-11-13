@@ -14,7 +14,7 @@ fi
 
 # Validate and normalize hostname to FQDN
 if [[ "${qemu_kvm_hostname}" == *.${lab_infra_domain_name} ]]; then
-	local stripped_hostname="${qemu_kvm_hostname%.${lab_infra_domain_name}}"
+	stripped_hostname="${qemu_kvm_hostname%.${lab_infra_domain_name}}"
 	# Verify the stripped part doesn't contain dots (ensure it's just hostname.domain, not host.something.domain)
 	if [[ "${stripped_hostname}" == *.* ]]; then
 		echo -e "\n❌ Invalid hostname!\n   🔹 If providing a domain, use format: hostname.${lab_infra_domain_name}\n"
