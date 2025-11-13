@@ -11,9 +11,9 @@ temp_dir_to_create_wrapper_scripts="/tmp/scripts-to-manage-vms"
 SSH_OPTS="-o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
 
 echo -n "[STEP] Authorize SSH public key of infra server VM . . . "
-get_user_host_ssh_pub_key=$(ssh ${SSH_OPTS} ${lab_infra_admin_username}@${lab_infra_server_ipv4_address} "cat .ssh/id_rsa.pub" | cut -d " " -f3)
+get_user_host_ssh_pub_key=$(ssh ${SSH_OPTS} ${lab_infra_admin_username}@${lab_infra_server_ipv4_address} "cat .ssh/kvm_lab_global_id_rsa.pub" | cut -d " " -f3)
 if ! grep -q "${get_user_host_ssh_pub_key}" ~/.ssh/authorized_keys; then
-	ssh ${SSH_OPTS} ${lab_infra_admin_username}@${lab_infra_server_ipv4_address} "cat .ssh/id_rsa.pub" >> ~/.ssh/authorized_keys
+	ssh ${SSH_OPTS} ${lab_infra_admin_username}@${lab_infra_server_ipv4_address} "cat .ssh/kvm_lab_global_id_rsa.pub" >> ~/.ssh/authorized_keys
 fi
 echo "[ok]"
 
