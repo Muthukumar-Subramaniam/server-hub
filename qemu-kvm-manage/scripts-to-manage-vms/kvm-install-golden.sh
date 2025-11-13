@@ -107,17 +107,17 @@ echo "${IPV4_ADDRESS} ${qemu_kvm_hostname}" | sudo tee -a /etc/hosts &>/dev/null
 
 echo -e "✅"
 
-if [ ! -f /kvm-hub/golden-images-disk-store/${OS_DISTRO}-golden-image.qcow2 ]; then
+if [ ! -f /kvm-hub/golden-images-disk-store/${OS_DISTRO}-golden-image.${lab_infra_domain_name}.qcow2 ]; then
 	echo -e "\n🚫 Golden Image Disk Not Found ! "
-	echo -e "➡️  Expected at: /kvm-hub/golden-images-disk-store/${OS_DISTRO}-golden-image.qcow2"
+	echo -e "➡️  Expected at: /kvm-hub/golden-images-disk-store/${OS_DISTRO}-golden-image.${lab_infra_domain_name}.qcow2"
 	echo -e "🛠️ To build the golden image disk, run: \e[1;32mkvm-build-golden-qcow2-disk\e[0m\n"
 	exit
 fi
 
-echo -n -e "\n🚀 Clone golden image disk /kvm-hub/golden-images-disk-store/${OS_DISTRO}-golden-image.qcow2 to install '${qemu_kvm_hostname}' . . . "
+echo -n -e "\n🚀 Clone golden image disk /kvm-hub/golden-images-disk-store/${OS_DISTRO}-golden-image.${lab_infra_domain_name}.qcow2 to install '${qemu_kvm_hostname}' . . . "
 
 sudo qemu-img convert -O qcow2 \
-  /kvm-hub/golden-images-disk-store/${OS_DISTRO}-golden-image.qcow2 \
+  /kvm-hub/golden-images-disk-store/${OS_DISTRO}-golden-image.${lab_infra_domain_name}.qcow2 \
   /kvm-hub/vms/${qemu_kvm_hostname}/${qemu_kvm_hostname}.qcow2
 
 echo -e "✅"
