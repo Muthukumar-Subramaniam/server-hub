@@ -29,6 +29,9 @@ COLOR_RESET=$'\033[0m'
 
 declare -a results=()
 
+# ────────────────────────────────────────────────────────────────
+# Collect data
+# ────────────────────────────────────────────────────────────────
 for vm_name in "${vm_list[@]}"; do
     current_vm_state="[ N/A ]"
     current_os_state="[ N/A ]"
@@ -51,6 +54,7 @@ for vm_name in "${vm_list[@]}"; do
         fi
     fi
 
+    # Color by health
     case "$current_os_state" in
         running) current_os_state="healthy"; color="$COLOR_GREEN" ;;
         "[ N/A ]") color="$COLOR_RED" ;;
@@ -60,10 +64,15 @@ for vm_name in "${vm_list[@]}"; do
     results+=("${color}${vm_name}|${current_vm_state}|${current_os_state}|${os_distro}${COLOR_RESET}")
 done
 
-# Compute dynamic widths
+# ────────────────────────────────────────────────────────────────
+# Determine max column widths (strip colors for length)
+# ────────────────────────────────────────────────────────────────
 max_vm=8; max_vmstate=8; max_osstate=8; max_osdistro=9
+declare -a clean_results=()
+
 for entry in "${results[@]}"; do
     clean=$(echo "$entry" | sed 's/\x1b\[[0-9;]*m//g')
+    clean_results+=("$clean")
     IFS='|' read -r vm state os distro <<< "$clean"
     (( ${#vm} > max_vm )) && max_vm=${#vm}
     (( ${#state} > max_vmstate )) && max_vmstate=${#state}
@@ -71,17 +80,29 @@ for entry in "${results[@]}"; do
     (( ${#distro} > max_osdistro )) && max_osdistro=${#distro}
 done
 
-# Header
+# ────────────────────────────────────────────────────────────────
+# Print header
+# ────────────────────────────────────────────────────────────────
 printf "%-${max_vm}s %-${max_vmstate}s %-${max_osstate}s %-${max_osdistro}s\n" \
     "VM-Name" "VM-State" "OS-State" "OS-Distro"
 printf -- '-%.0s' $(seq 1 $((max_vm + max_vmstate + max_osstate + max_osdistro + 3)))
 echo
 
-# Output sorted by VM-State (running first)
-for entry in "${results[@]}"; do
-    clean=$(echo "$entry" | sed 's/\x1b\[[0-9;]*m//g')
-    IFS='|' read -r vm state os distro <<< "$clean"
-    printf "%-${max_vm}s %-${max_vmstate}s %-${max_osstate}s %-${max_osdistro}s\n" \
-        "$vm" "$state" "$os" "$distro"
-done | sort -k2,2r
+# ────────────────────────────────────────────────────────────────
+# Sort and print with colors
+# ────────────────────────────────────────────────────────────────
+# Sorting by VM-State (running first), using clean_results as key reference
+sorted_indices=($(for i in "${!clean_results[@]}"; do
+    IFS='|' read -r vm state _ <<< "${clean_results[$i]}"
+    printf "%s %s\n" "$i" "$state"
+done | sort -k2,2r | awk '{print $1}'))
 
+for idx in "${sorted_indices[@]}"; do
+    raw="${results[$idx]}"
+    clean="${clean_results[$idx]}"
+    IFS='|' read -r vm state os distro <<< "$clean"
+    color_line=$(echo "$raw" | grep -oP '^\x1b\[[0-9;]*m')
+    reset_line=$COLOR_RESET
+    printf "%s%-${max_vm}s %- ${max_vmstate}s %- ${max_osstate}s %- ${max_osdistro}s%s\n" \
+        "$color_line" "$vm" "$state" "$os" "$distro" "$reset_line"
+done
