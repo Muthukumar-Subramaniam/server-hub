@@ -67,7 +67,9 @@ sudo virsh undefine "${qemu_kvm_hostname}" --nvram 2>/dev/null
 if [ -n "${qemu_kvm_hostname}" ]; then
     sudo rm -rf "/kvm-hub/vms/${qemu_kvm_hostname}"
 fi
-dot_escaped_domain=$(echo "$lab_infra_domain_name" | sed 's/\./\\./g')
-sudo sed -i "/[[:space:]]${qemu_kvm_hostname}\.${dot_escaped_domain}[[:space:]]/d" "${ETC_HOSTS_FILE}"
+
+if grep -q "${qemu_kvm_hostname}" "${ETC_HOSTS_FILE}"; then
+    sudo sed -i.bak "/${qemu_kvm_hostname}/d" "${ETC_HOSTS_FILE}"
+fi
 
 echo -e "✅ VM \"$qemu_kvm_hostname\" deleted successfully. \n"

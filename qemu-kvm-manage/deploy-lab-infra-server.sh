@@ -230,7 +230,7 @@ EOF
   echo -n -e "\n📎 Updating /etc/hosts for ${lab_infra_server_hostname} . . . "
 
   # Remove any existing entry
-  sudo sed -i "/${lab_infra_server_hostname}/d" /etc/hosts 
+  sudo sed -i.bak "/${lab_infra_server_hostname}/d" /etc/hosts 
 
   # Add new entry
   echo "${lab_infra_server_ipv4_address} ${lab_infra_server_hostname}" | sudo tee -a /etc/hosts &>/dev/null

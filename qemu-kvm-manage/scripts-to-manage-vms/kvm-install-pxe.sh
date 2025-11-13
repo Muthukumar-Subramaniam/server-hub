@@ -83,7 +83,14 @@ mkdir -p /kvm-hub/vms/${qemu_kvm_hostname}
 
 echo -n -e "\n📎 Updating hosts file for ${qemu_kvm_hostname} . . . "
 
-echo "${IPV4_ADDRESS} ${qemu_kvm_hostname}" | sudo tee -a /etc/hosts &>/dev/null
+if grep -q "${qemu_kvm_hostname}" /etc/hosts; then
+    HOST_FILE_IPV4=$( grep "${qemu_kvm_hostname}" /etc/hosts | awk '{print $1}' )
+    if [ "${HOST_FILE_IPV4}" != "${IPV4_ADDRESS}" ]; then
+        sudo sed -i.bak "/${qemu_kvm_hostname}/s/.*/${IPV4_ADDRESS} ${qemu_kvm_hostname}/" /etc/hosts
+    fi
+else
+    echo "${IPV4_ADDRESS} ${qemu_kvm_hostname}" | sudo tee -a /etc/hosts &>/dev/null
+fi
 
 echo -e "✅"
 
