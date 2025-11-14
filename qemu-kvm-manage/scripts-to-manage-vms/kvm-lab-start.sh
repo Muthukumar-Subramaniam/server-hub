@@ -28,7 +28,7 @@ when_lab_infra_server_is_host() {
     local lab_essential_services=("kea-dhcp4" "nfs-server" "nginx" "tftp.socket")
     
     # ====== CLEANUP ON EXIT ======
-    trap 'red "⚠️  Script interrupted or failed!"' ERR SIGINT
+    trap 'red "⚠️  Script interrupted!"' SIGINT
 
     # ====== STEP 1: Check and start libvirtd if needed ======
     if sudo systemctl is-active --quiet libvirtd; then
@@ -145,7 +145,7 @@ when_lab_infra_server_is_host() {
 
 when_lab_infra_server_is_vm() {
     # ====== CLEANUP ON EXIT ======
-    trap 'red "⚠️  Script interrupted or failed!"' ERR SIGINT
+    trap 'red "⚠️  Script interrupted!"' SIGINT
 
     # ====== STEP 1: Check and start libvirtd if needed ======
     if sudo systemctl is-active --quiet libvirtd; then
