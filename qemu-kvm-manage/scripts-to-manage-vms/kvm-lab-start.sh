@@ -133,7 +133,7 @@ when_lab_infra_server_is_host() {
     done
     echo
 
-    # ====== STEP 6: Configure DNS for labbr0 ======
+    # ====== STEP 9: Configure DNS for labbr0 ======
     configure_dns_for_bridge || return 1
     echo
 
@@ -272,16 +272,6 @@ when_lab_infra_server_is_vm() {
         else
             red "  ❌ $service_name [ $service_port/$service_proto ]"
             ((inactive_services++))
-            all_services_active=false
-        fi
-    done
-    echo
-
-    # ====== STEP 6: Configure DNS for labbr0 ======
-    configure_dns_for_bridge || return 1
-    echo
-
-    ((inactive_services++))
             all_services_active=false
         fi
     done
