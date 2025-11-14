@@ -225,20 +225,6 @@ when_lab_infra_server_is_vm() {
     [ $ssh_check_elapsed -gt 0 ] && echo
     
     if [[ "$vm_is_ssh_accessible" != "true" ]]; then
-    
-    while [[ $ssh_check_elapsed -lt $ssh_check_timeout ]]; do
-        if ssh $ssh_connection_options "${lab_infra_admin_username}@${lab_infra_server_hostname}" \
-           'systemctl is-system-running' >/dev/null 2>&1 </dev/null; then
-            vm_is_ssh_accessible=true
-            break
-        fi
-        sleep "$ssh_check_interval"
-        ssh_check_elapsed=$((ssh_check_elapsed + ssh_check_interval))
-        echo -n "." 2>&1
-    done
-    [ $ssh_check_elapsed -gt 0 ] && echo
-    
-    if [[ "$vm_is_ssh_accessible" != "true" ]]; then
         red "❌ Lab infra server VM did not become SSH accessible within ${ssh_check_timeout} seconds"
         return 1
     fi
