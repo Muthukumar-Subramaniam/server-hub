@@ -131,9 +131,11 @@ when_lab_infra_server_is_host() {
             all_services_active=false
         fi
     done
+    echo
 
-    # ====== STEP 9: Configure DNS for labbr0 ======
+    # ====== STEP 6: Configure DNS for labbr0 ======
     configure_dns_for_bridge || return 1
+    echo
 
     if $all_services_active; then
         green "🎉 kvm lab infra is started, and all essential services are live."
@@ -158,6 +160,7 @@ when_lab_infra_server_is_vm() {
         fi
         green "✅ libvirtd started successfully"
     fi
+    echo
     
     # ====== STEP 2: Wait for labbr0 ======
     yellow "⏳ Waiting for $lab_bridge_interface_name to be created..."
@@ -174,6 +177,7 @@ when_lab_infra_server_is_vm() {
     done
     echo
     green "✅ $lab_bridge_interface_name detected!"
+    echo
     
     # ====== STEP 3: Check and start lab infra server VM ======
     yellow "🔍 Checking lab infra server VM status..."
@@ -189,6 +193,7 @@ when_lab_infra_server_is_vm() {
             return 1
         fi
     fi
+    echo
 
     # ====== STEP 4: Wait for lab infra server VM to be SSH accessible ======
     yellow "⏳ Waiting for lab infra server VM to become SSH accessible..."
@@ -217,7 +222,21 @@ when_lab_infra_server_is_vm() {
         ssh_check_elapsed=$((ssh_check_elapsed + ssh_check_interval))
         echo -n "."
     done
-    echo
+    [ $ssh_check_elapsed -gt 0 ] && echo
+    
+    if [[ "$vm_is_ssh_accessible" != "true" ]]; then
+    
+    while [[ $ssh_check_elapsed -lt $ssh_check_timeout ]]; do
+        if ssh $ssh_connection_options "${lab_infra_admin_username}@${lab_infra_server_hostname}" \
+           'systemctl is-system-running' >/dev/null 2>&1 </dev/null; then
+            vm_is_ssh_accessible=true
+            break
+        fi
+        sleep "$ssh_check_interval"
+        ssh_check_elapsed=$((ssh_check_elapsed + ssh_check_interval))
+        echo -n "." 2>&1
+    done
+    [ $ssh_check_elapsed -gt 0 ] && echo
     
     if [[ "$vm_is_ssh_accessible" != "true" ]]; then
         red "❌ Lab infra server VM did not become SSH accessible within ${ssh_check_timeout} seconds"
@@ -225,6 +244,7 @@ when_lab_infra_server_is_vm() {
     fi
     
     green "✅ Lab infra server VM is SSH accessible"
+    echo
 
     # ====== STEP 5: Check essential services connectivity ======
     yellow "🔍 Checking essential services connectivity..."
@@ -269,9 +289,21 @@ when_lab_infra_server_is_vm() {
             all_services_active=false
         fi
     done
+    echo
 
     # ====== STEP 6: Configure DNS for labbr0 ======
     configure_dns_for_bridge || return 1
+    echo
+
+    ((inactive_services++))
+            all_services_active=false
+        fi
+    done
+    echo
+
+    # ====== STEP 6: Configure DNS for labbr0 ======
+    configure_dns_for_bridge || return 1
+    echo
 
     if $all_services_active; then
         green "🎉 kvm lab infra is started, and all essential services are live."
