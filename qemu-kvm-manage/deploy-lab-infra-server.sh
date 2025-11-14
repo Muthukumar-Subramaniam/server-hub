@@ -211,13 +211,37 @@ prepare_lab_infra_config() {
 
   # Update SSH Custom Config
   echo -n -e "\n📎 Updating SSH Custom Config for '${lab_infra_domain_name}' domain to assist with future SSH logins . . . "
+  # Split IP address
+  IFS='.' read -r lab_infra_ipv4_octet1 lab_infra_ipv4_octet2 lab_infra_ipv4_octet3 lab_infra_ipv4_octet4 <<< "$lab_infra_server_ipv4_address"
+  # Split Netmask
+  IFS='.' read -r lab_infra_mask_octet1 lab_infra_mask_octet2 lab_infra_mask_octet3 lab_infra_mask_octet4 <<< "$lab_infra_server_ipv4_netmask"
+
+  # Calculate the subnet span for the third octet
+  # Example: netmask 255.255.252.0 → mask_octet3=252 → span = 255 - 252 = 3
+  subnet_span=$((255 - lab_infra_mask_octet3))
+
+  # Calculate the starting subnet
+  starting_subnet_octet=$((lab_infra_ipv4_octet3 & lab_infra_mask_octet3))
+
+  # Calculate the final subnet
+  ending_subnet_octet=$((starting_subnet_octet | subnet_span))
+
+  # Build allowed subnet list
+  subnets_to_allow_ssh_pub_access=""
+
+  for subnet_octet in $(seq "$starting_subnet_octet" "$ending_subnet_octet"); do
+    subnets_to_allow_ssh_pub_access+=" ${lab_infra_ipv4_octet1}.${lab_infra_ipv4_octet2}.$subnet_octet.*"
+  done
+
+  # Trim leading space
+  subnets_to_allow_ssh_pub_access="${subnets_to_allow_ssh_pub_access# }"
 
   SSH_CUSTOM_CONFIG_FILE="$HOME/.ssh/config.custom"
   [[ ! -f "$SSH_CUSTOM_CONFIG_FILE" ]] && touch "$SSH_CUSTOM_CONFIG_FILE"
 
   if ! grep -q "$lab_infra_domain_name" "$SSH_CUSTOM_CONFIG_FILE"; then
     cat <<EOF >> "$SSH_CUSTOM_CONFIG_FILE"
-Host *.${lab_infra_domain_name} ${lab_infra_server_ipv4_address}
+Host *.${lab_infra_domain_name} ${lab_infra_server_ipv4_address} ${subnets_to_allow_ssh_pub_access}
     IdentityFile ${SSH_PRIVATE_KEY_FILE}
     StrictHostKeyChecking no
     UserKnownHostsFile /dev/null
@@ -319,6 +343,7 @@ deploy_lab_infra_server_vm() {
   sed -i "s/get_mgmt_super_user/${lab_infra_admin_username}/g" "${KS_FILE}"
   sed -i "s/get_infra_server_name/${lab_infra_server_hostname}/g" "${KS_FILE}"
   sed -i "s/get_lab_infra_domain_name/${lab_infra_domain_name}/g" "${KS_FILE}"
+  sed -i "s/get_subnets_to_allow_ssh_pub_access/${subnets_to_allow_ssh_pub_access}/g" "${KS_FILE}"
 
   awk -v val="$lab_admin_shadow_password" '{ gsub(/get_shadow_password_super_mgmt_user/, val) } 1' \
       "${KS_FILE}" > "${KS_FILE}"_tmp_ksmanager && mv "${KS_FILE}"_tmp_ksmanager "${KS_FILE}"

@@ -49,6 +49,11 @@ if [ -d "/kvm-hub" ]; then
 		shadow_password_super_mgmt_user=$lab_admin_shadow_password
 	fi
 fi
+subnets_to_allow_ssh_pub_access=""
+for i in $(seq ${dnsbinder_first24_subnet##*.} ${dnsbinder_last24_subnet##*.}); do
+    subnets_to_allow_ssh_pub_access+=" ${dnsbinder_first24_subnet%.*}.$i.*"
+done
+subnets_to_allow_ssh_pub_access="${subnets_to_allow_ssh_pub_access# }"
 
 mkdir -p "${ksmanager_hub_dir}"
 mkdir -p "${ipxe_web_dir}"
@@ -469,6 +474,7 @@ fn_set_environment() {
 		sed -i "s/get_whether_vga_console_is_required/${whether_vga_console_is_required}/g" "${working_file}"
 	 	sed -i "s/get_golden_image_creation_not_requested/$golden_image_creation_not_requested/g" "${working_file}"
 	 	sed -i "s/get_redhat_based_distro_name/$redhat_based_distro_name/g" "${working_file}"
+	 	sed -i "s/get_subnets_to_allow_ssh_pub_access/${subnets_to_allow_ssh_pub_access}/g" "${working_file}"
 
 		awk -v val="$shadow_password_super_mgmt_user" '
 		{
