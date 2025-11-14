@@ -287,7 +287,7 @@ echo "=============================================================="
 echo "KVM Lab Infrastructure Startup"
 echo "=============================================================="
 
-if $lab_infra_server_is_host; then
+if $lab_infra_server_mode_is_host; then
     yellow "📍 Lab Infra Server Mode: HOST"
     echo "--------------------------------------------------------------"
     when_lab_infra_server_is_host
