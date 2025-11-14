@@ -182,7 +182,7 @@ when_lab_infra_server_is_vm() {
         green "✅ Lab infra server VM ($lab_infra_server_hostname) is already running"
     else
         yellow "⚙️  Lab infra server VM ($lab_infra_server_hostname) is not running. Starting..."
-        if sudo virsh start "$lab_infra_server_hostname" 2>/dev/null; then
+        if sudo virsh start "$lab_infra_server_hostname" >/dev/null 2>&1; then
             green "✅ Lab infra server VM started successfully"
         else
             red "❌ Failed to start lab infra server VM"
