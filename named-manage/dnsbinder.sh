@@ -261,8 +261,8 @@ fn_configure_named_dns_server() {
 	print_notify "\nFetching network information from the system . . . "  "nskip"
 
 	if $KVM_HOST_MODE_SET; then
-		source /kvm-hub/lab-environment-vars
-		v_dns_host_short_name=$lab_infra_server_shortname
+		source /kvm-hub/lab_environment_vars
+		v_dns_host_short_name="${lab_infra_server_hostname%%.*}"
 		v_primary_interface='labbr0'
 		v_primary_ip=$lab_infra_server_ipv4_address
 		v_network_gateway=$lab_infra_server_ipv4_gateway
@@ -305,7 +305,7 @@ fn_configure_named_dns_server() {
 
 	print_notify "\nConfiguring named.conf . . . " "nskip"
 
-	if KVM_HOST_MODE_SET; then
+	if $KVM_HOST_MODE_SET; then
 		sed -i "s/listen-on port 53 {\s*127.0.0.1;\s*};/listen-on port 53 { ${v_primary_ip}; };/" /etc/named.conf
 	else
 		sed -i "s/listen-on port 53 {\s*127.0.0.1;\s*};/listen-on port 53 { 127.0.0.1; ${v_primary_ip}; };/" /etc/named.conf
@@ -481,7 +481,7 @@ EOF
 			print_notify "\nUpdating systemd-resolvd to point the local dns server and domain . . . " "nskip"
 			if command -v resolvectl &>/dev/null; then
   				resolvectl dns labbr0 "$v_primary_ip"
-  				resolvectl domain labbr0 "~$v_given_domain"
+  				resolvectl domain labbr0 "$v_given_domain"
 			fi
 		fi
 	fi

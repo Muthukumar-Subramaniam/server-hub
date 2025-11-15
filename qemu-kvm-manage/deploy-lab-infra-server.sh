@@ -418,6 +418,74 @@ deploy_lab_infra_server_host() {
     fi
   fi
 
+    # ====== CONFIGURATION ======
+    local lab_bridge_dummy_interface_name="dummy-vnet"
+    local lab_bridge_interface_name="labbr0"
+
+    # ====== Check and start libvirtd if needed ======
+    if sudo systemctl is-active --quiet libvirtd; then
+        echo "✅ libvirtd is already running"
+    else
+        echo "🔁 Starting libvirtd..."
+        if ! sudo systemctl restart libvirtd; then
+            echo "❌ Failed to start libvirtd"
+            exit 1
+        fi
+        echo "✅ libvirtd started successfully"
+    fi
+    
+    # ====== Wait for labbr0 ======
+    echo "⏳ Waiting for $lab_bridge_interface_name to be created..."
+    local bridge_creation_timeout_seconds=30
+    local bridge_creation_elapsed_seconds=0
+    until ip link show "$lab_bridge_interface_name" &>/dev/null; do
+        if [ $bridge_creation_elapsed_seconds -ge $bridge_creation_timeout_seconds ]; then
+            echo "❌ Timeout waiting for $lab_bridge_interface_name"
+            exit 1
+        fi
+        printf "."
+        sleep 1
+        bridge_creation_elapsed_seconds=$((bridge_creation_elapsed_seconds + 1))
+    done
+    echo
+    echo "✅ $lab_bridge_interface_name detected!"
+    
+    # ====== Create dummy link if missing ======
+    if ! ip link show "$lab_bridge_dummy_interface_name" &>/dev/null; then
+        echo "🧱 Creating dummy interface $lab_bridge_dummy_interface_name to keep $lab_bridge_interface_name always up..."
+        sudo ip link add name "$lab_bridge_dummy_interface_name" type dummy || { red "❌ Failed to create dummy interface"; return 1; }
+        sudo ip link set "$lab_bridge_dummy_interface_name" master "$lab_bridge_interface_name" || { red "❌ Failed to attach dummy to bridge"; return 1; }
+        sudo ip link set "$lab_bridge_dummy_interface_name" up || { red "❌ Failed to bring up dummy interface"; return 1; }
+        echo "✅ Dummy interface created and attached"
+    else
+        echo "ℹ️  Dummy interface $lab_bridge_dummy_interface_name already exists."
+    fi
+    
+    # ====== Wait for labbr0 to come up ======    # ====== CLEANUP ON EXIT ======
+    echo "⏳ Waiting for $lab_bridge_interface_name to come UP..."
+    local bridge_up_timeout_seconds=30
+    local bridge_up_elapsed_seconds=0
+    while [[ "$(cat /sys/class/net/$lab_bridge_interface_name/operstate 2>/dev/null)" != "up" ]]; do
+        if [ $bridge_up_elapsed_seconds -ge $bridge_up_timeout_seconds ]; then
+            echo "❌ Timeout waiting for $lab_bridge_interface_name to come up"
+            exit 1
+        fi
+        printf "."
+        sleep 1
+        bridge_up_elapsed_seconds=$((bridge_up_elapsed_seconds + 1))
+    done
+    echo
+    echo "✅ $lab_bridge_interface_name is UP and running!"
+    
+    # ====== STEP 5: Assign IP address ======
+    echo "🌐 Configuring IP ${lab_infra_server_ipv4_address} netmask ${lab_infra_server_ipv4_netmask} on $lab_bridge_interface_name..."
+    # Add the secondary IP address with netmask
+    if sudo ip addr add "${lab_infra_server_ipv4_address}/${lab_infra_server_ipv4_netmask}" dev "$lab_bridge_interface_name" 2>/dev/null; then
+        echo "✅ IP address assigned successfully"
+    else
+        echo "ℹ️  IP address may already be assigned"
+    fi
+
   # -----------------------------
   # Install required packages
   # -----------------------------
@@ -482,7 +550,17 @@ deploy_lab_infra_server_host() {
   sudo cp -p /etc/environment /root/environment_bkp_$(date +%F)
 
   # Reload environment to include new variables
-  source /etc/environment
+  # Export all variables from /etc/environment
+  if [ -f /etc/environment ]; then
+    while IFS='=' read -r key value; do
+        # Ignore empty lines or lines without '='
+        [[ -z "$key" || -z "$value" ]] && continue
+        # Remove quotes around value
+        value="${value%\"}"
+        value="${value#\"}"
+        export "$key=$value"
+    done < /etc/environment
+  fi
 
   echo -e "\n🌐 Reserving DNS Records for DHCP lease . . .\n"
 
@@ -516,19 +594,6 @@ deploy_lab_infra_server_host() {
 
   # Run ansible-playbook that congigures the essential services
   ansible-playbook /server-hub/build-almalinux-server/build-server.yaml
-  
-    echo -e "\n🧩 Checking SELinux status . . .\n"
-
-  if sestatus 2>/dev/null | grep -q "disabled"; then
-    echo -e "✅ SELinux is already disabled.\n"
-  else
-    echo -e "⚙️  Disabling SELinux for current boot and persistently . . .\n"
-    # Disable for current boot
-    sudo setenforce 0 2>/dev/null || true
-    # Disable for all future boots
-    sudo grubby --update-kernel ALL --args selinux=0
-    echo -e "✅ SELinux has been disabled.\n"
-  fi
 
   echo -e "\n✅ Successfully deployed Lab Infra Server ${lab_infra_server_hostname} your machine )!\n"
   
