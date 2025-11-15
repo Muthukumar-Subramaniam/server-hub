@@ -4,4 +4,5 @@
   <forward mode='nat'/>
   <ip address='10.10.20.1' netmask='255.255.252.0'>
   </ip>
+  <dns enable='no'/>
 </network>
