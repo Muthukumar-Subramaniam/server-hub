@@ -222,7 +222,7 @@ prepare_lab_infra_config() {
   echo -e "   🔹 Lab Infra Server IPv4 Address : \033[1m${lab_infra_server_ipv4_address}\033[0m\n"
 
   # Update SSH Custom Config
-  echo -n -e "\n📎 Updating SSH Custom Config for '${lab_infra_domain_name}' domain to assist with future SSH logins . . . "
+  echo -n -e "\n📎 Creating SSH Custom Config for '${lab_infra_domain_name}' domain to assist with future SSH logins . . . "
   # Split IP address
   IFS='.' read -r lab_infra_ipv4_octet1 lab_infra_ipv4_octet2 lab_infra_ipv4_octet3 lab_infra_ipv4_octet4 <<< "$lab_infra_server_ipv4_address"
   # Split Netmask
@@ -248,20 +248,20 @@ prepare_lab_infra_config() {
   # Trim leading space
   subnets_to_allow_ssh_pub_access="${subnets_to_allow_ssh_pub_access# }"
 
-  SSH_CUSTOM_CONFIG_FILE="$HOME/.ssh/config.custom"
-  [[ ! -f "$SSH_CUSTOM_CONFIG_FILE" ]] && touch "$SSH_CUSTOM_CONFIG_FILE"
+  # Create SSH config directory if it doesn't exist
+  sudo mkdir -p /etc/ssh/ssh_config.d
 
-  if ! grep -q "$lab_infra_domain_name" "$SSH_CUSTOM_CONFIG_FILE"; then
-    cat <<EOF >> "$SSH_CUSTOM_CONFIG_FILE"
+  # Write SSH custom config
+  SSH_CUSTOM_CONFIG_FILE="/etc/ssh/ssh_config.d/999-kvm-lab-global.conf"
+  sudo tee "$SSH_CUSTOM_CONFIG_FILE" &>/dev/null <<EOF
 Host *.${lab_infra_domain_name} ${lab_infra_server_ipv4_address} ${subnets_to_allow_ssh_pub_access}
-    IdentityFile ${SSH_PRIVATE_KEY_FILE}
+    IdentityFile ~/.ssh/kvm_lab_global_id_rsa
     StrictHostKeyChecking no
     UserKnownHostsFile /dev/null
     LogLevel QUIET
 EOF
-  fi
 
-  echo -e " ✅ SSH Custom Config updated.\n"
+  echo -e " ✅ SSH Custom Config created.\n"
 
   echo -n -e "\n📎 Updating /etc/hosts for ${lab_infra_server_hostname} . . . "
 
