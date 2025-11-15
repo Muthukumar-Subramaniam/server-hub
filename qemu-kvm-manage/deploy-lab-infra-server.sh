@@ -190,6 +190,18 @@ prepare_lab_infra_config() {
   lab_infra_ssh_public_key=$(<"$SSH_PUB_KEY_FILE")
   lab_infra_ssh_private_key=$(<"$SSH_PRIVATE_KEY_FILE")
 
+  # Update authorized_keys for current user
+  echo -e "\n📂 Ensuring KVM Lab Infra SSH public key is in authorized_keys of user '${lab_infra_admin_username}' . . . "
+  AUTHORIZED_KEYS_FILE="$SSH_DIR/authorized_keys"
+  touch "$AUTHORIZED_KEYS_FILE"
+  chmod 600 "$AUTHORIZED_KEYS_FILE"
+  if ! grep -qF "$lab_infra_ssh_public_key" "$AUTHORIZED_KEYS_FILE"; then
+      echo "$lab_infra_ssh_public_key" >> "$AUTHORIZED_KEYS_FILE"
+      echo -e " ✅ KVM Lab Infra SSH public key added to authorized_keys.\n"
+  else
+      echo -e " ✅ KVM Lab Infra SSH public key already present in authorized_keys.\n"
+  fi
+
   # Print confirmation
   echo -e "\n✅ Lab Infra SSH public key is ready for user \033[1m${lab_infra_admin_username}\033[0m on domain \033[1m${lab_infra_domain_name}\033[0m:\n\033[1m${lab_infra_ssh_public_key}\033[0m\n"
 

@@ -44,8 +44,8 @@ ksmanager_hub_dir="/${web_server_name}.${ipv4_domain}/ksmanager-hub"
 ipxe_web_dir="/${web_server_name}.${ipv4_domain}/ipxe"
 shadow_password_super_mgmt_user=$(grep "${mgmt_super_user}" /etc/shadow | cut -d ":" -f 2)
 if [ -d "/kvm-hub" ]; then
-	if [ -f "/kvm-hub/lab-environment-vars" ]; then
-		source /kvm-hub/lab-environment-vars
+	if [ -f "/kvm-hub/lab_environment_vars" ]; then
+		source /kvm-hub/lab_environment_vars
 		shadow_password_super_mgmt_user=$lab_admin_shadow_password
 	fi
 fi
