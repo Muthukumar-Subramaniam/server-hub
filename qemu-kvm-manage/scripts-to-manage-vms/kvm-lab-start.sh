@@ -88,7 +88,7 @@ when_lab_infra_server_is_host() {
     # ====== STEP 5: Assign IP address ======
     yellow "🌐 Configuring IP ${lab_infra_server_ipv4_address} netmask ${lab_infra_server_ipv4_netmask} on $lab_bridge_interface_name..."
     # Add the secondary IP address with netmask
-    if sudo ip addr add "${lab_infra_server_ipv4_address}" netmask "${lab_infra_server_ipv4_netmask}" dev "$lab_bridge_interface_name" 2>/dev/null; then
+    if sudo ip addr add "${lab_infra_server_ipv4_address}/${lab_infra_server_ipv4_netmask}" dev "$lab_bridge_interface_name" 2>/dev/null; then
         green "✅ IP address assigned successfully"
     else
         yellow "ℹ️  IP address may already be assigned"
