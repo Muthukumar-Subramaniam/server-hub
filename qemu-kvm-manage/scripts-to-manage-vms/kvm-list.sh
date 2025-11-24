@@ -40,17 +40,26 @@ for vm_name in "${vm_list[@]}"; do
     current_vm_state=$(sudo virsh domstate "$vm_name" 2>/dev/null || echo "[ N/A ]")
 
     if [[ "$current_vm_state" == "running" ]]; then
-        ssh_output=$(ssh $ssh_options "${lab_infra_admin_username}@${vm_name}" \
-            'systemctl is-system-running; \
-             source /etc/os-release 2>/dev/null && echo "$PRETTY_NAME" || echo "[ N/A ]"' \
-            2>/dev/null </dev/null || true)
+        # Test network connectivity with ping first
+        if ping -c 1 -W 2 "$vm_name" &>/dev/null; then
+            # Test SSH port availability with netcat
+            if nc -z -w 2 "$vm_name" 22 &>/dev/null; then
+                ssh_output=$(ssh $ssh_options "${lab_infra_admin_username}@${vm_name}" \
+                    'systemctl is-system-running; \
+                     source /etc/os-release 2>/dev/null && echo "$PRETTY_NAME" || echo "[ N/A ]"' \
+                    2>/dev/null </dev/null || true)
 
-        if [[ -n "$ssh_output" ]]; then
-            current_os_state=$(echo "$ssh_output" | sed -n '1p')
-            os_distro=$(echo "$ssh_output" | sed -n '2p')
+                if [[ -n "$ssh_output" ]]; then
+                    current_os_state=$(echo "$ssh_output" | sed -n '1p')
+                    os_distro=$(echo "$ssh_output" | sed -n '2p')
+                else
+                    current_os_state="OS-Not-Ready"
+                fi
+            else
+                current_os_state="SSH-Not-Ready"
+            fi
         else
-            current_os_state="Not-Ready"
-            os_distro="[ N/A ]"
+            current_os_state="Network-Not-Ready"
         fi
     fi
 
