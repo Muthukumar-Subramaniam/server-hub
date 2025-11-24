@@ -53,7 +53,7 @@ for vm_name in "${vm_list[@]}"; do
                     current_os_state=$(echo "$ssh_output" | sed -n '1p')
                     os_distro=$(echo "$ssh_output" | sed -n '2p')
                 else
-                    current_os_state="OS-Not-Ready"
+                    current_os_state="SSH-Not-Ready"
                 fi
             else
                 current_os_state="SSH-Not-Ready"
