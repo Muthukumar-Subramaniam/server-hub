@@ -236,10 +236,8 @@ resize_vm_disk() {
                 fi
             done
             echo -e "\n🛠️ Executing lab-rootfs-extender utility on $SSH_TARGET_HOST . . . "
-	        TMP_SCRIPT="/tmp/lab-rootfs-extender"
-            rsync -az -e "ssh $SSH_OPTS" "${fs_resize_scipt}" "${lab_infra_admin_username}@${SSH_TARGET_HOST}:${TMP_SCRIPT}"
-            ssh $SSH_OPTS -t ${lab_infra_admin_username}@${SSH_TARGET_HOST} "sudo bash ${TMP_SCRIPT} localhost && rm -f ${TMP_SCRIPT}"
-	        echo -e "\n✅ Successfully extended the size of OS disk and the root filesystem of ${SSH_TARGET_HOST} to ${total_vm_disk_size} GiB.\n"
+            /server-hub/common-utils/lablab-rootfs-extender $SSH_TARGET_HOST
+	    echo -e "\n✅ Successfully extended the size of OS disk and the root filesystem of ${SSH_TARGET_HOST} to ${total_vm_disk_size} GiB.\n"
         else
             echo -e "\n❌ Disk resize of VM '${qemu_kvm_hostname}' failed ! \n"
 	        exit 1
