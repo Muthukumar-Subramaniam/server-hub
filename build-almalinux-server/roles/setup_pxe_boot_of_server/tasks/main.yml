@@ -12,6 +12,20 @@
     src: kea_ctrl_agent_conf.j2
     dest: /etc/kea/kea-ctrl-agent.conf
 
+- name: Create server-hub mount point under /{{ ansible_env.dnsbinder_server_short_name }}.{{ ansible_env.dnsbinder_domain }}
+  file:
+    path: "/{{ ansible_env.dnsbinder_server_short_name }}.{{ ansible_env.dnsbinder_domain }}/server-hub"
+    state: directory
+
+- name: Bind mount /server-hub as /{{ ansible_env.dnsbinder_server_short_name }}.{{ ansible_env.dnsbinder_domain }} update an entry in fstab as well 
+  become: true
+  ansible.posix.mount:
+    path: "/{{ ansible_env.dnsbinder_server_short_name }}.{{ ansible_env.dnsbinder_domain }}/server-hub"
+    src: "/server-hub"
+    fstype: none
+    opts: "bind,ro,uid={{ ansible_env.mgmt_super_user }},gid={{ ansible_env.mgmt_super_user }}"
+    state: mounted
+
 - name: Create almalinux-latest mount point under /{{ ansible_env.dnsbinder_server_short_name }}.{{ ansible_env.dnsbinder_domain }}
   file:
     path: "/{{ ansible_env.dnsbinder_server_short_name }}.{{ ansible_env.dnsbinder_domain }}/almalinux-latest"
