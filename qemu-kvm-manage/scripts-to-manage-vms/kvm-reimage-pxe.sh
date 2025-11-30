@@ -51,24 +51,93 @@ done
 # If hostname still not set, prompt
 source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/input-hostname.sh "$qemu_kvm_hostname"
 
-if [[ "$qemu_kvm_hostname" == "$lab_infra_server_hostname" ]]; then
-    echo "❌❌❌  FATAL: WRONG VM, BUDDY! ❌❌❌"
-    echo "You are trying to re-image the lab infra server VM $lab_infra_server_hostname."
-    echo "This VM runs the very services that make re-imaging possible."
-    echo "All essential services for your lab environment runs on this VM."
-    exit 1
-fi
-
 # Check if VM exists in 'virsh list --all'
 if ! sudo virsh list --all | awk '{print $2}' | grep -Fxq "$qemu_kvm_hostname"; then
     echo "❌ Error: VM \"$qemu_kvm_hostname\" does not exist."
     exit 1
 fi
 
-if [[ "$ATTACH_CONSOLE" == "yes" ]]; then
-	toggle_console="--console"
+# Prevent re-imaging of lab infra server VM
+if [[ "$qemu_kvm_hostname" == "$lab_infra_server_hostname" ]]; then
+    echo "❌❌❌  FATAL ERROR: Cannot Re-image Lab Infra Server! ❌❌❌"
+    echo "You are attempting to re-image the lab infrastructure server VM: $lab_infra_server_hostname"
+    echo "This VM hosts the critical services required for re-imaging operations."
+    echo "All essential lab services run on this VM and must not be destroyed."
+    exit 1
 else
-	toggle_console=
+    echo -e "\n⚠️  WARNING: This will re-image VM \"$qemu_kvm_hostname\" using PXE boot!"
+    echo -e "    All existing data on this VM will be permanently lost.\n"
+    read -rp "❓ Are you sure you want to proceed? (yes/[no]): " confirmation
+    if [[ "$confirmation" != "yes" ]]; then
+        echo -e "\n⛔ Aborted.\n"
+        exit 1
+    fi
 fi
 
-"$DIR_PATH_SCRIPTS_TO_MANAGE_VMS/kvm-remove.sh" $qemu_kvm_hostname && "$DIR_PATH_SCRIPTS_TO_MANAGE_VMS/kvm-install-pxe.sh" $qemu_kvm_hostname $toggle_console
+echo -e "\n⚙️  Creating PXE environment for '${qemu_kvm_hostname}' using ksmanager...\n"
+
+>/tmp/reimage-vm-logs-"${qemu_kvm_hostname}"
+
+if [ -f /kvm-hub/host_machine_is_lab_infra_server ]; then
+    sudo ksmanager ${qemu_kvm_hostname} --qemu-kvm | tee -a /tmp/reimage-vm-logs-"${qemu_kvm_hostname}"
+else
+    ssh -o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -t ${lab_infra_admin_username}@${lab_infra_server_ipv4_address} "sudo ksmanager ${qemu_kvm_hostname} --qemu-kvm" | tee -a /tmp/reimage-vm-logs-"${qemu_kvm_hostname}"
+fi
+
+IPV4_ADDRESS=$( grep "IPv4 Address :"  /tmp/reimage-vm-logs-"${qemu_kvm_hostname}" | awk -F': ' '{print $2}' | tr -d '[:space:]' )
+if [ -z "${IPV4_ADDRESS}" ]; then
+	echo -e "\n❌ Error: Failed to execute ksmanager successfully!"
+	echo -e "🛠️  Please check the lab infrastructure server VM at ${lab_infra_server_ipv4_address} for details.\n"
+	exit 1
+fi
+
+echo -n -e "\n📋 Updating /etc/hosts file for ${qemu_kvm_hostname}..."
+
+if grep -q "${qemu_kvm_hostname}" /etc/hosts; then
+    HOST_FILE_IPV4=$( grep "${qemu_kvm_hostname}" /etc/hosts | awk '{print $1}' )
+    if [ "${HOST_FILE_IPV4}" != "${IPV4_ADDRESS}" ]; then
+        sudo sed -i.bak "/${qemu_kvm_hostname}/s/.*/${IPV4_ADDRESS} ${qemu_kvm_hostname}/" /etc/hosts
+    fi
+else
+    echo "${IPV4_ADDRESS} ${qemu_kvm_hostname}" | sudo tee -a /etc/hosts &>/dev/null
+fi
+
+echo -e "✅"
+
+# If VM is running, stop it first
+if sudo virsh list  | awk '{print $2}' | grep -Fxq "$qemu_kvm_hostname"; then
+    echo "ℹ️  VM \"$qemu_kvm_hostname\" is currently running. Shutting down before re-imaging..."
+    sudo virsh destroy "${qemu_kvm_hostname}" 2>/dev/null
+    echo "✅ VM \"$qemu_kvm_hostname\" has been shut down successfully."
+fi
+
+default_qcow2_disk_gib=20
+vm_qcow2_disk_path="/kvm-hub/vms/${qemu_kvm_hostname}/${qemu_kvm_hostname}.qcow2"
+current_disk_gib=$(sudo qemu-img info "${vm_qcow2_disk_path}" 2>/dev/null | grep "virtual size" | grep -o '[0-9]\+ GiB' | cut -d' ' -f1)
+
+# Use default if disk doesn't exist or size extraction failed
+if [[ -z "$current_disk_gib" ]]; then
+    current_disk_gib="$default_qcow2_disk_gib"
+fi
+
+# Delete existing qcow2 disk and recreate with appropriate size
+sudo rm -f "${vm_qcow2_disk_path}"
+if [[ "$current_disk_gib" -le "$default_qcow2_disk_gib" ]]; then
+    sudo qemu-img create -f qcow2 "${vm_qcow2_disk_path}" "${default_qcow2_disk_gib}G"
+    echo "✅ Set disk size to default of ${default_qcow2_disk_gib} GiB for VM \"$qemu_kvm_hostname\"."
+else
+    sudo qemu-img create -f qcow2 "${vm_qcow2_disk_path}" "${current_disk_gib}G"
+    echo "✅ Retained disk size of ${current_disk_gib} GiB for VM \"$qemu_kvm_hostname\"." 
+fi
+
+# Start re-imaging process
+sudo virsh start "${qemu_kvm_hostname}" 2>/dev/null
+
+if [[ "$ATTACH_CONSOLE" == "yes" ]]; then
+    echo -e "\nℹ️  Attaching to VM console. Press Ctrl+] to exit console.\n"
+    sudo virsh console "${qemu_kvm_hostname}"
+else
+    echo -e "\n✅ VM \"$qemu_kvm_hostname\" is now re-imaging via PXE boot."
+    echo "ℹ️  To monitor re-imaging progress, use: kvm-console $qemu_kvm_hostname"
+    echo "ℹ️  To check VM status, use: kvm-list"
+fi

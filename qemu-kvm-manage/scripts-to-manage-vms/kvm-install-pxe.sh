@@ -94,14 +94,6 @@ fi
 
 echo -e "✅"
 
-echo -n -e "\n📎 Creating alias '${qemu_kvm_hostname}' to assist with future SSH logins . . . "
-
-echo "alias ${qemu_kvm_hostname}=\"ssh -o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ${lab_infra_admin_username}@${qemu_kvm_hostname}\"" >> /kvm-hub/ssh-assist-aliases-for-vms-on-qemu-kvm
-
-source "${HOME}/.bashrc"
-
-echo -e "✅"
-
 echo -e "\n🚀 Starting installation of VM '${qemu_kvm_hostname}'...\n"
 
 VIRT_INSTALL_CMD="sudo virt-install \
