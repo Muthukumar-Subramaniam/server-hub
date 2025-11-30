@@ -45,6 +45,8 @@ EOF
 
 ssh-keygen -A
 
+curl -fsSL "http://get_web_server_name.get_ipv4_domain/server-hub/common-utils/lab-rootfs-extender" | bash -s -- localhost
+
 touch /root/golden-boot-opensuse-leap-completed
 
 systemctl disable golden-boot-opensuse-leap.service 

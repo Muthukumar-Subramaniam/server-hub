@@ -52,6 +52,8 @@ mv /etc/netplan/*-cloud-init.yaml /etc/netplan/old/
 
 ssh-keygen -A
 
+curl -fsSL "http://get_web_server_name.get_ipv4_domain/server-hub/common-utils/lab-rootfs-extender" | bash -s -- localhost
+
 touch /root/golden-boot-ubuntu-lts-completed
 
 systemctl disable golden-boot-ubuntu-lts.service 

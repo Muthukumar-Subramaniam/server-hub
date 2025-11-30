@@ -41,6 +41,10 @@ nmcli connection add type ethernet ifname eth0 con-name eth0 \
   ipv4.dns-search "${IPv4_DNS_DOMAIN}" \
   ipv4.method manual \
 
+ssh-keygen -A
+
+curl -fsSL "http://get_web_server_name.get_ipv4_domain/server-hub/common-utils/lab-rootfs-extender" | bash -s -- localhost
+
 touch /root/golden-boot-redhat-based-completed
 
 systemctl disable golden-boot-redhat-based.service 
