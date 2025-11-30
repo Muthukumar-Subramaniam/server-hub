@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
-# rootfs-extender.sh
+# lab-rootfs-extender
 # Usage:
-#   ./rootfs-extender.sh [remote-host]
+#   ./lab-rootfs-extender [remote-host]
 # If remote-host != localhost the script rsync/ssh's itself and runs under sudo remotely.
 
 # --- Config ---
 SSH_OPTS="-o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
-TMP_SCRIPT="/tmp/rootfs-extender.sh"
-SCRIPT_LOCATION="/server-hub/common-utils/rootfs-extender.sh"
+TMP_SCRIPT="/tmp/lab-rootfs-extender"
+SCRIPT_LOCATION="/server-hub/common-utils/lab-rootfs-extender"
 
 # ----------------------
 # Prompt for hostname if not passed

@@ -174,7 +174,7 @@ resize_vm_cpu() {
 
 resize_vm_disk() {
 
-    fs_resize_scipt="/server-hub/common-utils/rootfs-extender.sh"
+    fs_resize_scipt="/server-hub/common-utils/lab-rootfs-extender"
 
     vm_qcow2_disk_path="/kvm-hub/vms/${qemu_kvm_hostname}/${qemu_kvm_hostname}.qcow2"
 
@@ -231,12 +231,12 @@ resize_vm_disk() {
                 ssh_elapsed_time=$((ssh_current_time - ssh_start_time))
                 if [ "$ssh_elapsed_time" -ge "$MAX_SSH_WAIT_SECONDS" ]; then
                     echo -e "\n❌ Timed out waiting for SSH after $MAX_SSH_WAIT_SECONDS seconds."
-            	    echo -e "📌 Execute rootfs-extender utility manually from $SSH_TARGET_HOST once booted.\n"
+            	    echo -e "📌 Execute lab-rootfs-extender utility manually from $SSH_TARGET_HOST once booted.\n"
                     exit 1
                 fi
             done
-            echo -e "\n🛠️ Executing rootfs-extender utility on $SSH_TARGET_HOST . . . "
-	        TMP_SCRIPT="/tmp/rootfs-extender.sh"
+            echo -e "\n🛠️ Executing lab-rootfs-extender utility on $SSH_TARGET_HOST . . . "
+	        TMP_SCRIPT="/tmp/lab-rootfs-extender"
             rsync -az -e "ssh $SSH_OPTS" "${fs_resize_scipt}" "${lab_infra_admin_username}@${SSH_TARGET_HOST}:${TMP_SCRIPT}"
             ssh $SSH_OPTS -t ${lab_infra_admin_username}@${SSH_TARGET_HOST} "sudo bash ${TMP_SCRIPT} localhost && rm -f ${TMP_SCRIPT}"
 	        echo -e "\n✅ Successfully extended the size of OS disk and the root filesystem of ${SSH_TARGET_HOST} to ${total_vm_disk_size} GiB.\n"
