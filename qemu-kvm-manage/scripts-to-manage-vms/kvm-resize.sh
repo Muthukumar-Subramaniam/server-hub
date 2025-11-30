@@ -235,7 +235,6 @@ resize_vm_disk() {
                     exit 1
                 fi
             done
-            echo -e "\n🛠️ Executing lab-rootfs-extender utility on $SSH_TARGET_HOST . . . "
             /server-hub/common-utils/lab-rootfs-extender $SSH_TARGET_HOST
 	    echo -e "\n✅ Successfully extended the size of OS disk and the root filesystem of ${SSH_TARGET_HOST} to ${total_vm_disk_size} GiB.\n"
         else
