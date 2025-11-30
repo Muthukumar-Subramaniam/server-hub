@@ -83,30 +83,10 @@ fi
 
 echo -n -e "\n⚙️  Creating custom tools to manage QEMU/KVM . . . "
 scripts_directory="/server-hub/qemu-kvm-manage/scripts-to-manage-vms"
-system_bin_directory="/bin"
-vm_tool_names=(
-  kvm-lab-start
-  kvm-lab-health
-  kvm-build-golden-qcow2-disk
-  kvm-install-pxe
-  kvm-install-golden
-  kvm-remove
-  kvm-reimage-pxe
-  kvm-reimage-golden
-  kvm-start
-  kvm-stop
-  kvm-restart
-  kvm-resize
-  kvm-console
-  kvm-list
-  kvm-dnsbinder
-  kvm-add-disk
-)
-for vm_tool in "${vm_tool_names[@]}"; do
-    source_script="${scripts_directory}/${vm_tool}.sh"
-    target_symlink="${system_bin_directory}/${vm_tool}"
-
-    [[ -f "$source_script" && ! -e "$target_symlink" ]] && sudo ln -s "$source_script" "$target_symlink"
+for vm_tool_script in $scripts_directory/*.sh; do
+    target_symlink="/usr/bin/${vm_tool_script##*/}"
+    target_symlink="${target_symlink%.sh}"
+    [[ -f "$vm_tool_script" && ! -e "$target_symlink" ]] && sudo ln -s "$vm_tool_script" "$target_symlink"
 done
 echo -e "✅"
 
