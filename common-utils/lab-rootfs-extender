@@ -1,12 +1,10 @@
 #!/usr/bin/env bash
 # lab-rootfs-extender
 # Usage:
-#   ./lab-rootfs-extender [remote-host]
-# If remote-host != localhost the script rsync/ssh's itself and runs under sudo remotely.
+#   ./lab-rootfs-extender [remote-host/localhost]
 
 # --- Config ---
 SSH_OPTS="-o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
-TMP_SCRIPT="/tmp/lab-rootfs-extender"
 SCRIPT_LOCATION="/server-hub/common-utils/lab-rootfs-extender"
 
 # ----------------------
@@ -30,10 +28,8 @@ if [[ "$REMOTE_HOST" != "localhost" ]]; then
     fi
     echo "[ok]"
 
-    echo "[INFO] Copying script to remote host and executing..."
-    rsync -az -e "ssh $SSH_OPTS" "$SCRIPT_LOCATION" "$REMOTE_HOST:$TMP_SCRIPT"
-    ssh $SSH_OPTS -t "$REMOTE_HOST" "sudo bash $TMP_SCRIPT localhost && sudo rm -f $TMP_SCRIPT"
-
+    echo "[INFO] Executing lab-rootfs-extender utility on host $REMOTE_HOST ..."
+    ssh $SSH_OPTS -t "$REMOTE_HOST" "sudo bash $SCRIPT_LOCATION localhost"
     echo "[INFO] Remote execution completed on $REMOTE_HOST."
     exit 0
 fi
@@ -45,11 +41,28 @@ FS_BEFORE=$(df -h / | awk 'NR==2{print $2}')
 echo "[INFO] Root filesystem size BEFORE expansion: $FS_BEFORE"
 
 # Ensure growpart is installed
-if ! command -v growpart >/dev/null 2>&1; then
-    echo -n "[INFO] 'growpart' not found. Installing . . . "
-    sudo curl -fsSL -o /usr/bin/growpart https://raw.githubusercontent.com/canonical/cloud-utils/main/bin/growpart && sudo chmod +x /usr/bin/growpart
-    echo "[ok]"
-fi
+fn_get_growpart() {
+    echo -n "[INFO] Check if 'growpart' utility is available ..."
+    if ! command -v growpart >/dev/null 2>&1; then
+        echo -n "[WARN] 'growpart' not found. Trying to create binary link from lab infra server-hub nfs share ..."
+        if ! sudo ln -s /server-hub/common-utils/growpart /usr/bin/growpart; then
+    	    echo -n "[WARN] Some issue in creating binary link of 'growpart' from lab infra server-hub nfs share, Trying to download from official internet repo ..."
+    	    if ! sudo curl -fsSL -o /usr/bin/growpart https://raw.githubusercontent.com/canonical/cloud-utils/main/bin/growpart;then
+		return 1
+	     else
+		sudo chmod +x /usr/bin/growpart
+    	        echo "[ok]"
+		return 0
+	    fi
+        else
+    	    echo "[ok]"
+	    return 0
+        fi
+    else
+        echo "[ok]"
+	return 0
+    fi
+}
 
 ROOT_DEV=$(findmnt -n -o SOURCE /)
 echo "[INFO] Root device: $ROOT_DEV"
@@ -76,22 +89,25 @@ if [[ "$ROOT_DEV" =~ ^/dev/mapper/ ]]; then
     DISK="/dev/$(lsblk -no pkname "$PV_PATH" | sort | head -n1 | tr -d '[:space:]')"
     PART_NUM=$(lsblk -no partn "$PV_PATH" | tr -d '[:space:]')
 
-    echo -n "[STEP] Growing partition $PV_PATH ... "
-    sudo growpart "$DISK" "$PART_NUM" >/dev/null 2>&1
-    echo "[ok]"
+    if fn_get_growpart; then
+        echo -n "[STEP] Growing partition $PV_PATH ... "
+        sudo growpart "$DISK" "$PART_NUM" >/dev/null 2>&1
+        echo "[ok]"
 
-    echo -n "[STEP] Resizing PV $PV_PATH ... "
-    sudo pvresize "$PV_PATH" >/dev/null 2>&1
-    echo "[ok]"
+        echo -n "[STEP] Resizing PV $PV_PATH ... "
+        sudo pvresize "$PV_PATH" >/dev/null 2>&1
+        echo "[ok]"
 
-    echo -n "[STEP] Extending LV $ROOT_DEV ... "
-    sudo lvextend -l +100%FREE "$ROOT_DEV" >/dev/null 2>&1
-    echo "[ok]"
+        echo -n "[STEP] Extending LV $ROOT_DEV ... "
+        sudo lvextend -l +100%FREE "$ROOT_DEV" >/dev/null 2>&1
+        echo "[ok]"
 
-    echo -n "[STEP] Extending XFS filesystem on / ... "
-    sudo xfs_growfs / >/dev/null 2>&1
-    echo "[ok]"
-
+        echo -n "[STEP] Extending XFS filesystem on / ... "
+        sudo xfs_growfs / >/dev/null 2>&1
+        echo "[ok]"
+    else
+        echo "[SKIP] Growing partition $PV_PATH ... [ 'growpart' not found ]"
+    fi
 else
     echo "[INFO] Detected non-LVM root filesystem (plain partition)."
 
@@ -101,19 +117,23 @@ else
 
     echo "[INFO] Disk: $DISK, Partition: $PART_NUM"
 
-    echo -n "[STEP] Growing partition ${DISK}${PART_NUM} ... "
-    sudo growpart "$DISK" "$PART_NUM" >/dev/null 2>&1
-    echo "[ok]"
+    if fn_get_growpart; then
+        echo -n "[STEP] Growing partition ${DISK}${PART_NUM} ... "
+        sudo growpart "$DISK" "$PART_NUM" >/dev/null 2>&1
+        echo "[ok]"
 
-    echo -n "[STEP] Extending XFS filesystem on / ... "
-    sudo xfs_growfs / >/dev/null 2>&1
-    echo "[ok]"
+        echo -n "[STEP] Extending XFS filesystem on / ... "
+        sudo xfs_growfs / >/dev/null 2>&1
+        echo "[ok]"
+    else
+        echo "[SKIP] Growing partition $PV_PATH ... [ 'growpart' not found ]"
+    fi
 fi
 
 FS_AFTER=$(df -h / | awk 'NR==2{print $2}')
 
 if [[ "$FS_BEFORE" == "$FS_AFTER" ]]; then
-    echo "[INFO] No change in root filesystem size."
+    echo "[WARN] No change in root filesystem size."
 else
     echo "[INFO] Root filesystem size AFTER expansion: $FS_AFTER"
     echo "[SUCCESS] Root filesystem successfully expanded!"
