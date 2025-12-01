@@ -111,6 +111,8 @@ if sudo virsh list  | awk '{print $2}' | grep -Fxq "$qemu_kvm_hostname"; then
     echo "✅ VM \"$qemu_kvm_hostname\" has been shut down successfully."
 fi
 
+# Re-image by replacing qcow2 disk with new one
+echo -e "\n⚙️  Re-imaging VM \"$qemu_kvm_hostname\" by replacing its qcow2 disk with a new one ...\n"
 default_qcow2_disk_gib=20
 vm_qcow2_disk_path="/kvm-hub/vms/${qemu_kvm_hostname}/${qemu_kvm_hostname}.qcow2"
 current_disk_gib=$(sudo qemu-img info "${vm_qcow2_disk_path}" 2>/dev/null | grep "virtual size" | grep -o '[0-9]\+ GiB' | cut -d' ' -f1)
@@ -131,13 +133,18 @@ else
 fi
 
 # Start re-imaging process
+echo -e "\n⚙️  Starting re-imaging of VM \"$qemu_kvm_hostname\" via PXE boot...\n"
 sudo virsh start "${qemu_kvm_hostname}" 2>/dev/null
 
 if [[ "$ATTACH_CONSOLE" == "yes" ]]; then
     echo -e "\nℹ️  Attaching to VM console. Press Ctrl+] to exit console.\n"
+    echo "ℹ️  The VM may take few minutes to fully boot up and configure via PXE."
+    echo "ℹ️  The VM may reboot once or twice during the re-imaging process."
     sudo virsh console "${qemu_kvm_hostname}"
 else
     echo -e "\n✅ VM \"$qemu_kvm_hostname\" is now re-imaging via PXE boot."
+    echo "ℹ️  The VM may take few minutes to fully boot up and configure."
+    echo "ℹ️  The VM may reboot once or twice during the re-imaging process."
     echo "ℹ️  To monitor re-imaging progress, use: kvm-console $qemu_kvm_hostname"
     echo "ℹ️  To check VM status, use: kvm-list"
 fi
