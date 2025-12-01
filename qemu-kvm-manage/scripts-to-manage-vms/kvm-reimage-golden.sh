@@ -168,13 +168,10 @@ sudo virsh start "${qemu_kvm_hostname}" 2>/dev/null
 
 if [[ "$ATTACH_CONSOLE" == "yes" ]]; then
     echo -e "\nℹ️  Attaching to VM console. Press Ctrl+] to exit console.\n"
-    echo "ℹ️  The VM may take a minute to fully boot up and configure via golden image disk."
-    echo "ℹ️  The VM may reboot once or twice during the re-imaging process."
     sudo virsh console "${qemu_kvm_hostname}"
 else
     echo -e "\n✅ VM \"$qemu_kvm_hostname\" is now re-imaging via golden image disk."
-    echo "ℹ️  The VM may take a minute to fully boot up and configure."
-    echo "ℹ️  The VM may reboot once or twice during the re-imaging process."
+    echo "ℹ️  The VM will reboot once or twice during the re-imaging process (~1 minute)."
     echo "ℹ️  To monitor re-imaging progress, use: kvm-console $qemu_kvm_hostname"
     echo "ℹ️  To check VM status, use: kvm-list"
 fi

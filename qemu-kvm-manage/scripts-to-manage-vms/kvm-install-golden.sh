@@ -60,7 +60,7 @@ if sudo virsh list --all | awk '{print $2}' | grep -Fxq "$qemu_kvm_hostname"; th
     exit 1
 fi
 
-echo -e "\n⚙️  Invoking ksmanager to create first boot environment for '${qemu_kvm_hostname}' . . .\n"
+echo -e "\n⚙️  Creating first boot environment for '${qemu_kvm_hostname}' using ksmanager...\n"
 
 
 >/tmp/install-vm-logs-"${qemu_kvm_hostname}"
@@ -68,7 +68,7 @@ echo -e "\n⚙️  Invoking ksmanager to create first boot environment for '${qe
 if $lab_infra_server_mode_is_host; then
     sudo ksmanager ${qemu_kvm_hostname} --qemu-kvm --golden-image | tee -a /tmp/install-vm-logs-"${qemu_kvm_hostname}"
 else
-    ssh -o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -t ${lab_infra_admin_username}@${lab_infra_server_ipv4_address} "sudo ksmanager ${qemu_kvm_hostname}" --qemu-kvm --golden-image | tee -a /tmp/install-vm-logs-"${qemu_kvm_hostname}"
+    ssh -o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -t ${lab_infra_admin_username}@${lab_infra_server_ipv4_address} "sudo ksmanager ${qemu_kvm_hostname} --qemu-kvm --golden-image" | tee -a /tmp/install-vm-logs-"${qemu_kvm_hostname}"
 fi
 
 MAC_ADDRESS=$( grep "MAC Address  :"  /tmp/install-vm-logs-"${qemu_kvm_hostname}" | awk -F': ' '{print $2}' | tr -d '[:space:]' )
@@ -93,15 +93,15 @@ elif echo "$OS_DISTRO" | grep -qi "suse"; then
     OS_DISTRO="opensuse-leap"
 fi
 
-if [ -z ${MAC_ADDRESS} ]; then
-	echo -e "\n❌ Something went wrong while executing ksmanager ! "
-	echo -e "🛠️ Please check your Infra Server VM at ${lab_infra_server_ipv4_address} for the root cause. \n"
+if [ -z "${MAC_ADDRESS}" ]; then
+	echo -e "\n❌ Error: Failed to execute ksmanager successfully!"
+	echo -e "🛠️  Please check the lab infrastructure server VM at ${lab_infra_server_ipv4_address} for details.\n"
 	exit 1
 fi
 
 mkdir -p /kvm-hub/vms/${qemu_kvm_hostname}
 
-echo -n -e "\n📎 Updating hosts file for ${qemu_kvm_hostname} . . . "
+echo -n -e "\n📋 Updating /etc/hosts file for ${qemu_kvm_hostname}..."
 
 if grep -q "${qemu_kvm_hostname}" /etc/hosts; then
     HOST_FILE_IPV4=$( grep "${qemu_kvm_hostname}" /etc/hosts | awk '{print $1}' )
@@ -115,13 +115,13 @@ fi
 echo -e "✅"
 
 if [ ! -f /kvm-hub/golden-images-disk-store/${OS_DISTRO}-golden-image.${lab_infra_domain_name}.qcow2 ]; then
-	echo -e "\n🚫 Golden Image Disk Not Found ! "
-	echo -e "➡️  Expected at: /kvm-hub/golden-images-disk-store/${OS_DISTRO}-golden-image.${lab_infra_domain_name}.qcow2"
-	echo -e "🛠️ To build the golden image disk, run: \e[1;32mkvm-build-golden-qcow2-disk\e[0m\n"
-	exit
+	echo -e "\n❌ Golden image disk not found!"
+	echo -e "📂 Expected at: /kvm-hub/golden-images-disk-store/${OS_DISTRO}-golden-image.${lab_infra_domain_name}.qcow2"
+	echo -e "🛠️  To build the golden image disk, run: \e[1;32mkvm-build-golden-qcow2-disk\e[0m\n"
+	exit 1
 fi
 
-echo -n -e "\n🚀 Clone golden image disk /kvm-hub/golden-images-disk-store/${OS_DISTRO}-golden-image.${lab_infra_domain_name}.qcow2 to install '${qemu_kvm_hostname}' . . . "
+echo -n -e "\n💾 Cloning golden image disk to /kvm-hub/vms/${qemu_kvm_hostname}/${qemu_kvm_hostname}.qcow2..."
 
 sudo qemu-img convert -O qcow2 \
   /kvm-hub/golden-images-disk-store/${OS_DISTRO}-golden-image.${lab_infra_domain_name}.qcow2 \
@@ -129,42 +129,16 @@ sudo qemu-img convert -O qcow2 \
 
 echo -e "✅"
 
-VIRT_INSTALL_CMD="sudo virt-install \
-  --name ${qemu_kvm_hostname} \
-  --features acpi=on,apic=on \
-  --memory 2048 \
-  --vcpus 2 \
-  --disk path=/kvm-hub/vms/${qemu_kvm_hostname}/${qemu_kvm_hostname}.qcow2,bus=virtio,boot.order=1 \
-  --os-variant almalinux9 \
-  --network network=default,model=virtio,mac=${MAC_ADDRESS},boot.order=2 \
-  --machine q35 \
-  --cpu host-model \
-  --graphics none \
-  --watchdog none \
-  --boot loader=${OVMF_CODE_PATH},\
-nvram.template=${OVMF_VARS_PATH},\
-nvram=/kvm-hub/vms/${qemu_kvm_hostname}/${qemu_kvm_hostname}_VARS.fd,menu=on"
+# Start installation process via golden image disk
+echo -e "\n🚀 Starting VM installation of \"$qemu_kvm_hostname\" via golden image disk...\n"
+source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/default-vm-install.sh
 
-if [ "$ATTACH_CONSOLE" = "yes" ]; then
-  VIRT_INSTALL_CMD+=" --console pty,target_type=serial"
+if [[ "$ATTACH_CONSOLE" == "yes" ]]; then
+    echo -e "\nℹ️  Attaching to VM console. Press Ctrl+] to exit console.\n"
+    sudo virsh console "${qemu_kvm_hostname}"
 else
-  VIRT_INSTALL_CMD+=" --noautoconsole"
-fi
-
-echo -e "\n🚀 Starting installation of VM '${qemu_kvm_hostname}' . . .\n"
-eval "$VIRT_INSTALL_CMD"
-
-if sudo virsh list | grep -q "${qemu_kvm_hostname}"; then
-    if [ "$ATTACH_CONSOLE" != "yes" ]; then
-        echo -e "\n✅ Successfully initiated installtion of VM ${qemu_kvm_hostname} ! "
-	      echo " It might take sometime for installation to complete and OS to get Ready."
-        echo  " You could monitor the status with kvm-list."
-        echo -e " If you want to access console, Run 'kvm-console ${qemu_kvm_hostname}'."
-    else
-	      echo -e "\n✅ Successfully completed installation of VM ${qemu_kvm_hostname} ! "
-    fi
-else
-    echo -e "\n❌ Failed to initiate installation of VM ${qemu_kvm_hostname} ! \n"
-    echo "🔍 Please check what went wrong."
-    echo
+    echo -e "\n✅ VM \"$qemu_kvm_hostname\" is now installing via golden image disk."
+    echo "ℹ️  The VM will reboot once or twice during the installation process (~1 minute)."
+    echo "ℹ️  To monitor installation progress, use: kvm-console $qemu_kvm_hostname"
+    echo "ℹ️  To check VM status, use: kvm-list"
 fi
