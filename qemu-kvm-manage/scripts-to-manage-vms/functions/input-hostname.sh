@@ -2,7 +2,7 @@
 if [ -n "$1" ]; then
     qemu_kvm_hostname="$1"
 else
-    read -rp "⌨️ Please enter the Hostname of the VM to add disks : " qemu_kvm_hostname
+    read -rp "⌨️ Please enter the Hostname of the VM : " qemu_kvm_hostname
     if [[ -n "${KVM_TOOL_EXECUTED_FROM:-}" && "${KVM_TOOL_EXECUTED_FROM}" == "${qemu_kvm_hostname}" ]]; then
 	echo -e "\n❌ This operation is not allowed to avoid self-referential KVM actions that could destabilize the infra server."
     	echo -e "⚠️ Note:"
