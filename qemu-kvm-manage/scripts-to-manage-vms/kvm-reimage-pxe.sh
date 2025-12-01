@@ -8,12 +8,13 @@ source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/defaults.sh
 DIR_PATH_SCRIPTS_TO_MANAGE_VMS='/server-hub/qemu-kvm-manage/scripts-to-manage-vms'
 
 ATTACH_CONSOLE="no"
+FORCE_DEFAULT="no"
 qemu_kvm_hostname=""
 
-# Fail fast if more than 2 args given
-if [[ $# -gt 2 ]]; then
+# Fail fast if more than 3 args given
+if [[ $# -gt 3 ]]; then
   echo "❌ Too many arguments."
-  echo "ℹ️  Usage: $(basename $0) [hostname] [--console|-c]"
+  echo "ℹ️  Usage: $(basename $0) [hostname] [--console|-c] [--force-default]"
   exit 1
 fi
 
@@ -27,12 +28,21 @@ while [[ $# -gt 0 ]]; do
       ATTACH_CONSOLE="yes"
       shift
       ;;
+    --force-default)
+      if [[ "$FORCE_DEFAULT" == "yes" ]]; then
+        echo "❌ Duplicate --force-default option."
+        exit 1
+      fi
+      FORCE_DEFAULT="yes"
+      shift
+      ;;
     --help|-h)
-      echo "Usage: $(basename $0) [hostname] [--console|-c]"
+      echo "Usage: $(basename $0) [hostname] [--console|-c] [--force-default]"
       echo
       echo "Arguments:"
-      echo "  hostname      Name of the VM to be reimaged (optional, will prompt if not given)"
-      echo "  --console,-c  Attach console during reimage (optional, can appear before or after hostname)"
+      echo "  hostname         Name of the VM to be reimaged (optional, will prompt if not given)"
+      echo "  --console,-c     Attach console during reimage (optional)"
+      echo "  --force-default  Destroy VM and reinstall with default specs (2 vCPUs, 2 GiB RAM, 20 GiB disk) (optional)"
       exit 0
       ;;
     *)
@@ -40,7 +50,7 @@ while [[ $# -gt 0 ]]; do
         qemu_kvm_hostname="$1"
       else
         echo "❌ Unexpected argument: $1"
-        echo "ℹ️  Usage: $(basename $0) [hostname] [--console|-c]"
+        echo "ℹ️  Usage: $(basename $0) [hostname] [--console|-c] [--force-default]"
         exit 1
       fi
       shift
@@ -84,8 +94,10 @@ else
     ssh -o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -t ${lab_infra_admin_username}@${lab_infra_server_ipv4_address} "sudo ksmanager ${qemu_kvm_hostname} --qemu-kvm" | tee -a /tmp/reimage-vm-logs-"${qemu_kvm_hostname}"
 fi
 
+MAC_ADDRESS=$( grep "MAC Address  :"  /tmp/reimage-vm-logs-"${qemu_kvm_hostname}" | awk -F': ' '{print $2}' | tr -d '[:space:]' )
 IPV4_ADDRESS=$( grep "IPv4 Address :"  /tmp/reimage-vm-logs-"${qemu_kvm_hostname}" | awk -F': ' '{print $2}' | tr -d '[:space:]' )
-if [ -z "${IPV4_ADDRESS}" ]; then
+
+if [ -z "${IPV4_ADDRESS}" ] || [ -z "${MAC_ADDRESS}" ]; then
 	echo -e "\n❌ Error: Failed to execute ksmanager successfully!"
 	echo -e "🛠️  Please check the lab infrastructure server VM at ${lab_infra_server_ipv4_address} for details.\n"
 	exit 1
@@ -104,38 +116,68 @@ fi
 
 echo -e "✅"
 
-# If VM is running, stop it first
-if sudo virsh list  | awk '{print $2}' | grep -Fxq "$qemu_kvm_hostname"; then
+# Shut down VM if running (common for both paths)
+if sudo virsh list | awk '{print $2}' | grep -Fxq "$qemu_kvm_hostname"; then
     echo "ℹ️  VM \"$qemu_kvm_hostname\" is currently running. Shutting down before re-imaging..."
     sudo virsh destroy "${qemu_kvm_hostname}" 2>/dev/null
     echo "✅ VM \"$qemu_kvm_hostname\" has been shut down successfully."
 fi
 
-# Re-image by replacing qcow2 disk with new one
-echo -e "\n⚙️  Re-imaging VM \"$qemu_kvm_hostname\" by replacing its qcow2 disk with a new one ...\n"
-default_qcow2_disk_gib=20
-vm_qcow2_disk_path="/kvm-hub/vms/${qemu_kvm_hostname}/${qemu_kvm_hostname}.qcow2"
-current_disk_gib=$(sudo qemu-img info "${vm_qcow2_disk_path}" 2>/dev/null | grep "virtual size" | grep -o '[0-9]\+ GiB' | cut -d' ' -f1)
-
-# Use default if disk doesn't exist or size extraction failed
-if [[ -z "$current_disk_gib" ]]; then
-    current_disk_gib="$default_qcow2_disk_gib"
-fi
-
-# Delete existing qcow2 disk and recreate with appropriate size
-sudo rm -f "${vm_qcow2_disk_path}"
-if [[ "$current_disk_gib" -le "$default_qcow2_disk_gib" ]]; then
-    sudo qemu-img create -f qcow2 "${vm_qcow2_disk_path}" "${default_qcow2_disk_gib}G"
-    echo "✅ Set disk size to default of ${default_qcow2_disk_gib} GiB for VM \"$qemu_kvm_hostname\"."
+# If --force-default is specified, destroy and reinstall VM with default specs
+if [[ "$FORCE_DEFAULT" == "yes" ]]; then
+    echo "ℹ️  Using --force-default: VM will be destroyed and reinstalled with default specs (2 vCPUs, 2 GiB RAM, 20 GiB disk)."
+    
+    # Undefine the VM
+    echo "ℹ️  Undefining VM \"$qemu_kvm_hostname\"..."
+    sudo virsh undefine "${qemu_kvm_hostname}" --nvram 2>/dev/null
+    echo "✅ VM undefined successfully."
+    
+    # Delete VM folder and contents
+    echo "ℹ️  Deleting VM folder /kvm-hub/vms/${qemu_kvm_hostname}..."
+    sudo rm -rf "/kvm-hub/vms/${qemu_kvm_hostname}"
+    echo "✅ VM folder deleted successfully."
+    
+    # Create fresh VM directory
+    mkdir -p /kvm-hub/vms/${qemu_kvm_hostname}
+    
+    # Create new disk with default size
+    echo -n -e "\n💾 Creating new disk /kvm-hub/vms/${qemu_kvm_hostname}/${qemu_kvm_hostname}.qcow2 with 20 GiB..."
+    sudo qemu-img create -f qcow2 /kvm-hub/vms/${qemu_kvm_hostname}/${qemu_kvm_hostname}.qcow2 20G &>/dev/null
+    echo -e "✅"
+    
+    # Install VM with default specs using default-vm-install function
+    echo -e "\n🚀 Starting VM installation of \"$qemu_kvm_hostname\" with default specs via PXE boot...\n"
+    source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/select-ovmf.sh
+    source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/default-vm-install.sh
 else
-    sudo qemu-img create -f qcow2 "${vm_qcow2_disk_path}" "${current_disk_gib}G"
-    echo "✅ Retained disk size of ${current_disk_gib} GiB for VM \"$qemu_kvm_hostname\"." 
+    # Default path: preserve disk size
+    echo -e "\n⚙️  Re-imaging VM \"$qemu_kvm_hostname\" by replacing its qcow2 disk with a new one...\n"
+    
+    default_qcow2_disk_gib=20
+    vm_qcow2_disk_path="/kvm-hub/vms/${qemu_kvm_hostname}/${qemu_kvm_hostname}.qcow2"
+    current_disk_gib=$(sudo qemu-img info "${vm_qcow2_disk_path}" 2>/dev/null | grep "virtual size" | grep -o '[0-9]\+ GiB' | cut -d' ' -f1)
+    
+    # Use default if disk doesn't exist or size extraction failed
+    if [[ -z "$current_disk_gib" ]]; then
+        current_disk_gib="$default_qcow2_disk_gib"
+    fi
+    
+    # Delete existing qcow2 disk and recreate with appropriate size
+    sudo rm -f "${vm_qcow2_disk_path}"
+    if [[ "$current_disk_gib" -le "$default_qcow2_disk_gib" ]]; then
+        sudo qemu-img create -f qcow2 "${vm_qcow2_disk_path}" "${default_qcow2_disk_gib}G"
+        echo "✅ Set disk size to default of ${default_qcow2_disk_gib} GiB for VM \"$qemu_kvm_hostname\"."
+    else
+        sudo qemu-img create -f qcow2 "${vm_qcow2_disk_path}" "${current_disk_gib}G"
+        echo "✅ Retained disk size of ${current_disk_gib} GiB for VM \"$qemu_kvm_hostname\"." 
+    fi
+    
+    # Start re-imaging process
+    echo -e "\n⚙️  Starting re-imaging of VM \"$qemu_kvm_hostname\" via PXE boot...\n"
+    sudo virsh start "${qemu_kvm_hostname}" 2>/dev/null
 fi
 
-# Start re-imaging process
-echo -e "\n⚙️  Starting re-imaging of VM \"$qemu_kvm_hostname\" via PXE boot...\n"
-sudo virsh start "${qemu_kvm_hostname}" 2>/dev/null
-
+# Common console attachment logic
 if [[ "$ATTACH_CONSOLE" == "yes" ]]; then
     echo -e "\nℹ️  Attaching to VM console. Press Ctrl+] to exit console.\n"
     sudo virsh console "${qemu_kvm_hostname}"
