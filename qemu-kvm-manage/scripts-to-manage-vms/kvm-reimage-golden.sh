@@ -197,9 +197,9 @@ else
     
     # Delete existing qcow2 disk and recreate with appropriate size
     sudo rm -f "${vm_qcow2_disk_path}"
-    sudo qemu-img convert -O qcow2 "${golden_qcow2_disk_path}" "${vm_qcow2_disk_path}"
+    sudo qemu-img convert -O qcow2 "${golden_qcow2_disk_path}" "${vm_qcow2_disk_path}" >/dev/null
     if [[ "$current_disk_gib" -gt "$golden_disk_gib" ]]; then
-        sudo qemu-img resize "${vm_qcow2_disk_path}" "${current_disk_gib}G"
+        sudo qemu-img resize "${vm_qcow2_disk_path}" "${current_disk_gib}G" >/dev/null
         echo "✅ Retained disk size of ${current_disk_gib} GiB for VM \"$qemu_kvm_hostname\"." 
     fi
     
