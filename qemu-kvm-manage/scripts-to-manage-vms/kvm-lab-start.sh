@@ -39,7 +39,7 @@ when_lab_infra_server_is_host() {
     fi
     
     # ====== STEP 2: Wait for labbr0 ======
-    print_info "[INFO] Waiting for $lab_bridge_interface_name to be created..."
+    print_info "[INFO] Waiting for $lab_bridge_interface_name to be created..." nskip
     local bridge_creation_timeout_seconds=30
     local bridge_creation_elapsed_seconds=0
     until ip link show "$lab_bridge_interface_name" &>/dev/null; do
@@ -66,7 +66,7 @@ when_lab_infra_server_is_host() {
     fi
     
     # ====== STEP 4: Wait for labbr0 to come up ======
-    print_info "[INFO] Waiting for $lab_bridge_interface_name to come UP..."
+    print_info "[INFO] Waiting for $lab_bridge_interface_name to come UP..." nskip
     local bridge_up_timeout_seconds=30
     local bridge_up_elapsed_seconds=0
     while [[ "$(cat /sys/class/net/$lab_bridge_interface_name/operstate 2>/dev/null)" != "up" ]]; do
@@ -154,9 +154,8 @@ when_lab_infra_server_is_vm() {
         fi
         print_success "[SUCCESS] libvirtd started successfully"
     fi
-    
     # ====== STEP 2: Wait for labbr0 ======
-    print_info "[INFO] Waiting for $lab_bridge_interface_name to be created..."
+    print_info "[INFO] Waiting for $lab_bridge_interface_name to be created..." nskip
     local bridge_creation_timeout_seconds=30
     local bridge_creation_elapsed_seconds=0
     until ip link show "$lab_bridge_interface_name" &>/dev/null; do
@@ -170,10 +169,8 @@ when_lab_infra_server_is_vm() {
     done
     echo
     print_success "[SUCCESS] $lab_bridge_interface_name detected!"
-    
     # ====== STEP 3: Check and start lab infra server VM ======
     print_info "[INFO] Checking lab infra server VM status..."
-    
     if sudo virsh list --state-running | awk '{print $2}' | grep -Fxq "$lab_infra_server_hostname"; then
         print_success "[SUCCESS] Lab infra server VM ($lab_infra_server_hostname) is already running"
     else
@@ -187,8 +184,7 @@ when_lab_infra_server_is_vm() {
     fi
 
     # ====== STEP 4: Wait for lab infra server VM to be SSH accessible ======
-    print_info "[INFO] Waiting for lab infra server VM to become SSH accessible..."
-    
+    print_info "[INFO] Waiting for lab infra server VM to become SSH accessible..." nskip
     local ssh_check_timeout=120
     local ssh_check_elapsed=0
     local ssh_check_interval=5
@@ -219,9 +215,7 @@ when_lab_infra_server_is_vm() {
         print_error "[ERROR] Lab infra server VM did not become SSH accessible within ${ssh_check_timeout} seconds"
         return 1
     fi
-    
     print_success "[SUCCESS] Lab infra server VM is SSH accessible"
-
     # ====== STEP 5: Check essential services connectivity ======
     print_info "[INFO] Checking essential services connectivity..."
     
@@ -243,6 +237,13 @@ when_lab_infra_server_is_vm() {
         "Web Server:$port_web:tcp"
     )
     
+    # Calculate max length for alignment
+    local max_len=0
+    for entry in "${services_to_check[@]}"; do
+        IFS=':' read -r service_name service_port service_proto <<< "$entry"
+        (( ${#service_name} > max_len )) && max_len=${#service_name}
+    done
+    
     local active_services=0
     local inactive_services=0
     local all_services_active=true
@@ -257,10 +258,10 @@ when_lab_infra_server_is_vm() {
         fi
         
         if [[ $? -eq 0 ]]; then
-            print_success "  [SUCCESS] $service_name [ $service_port/$service_proto ]"
+            printf "\033[0;36m[ \033[0;32m✓\033[0;36m ] %-*s [ %s/%s ]\033[0m\n" "$max_len" "$service_name" "$service_port" "$service_proto"
             ((active_services++))
         else
-            print_error "  [ERROR] $service_name [ $service_port/$service_proto ]"
+            printf "\033[0;36m[ \033[0;31m✗\033[0;36m ] %-*s [ %s/%s ]\033[0m\n" "$max_len" "$service_name" "$service_port" "$service_proto"
             ((inactive_services++))
             all_services_active=false
         fi
