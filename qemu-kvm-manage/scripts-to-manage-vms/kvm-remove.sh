@@ -106,8 +106,11 @@ remove_vm() {
     # Stop VM if running
     if sudo virsh list | awk '{print $2}' | grep -Fxq "$vm_name"; then
         print_info "[INFO] Stopping VM \"$vm_name\" before removal..."
-        if ! sudo virsh destroy "$vm_name" 2>/dev/null; then
+        if error_msg=$(sudo virsh destroy "$vm_name" 2>&1); then
+            print_success "[SUCCESS] VM stopped successfully."
+        else
             print_warning "[WARNING] Could not stop VM \"$vm_name\", continuing with removal..."
+            print_warning "$error_msg"
         fi
     fi
     
@@ -134,7 +137,7 @@ remove_vm() {
         fi
     fi
     
-    print_success "[SUCCESS] VM \"$vm_name\" deleted successfully."
+    print_success "[SUCCESS] VM \"$vm_name\" removed successfully."
     return 0
 }
 
@@ -208,10 +211,10 @@ if [[ -n "$hosts_list" ]]; then
     
     # Report results
     if [[ ${#failed_vms[@]} -eq 0 ]]; then
-        print_success "[SUCCESS] All VMs deleted successfully."
+        print_success "[SUCCESS] Successfully removed all $total_vms VM(s)."
         exit 0
     else
-        print_error "[FAILED] Some VMs failed to delete: ${failed_vms[*]}"
+        print_error "[FAILED] Some VMs failed to remove: ${failed_vms[*]}"
         exit 1
     fi
 fi
