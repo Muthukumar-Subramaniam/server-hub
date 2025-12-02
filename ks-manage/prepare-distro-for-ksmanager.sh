@@ -4,9 +4,11 @@
 # please open an issue at: https://github.com/Muthukumar-Subramaniam/server-hub/issues   #
 #----------------------------------------------------------------------------------------#
 
+source /server-hub/common-utils/color-functions.sh
+
 if [[ "$USER" != "$mgmt_super_user" ]]; then
-	echo -e "\n🔒 Access denied. Only infra management super user '${mgmt_super_user}' is authorized to run this tool."
-	echo -e "\n🔒 Also if the user itself is ${mgmt_super_user}, Please do not elevate access again with sudo.\n"
+	print_error "Access denied. Only infra management super user '${mgmt_super_user}' is authorized to run this tool."
+	print_error "Also if the user itself is ${mgmt_super_user}, Please do not elevate access again with sudo.\n"
     	exit 1
 fi
 
@@ -48,7 +50,7 @@ opensuse_leap_os_availability=$(fn_check_distro_availability "opensuse-leap")
 
 fn_select_os_distro() {
   local action_title="$1"
-  echo -e "\n📦 Please select the OS distribution to ${action_title}: \n"
+  print_info "[INFO] Please select the OS distribution to ${action_title}: \n"
   echo -e "  1)  AlmaLinux                ${almalinux_os_availability}"
   echo -e "  2)  Rocky Linux              ${rocky_os_availability}"
   echo -e "  3)  OracleLinux              ${oraclelinux_os_availability}"
@@ -59,7 +61,7 @@ fn_select_os_distro() {
   echo -e "  8)  openSUSE Leap Latest     ${opensuse_leap_os_availability}"
   echo -e "  q)  Quit\n"
 
-  read -p "⌨️  Enter option number (default: AlmaLinux): " os_distribution
+  read -p "Enter option number (default: AlmaLinux): " os_distribution
   case "$os_distribution" in
     1 | "" ) DISTRO="almalinux" ;;
     2 ) DISTRO="rocky" ;;
@@ -69,8 +71,8 @@ fn_select_os_distro() {
     6 ) DISTRO="fedora" ;;
     7 ) DISTRO="ubuntu-lts" ;;
     8 ) DISTRO="opensuse-leap" ;;
-    q | Q ) echo -e "\n👋 Exiting the utility $(basename $0) ! \n"; exit 0 ;;
-    * ) echo -e "\n❌ Invalid option! 🔁 Please try again."; fn_select_os_distro "$action_title" ;;
+    q | Q ) print_notify "[NOTIFY] Exiting the utility $(basename $0) ! \n"; exit 0 ;;
+    * ) print_error "[ERROR] Invalid option! Please try again."; fn_select_os_distro "$action_title" ;;
   esac
 }
 
@@ -80,54 +82,54 @@ prepare_iso() {
   local web_image_dir="/${dnsbinder_server_fqdn}/ipxe/images/${distro}-latest"
   local iso_path="${ISO_DIR}/${iso_file}"
 
-  echo -e "📁 Ensuring ISO directory exists..."
+  print_info "[INFO] Ensuring ISO directory exists..."
   sudo mkdir -p "$ISO_DIR"
   sudo chown "${mgmt_super_user}:${mgmt_super_user}" "$ISO_DIR"
 
   if [[ -f "$iso_path" ]]; then
-    echo -e "📦 ISO already exists: $iso_path\n"
+    print_info "[INFO] ISO already exists: $iso_path\n"
   else
-    echo -e "🌐 Downloading ISO from $iso_url\n"
+    print_info "[INFO] Downloading ISO from $iso_url\n"
     wget --continue --output-document="$iso_path" "$iso_url"
     sudo chown "${mgmt_super_user}:${mgmt_super_user}" "$iso_path"
-    echo -e "\n✅ Download complete and ownership set.\n"
+    print_success "[SUCCESS] Download complete and ownership set.\n"
   fi
 
-  echo -e "📂 Preparing mount point: $mount_dir"
+  print_info "[INFO] Preparing mount point: $mount_dir"
   sudo mkdir -p "$mount_dir"
   sudo chown "${mgmt_super_user}:${mgmt_super_user}" "$mount_dir"
   local fstab_entry="$iso_path $mount_dir iso9660 uid=${mgmt_super_user},gid=${mgmt_super_user} 0 0"
   if ! grep -qF "$fstab_entry" "$FSTAB"; then
-    echo -e "🔧 Adding mount entry to /etc/fstab\n"
+    print_info "[INFO] Adding mount entry to /etc/fstab\n"
     echo "$fstab_entry" | sudo tee -a "$FSTAB" > /dev/null
     sudo systemctl daemon-reload
   else
-    echo -e "✅ fstab already contains ISO mount entry.\n"
+    print_info "[INFO] fstab already contains ISO mount entry.\n"
   fi
 
   if ! mountpoint -q "$mount_dir"; then
-    echo -e "📁 Mounting ISO to $mount_dir\n"
+    print_info "[INFO] Mounting ISO to $mount_dir\n"
     sudo mount "$mount_dir"
-    echo -e "✅ ISO mounted.\n"
+    print_success "[SUCCESS] ISO mounted.\n"
   else
-    echo -e "📎 ISO already mounted.\n"
+    print_info "[INFO] ISO already mounted.\n"
   fi
 
-  echo -e "📤 Syncing kernel and initrd to $web_image_dir\n"
+  print_info "[INFO] Syncing kernel and initrd to $web_image_dir\n"
   sudo mkdir -p "$web_image_dir"
   sudo chown "${mgmt_super_user}:${mgmt_super_user}" "$web_image_dir"
 
   rsync -avPh "$mount_dir/$kernel_path" "$web_image_dir/"
   rsync -avPh "$mount_dir/$initrd_path" "$web_image_dir/"
 
-  echo -e "\n✅ All done for $distro.\n"
+  print_success "[SUCCESS] All done for $distro.\n"
 }
 
 prepare_rhel() {
   local distro="rhel"
   if [[ $(fn_check_distro_availability "$distro") == "[Ready]" ]]; then
-    echo -e "\n⚠️  Distro '$distro' already appears to be prepared."
-    echo "🧹 Please cleanup first using: $(basename $0) --cleanup $distro"
+    print_warning "[WARNING] Distro '$distro' already appears to be prepared."
+    print_info "[INFO] Please cleanup first using: $(basename $0) --cleanup $distro"
     exit 1
   fi
   local iso_file="rhel-10.0-x86_64-dvd.iso"
@@ -144,8 +146,8 @@ prepare_rhel() {
 prepare_ubuntu() {
   local distro="ubuntu-lts"
   if [[ $(fn_check_distro_availability "$distro") == "[Ready]" ]]; then
-    echo -e "\n⚠️  Distro '$distro' already appears to be prepared."
-    echo "🧹 Please cleanup first using: $(basename $0) --cleanup $distro"
+    print_warning "[WARNING] Distro '$distro' already appears to be prepared."
+    print_info "[INFO] Please cleanup first using: $(basename $0) --cleanup $distro"
     exit 1
   fi
   local latest_lts=$(curl -s https://cdimage.ubuntu.com/releases/ | sed -n 's/.*href="\([0-9][0-9]\.04\(\.[0-9][0-9]*\)\?\)\/".*/\1/p' | awk -F. '$1 % 2 == 0 { print }' | sort -V | tail -n1)
@@ -161,10 +163,10 @@ cleanup_distro() {
   local mount_dir="/${dnsbinder_server_fqdn}/${distro}-latest"
   local web_image_dir="/${dnsbinder_server_fqdn}/ipxe/images/${distro}-latest"
 
-  echo -e "\n⚠️  This will delete ISO, mount point and boot image files for $distro."
+  print_warning "[WARNING] This will delete ISO, mount point and boot image files for $distro."
   read -p "❓ Are you sure you want to continue? (yes/no): " confirm
   if [[ "$confirm" != "yes" ]]; then
-    echo "❌ Cleanup aborted."
+    print_error "[ERROR] Cleanup aborted."
     exit 1
   fi
 
@@ -179,23 +181,23 @@ cleanup_distro() {
     sudo rm -rf "$web_image_dir"
   fi
 
-  echo -e "🧽 Cleaning up /etc/fstab entries containing '${distro}-latest'"
+  print_info "[INFO] Cleaning up /etc/fstab entries containing '${distro}-latest'"
   sudo sed -i "/${distro}-latest/d" "$FSTAB"
   sudo systemctl daemon-reexec
 
-  echo -e "\n🧹 Cleanup completed for $distro.\n"
+  print_success "[SUCCESS] Cleanup completed for $distro.\n"
 }
 
 # Menu mode when no args
 if [[ $# -lt 1 ]]; then
-  echo -e "\n🧭 No arguments provided. Launching interactive mode."
+  print_info "[INFO] No arguments provided. Launching interactive mode."
   echo -e "\nWhat would you like to do?\n  1) Setup Distro\n  2) Cleanup Distro\n  q) Quit\n"
-  read -p "⌨️  Enter option (default: 1): " action
+  read -p "Enter option (default: 1): " action
   case "$action" in
     1 | "" ) MODE="--setup" ; MENU_TITLE="setup" ;;
     2 ) MODE="--cleanup" ; MENU_TITLE="cleanup" ;;
-    q | Q ) echo -e "\n👋 Exiting the utility $(basename $0) ! \n"; exit 0 ;;
-    * ) echo -e "\n❌ Invalid choice. Exiting."; exit 1 ;;
+    q | Q ) print_notify "[NOTIFY] Exiting the utility $(basename $0) ! \n"; exit 0 ;;
+    * ) print_error "[ERROR] Invalid choice. Exiting."; exit 1 ;;
   esac
   fn_select_os_distro "$MENU_TITLE"
 else
@@ -208,13 +210,13 @@ else
   fi
 
   if [[ "$MODE" != "--setup" && "$MODE" != "--cleanup" ]]; then
-    echo -e "\n❌ Invalid mode: $MODE"
+    print_error "[ERROR] Invalid mode: $MODE"
     print_usage
     exit 1
   fi
 
   if [[ -z "$DISTRO" ]]; then
-    echo -e "\n❌ Missing distro argument for $MODE."
+    print_error "[ERROR] Missing distro argument for $MODE."
     print_usage
     exit 1
   fi
@@ -226,8 +228,8 @@ case "$MODE" in
     case "$DISTRO" in
       almalinux)
         if [[ $(fn_check_distro_availability "almalinux") == "[Ready]" ]]; then
-          echo -e "\n⚠️  Distro 'almalinux' already appears to be prepared."
-          echo "🧹 Please cleanup first using: $(basename $0) --cleanup almalinux"
+          print_warning "[WARNING] Distro 'almalinux' already appears to be prepared."
+          print_info "[INFO] Please cleanup first using: $(basename $0) --cleanup almalinux"
           exit 1
         fi
         prepare_iso "almalinux" "AlmaLinux-10-latest-x86_64-dvd.iso" \
@@ -236,8 +238,8 @@ case "$MODE" in
         ;;
       rocky)
         if [[ $(fn_check_distro_availability "rocky") == "[Ready]" ]]; then
-          echo -e "\n⚠️  Distro 'rocky' already appears to be prepared."
-          echo "🧹 Please cleanup first using: $(basename $0) --cleanup rocky"
+          print_warning "[WARNING] Distro 'rocky' already appears to be prepared."
+          print_info "[INFO] Please cleanup first using: $(basename $0) --cleanup rocky"
           exit 1
         fi
         prepare_iso "rocky" "Rocky-10-latest-x86_64-dvd.iso" \
@@ -246,8 +248,8 @@ case "$MODE" in
         ;;
       fedora)
         if [[ $(fn_check_distro_availability "fedora") == "[Ready]" ]]; then
-          echo -e "\n⚠️  Distro 'fedora' already appears to be prepared."
-          echo "🧹 Please cleanup first using: $(basename $0) --cleanup rocky"
+          print_warning "[WARNING] Distro 'fedora' already appears to be prepared."
+          print_info "[INFO] Please cleanup first using: $(basename $0) --cleanup rocky"
           exit 1
         fi
         prepare_iso "fedora" "Fedora-Server-dvd-x86_64-42-1.1.iso" \
@@ -256,8 +258,8 @@ case "$MODE" in
         ;;
       oraclelinux)
         if [[ $(fn_check_distro_availability "oraclelinux") == "[Ready]" ]]; then
-          echo -e "\n⚠️  Distro 'oraclelinux' already appears to be prepared."
-          echo "🧹 Please cleanup first using: $(basename $0) --cleanup oraclelinux"
+          print_warning "[WARNING] Distro 'oraclelinux' already appears to be prepared."
+          print_info "[INFO] Please cleanup first using: $(basename $0) --cleanup oraclelinux"
           exit 1
         fi
         prepare_iso "oraclelinux" "OracleLinux-R10-U0-x86_64-dvd.iso" \
@@ -266,8 +268,8 @@ case "$MODE" in
         ;;
       centos-stream)
         if [[ $(fn_check_distro_availability "centos-stream") == "[Ready]" ]]; then
-          echo -e "\n⚠️  Distro 'centos-stream' already appears to be prepared."
-          echo "🧹 Please cleanup first using: $(basename $0) --cleanup centos-stream"
+          print_warning "[WARNING] Distro 'centos-stream' already appears to be prepared."
+          print_info "[INFO] Please cleanup first using: $(basename $0) --cleanup centos-stream"
           exit 1
         fi
         prepare_iso "centos-stream" "CentOS-Stream-10-latest-x86_64-dvd.iso" \
@@ -282,8 +284,8 @@ case "$MODE" in
         ;;
       opensuse-leap)
         if [[ $(fn_check_distro_availability "opensuse-leap") == "[Ready]" ]]; then
-          echo -e "\n⚠️  Distro 'opensuse-leap' already appears to be prepared."
-          echo "🧹 Please cleanup first using: $(basename $0) --cleanup opensuse-leap"
+          print_warning "[WARNING] Distro 'opensuse-leap' already appears to be prepared."
+          print_info "[INFO] Please cleanup first using: $(basename $0) --cleanup opensuse-leap"
           exit 1
         fi
         prepare_iso "opensuse-leap" "openSUSE-Leap-15.6-DVD-x86_64-Media.iso" \
@@ -291,7 +293,7 @@ case "$MODE" in
           "boot/x86_64/loader/linux" "boot/x86_64/loader/initrd"
         ;;
       *)
-        echo "❌ Unknown distro: $DISTRO"
+        print_error "[ERROR] Unknown distro: $DISTRO"
         exit 1
         ;;
     esac
@@ -307,7 +309,7 @@ case "$MODE" in
       ubuntu-lts)      cleanup_distro "ubuntu-lts" "ubuntu-*-live-server-amd64.iso" ;;
       opensuse-leap)   cleanup_distro "opensuse-leap" "openSUSE-Leap-*-DVD-x86_64-Media.iso" ;;
       *)
-        echo "❌ Unknown distro: $DISTRO"
+        print_error "[ERROR] Unknown distro: $DISTRO"
         exit 1
         ;;
     esac
