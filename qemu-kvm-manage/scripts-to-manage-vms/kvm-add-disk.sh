@@ -123,7 +123,7 @@ print_info "[INFO] Allowed disk size: Steps of 5GB (5, 10, 15 ... up to 50GB)"
 while true; do
     read -rp "Enter disk size in GB (default 5): " DISK_SIZE_GB
     DISK_SIZE_GB=${DISK_SIZE_GB:-5}
-    if [[ "$DISK_SIZE_GB" =~ ^[0-9]+$ ]] && (( DISK_SIZE_GB % 5 == 0 && DISK_SIZE_GB <= 50 )); then
+    if [[ "$DISK_SIZE_GB" =~ ^[0-9]+$ ]] && (( DISK_SIZE_GB >= 5 && DISK_SIZE_GB % 5 == 0 && DISK_SIZE_GB <= 50 )); then
         print_success "[SUCCESS] Selected ${DISK_SIZE_GB}GB disk size."
         break
     else
@@ -132,6 +132,12 @@ while true; do
 done
 
 VM_DIR="/kvm-hub/vms/${qemu_kvm_hostname}"
+
+# Verify VM directory exists
+if [[ ! -d "$VM_DIR" ]]; then
+    print_error "[ERROR] VM directory does not exist: $VM_DIR"
+    exit 1
+fi
 
 # Determine existing disks
 EXISTING_FILES=($(ls "$VM_DIR"/*.qcow2 2>/dev/null))
@@ -152,7 +158,12 @@ for ((i=1; i<=DISK_COUNT; i++)); do
         if [[ $FOUND -eq 0 ]]; then
             break
         fi
-        NEXT_DISK_LETTER=$(echo "$NEXT_DISK_LETTER" | tr "0-9a-z" "1-9a-z_")
+        # Increment letter properly (b->c->d...->z)
+        NEXT_DISK_LETTER=$(echo "$NEXT_DISK_LETTER" | tr 'b-y' 'c-z')
+        if [[ "$NEXT_DISK_LETTER" == "z" ]]; then
+            print_error "[ERROR] Maximum disk letters reached (vdb-vdz)."
+            exit 1
+        fi
     done
 
     DISK_NAME="${qemu_kvm_hostname}_vd${NEXT_DISK_LETTER}.qcow2"
@@ -178,9 +189,8 @@ for ((i=1; i<=DISK_COUNT; i++)); do
         exit 1
     fi
 
-    # Update EXISTING_FILES and increment letter
+    # Update EXISTING_FILES
     EXISTING_FILES+=("$DISK_PATH")
-    NEXT_DISK_LETTER=$(echo "$NEXT_DISK_LETTER" | tr "0-9a-z" "1-9a-z_")
 done
 
 print_success "[SUCCESS] Added $DISK_COUNT ${DISK_SIZE_GB}GB disk(s) to VM \"$qemu_kvm_hostname\"."
