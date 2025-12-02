@@ -629,8 +629,7 @@ if ! $invoked_with_golden_image; then
   ✓ TFTP Server  : ${tftp_server_name}.${ipv4_domain}
   ✓ KS Local     : ${host_kickstart_dir}
   ✓ KS Web       : https://${host_kickstart_dir#/}
-  ✓ Requested OS : ${os_name_and_version}
-"
+  ✓ Requested OS : ${os_name_and_version}"
 	print_success "[SUCCESS] All done! You can proceed with installation of '${kickstart_hostname}' using PXE boot."
 else
 	print_info "[INFO] Configuration Summary:
@@ -645,8 +644,7 @@ else
   ✓ NTP Pool     : ${ntp_pool_name}.${ipv4_domain}
   ✓ Web Server   : ${web_server_name}.${ipv4_domain}
   ✓ NFS Server   : ${nfs_server_name}.${ipv4_domain}
-  ✓ Requested OS : ${os_name_and_version}
-"
+  ✓ Requested OS : ${os_name_and_version}"
 	print_success "[SUCCESS] All done! You can proceed with installation of '${kickstart_hostname}' using golden image."
 fi
 
