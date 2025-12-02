@@ -184,7 +184,7 @@ when_lab_infra_server_is_vm() {
     fi
 
     # ====== STEP 4: Wait for lab infra server VM to be SSH accessible ======
-    print_info "[INFO] Waiting for lab infra server VM to become SSH accessible..." nskip
+    print_info "[INFO] Waiting for lab infra server VM to become SSH accessible..."
     local ssh_check_timeout=120
     local ssh_check_elapsed=0
     local ssh_check_interval=5
