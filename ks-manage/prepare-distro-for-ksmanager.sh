@@ -26,8 +26,7 @@ print_usage() {
     $(basename $0) --cleanup <distro>
 
 Supported distros:
-    almalinux, rocky, oraclelinux, centos-stream, rhel, ubuntu-lts, opensuse-leap
-"
+    almalinux, rocky, oraclelinux, centos-stream, rhel, ubuntu-lts, opensuse-leap"
 }
 
 fn_check_distro_availability() {
@@ -56,7 +55,6 @@ opensuse_leap_os_availability=$(fn_check_distro_availability "opensuse-leap")
 fn_select_os_distro() {
   local action_title="$1"
   print_notify "Please select the OS distribution to ${action_title}:
-
   1)  AlmaLinux                ${almalinux_os_availability}
   2)  Rocky Linux              ${rocky_os_availability}
   3)  OracleLinux              ${oraclelinux_os_availability}
@@ -65,8 +63,7 @@ fn_select_os_distro() {
   6)  Fedora Linux             ${fedora_os_availability}
   7)  Ubuntu Server LTS        ${ubuntu_lts_os_availability}
   8)  openSUSE Leap Latest     ${opensuse_leap_os_availability}
-  q)  Quit
-"
+  q)  Quit"
   read -p "Enter option number (default: AlmaLinux): " os_distribution
   case "$os_distribution" in
     1 | "" ) DISTRO="almalinux" ;;
@@ -143,8 +140,7 @@ prepare_rhel() {
   local web_image_dir="/${dnsbinder_server_fqdn}/ipxe/images/${distro}-latest"
   local iso_path="${ISO_DIR}/${iso_file}"
 
-  print_info "[INFO] Login from a browser with your Red Hat Developer Subscription!
-"
+  print_info "[INFO] Login from a browser with your Red Hat Developer Subscription!"
   read -rp "Enter the link to download RHEL 10 ISO : " iso_url
 
   prepare_iso "$distro" "$iso_file" "$iso_url" "images/pxeboot/vmlinuz" "images/pxeboot/initrd.img"
@@ -202,8 +198,7 @@ if [[ $# -lt 1 ]]; then
 What would you like to do?
   1) Setup Distro
   2) Cleanup Distro
-  q) Quit
-"
+  q) Quit"
   read -p "Enter option (default: 1): " action
   case "$action" in
     1 | "" ) MODE="--setup" ; MENU_TITLE="setup" ;;
