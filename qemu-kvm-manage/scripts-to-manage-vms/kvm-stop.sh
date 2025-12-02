@@ -18,7 +18,7 @@ fn_show_help() {
 
 Options:
   -f, --force          Skip confirmation prompt and force power-off
-  --hosts <list>       Comma-separated list of VM hostnames to stop
+  -H, --hosts <list>   Comma-separated list of VM hostnames to stop
   -h, --help           Show this help message
 
 Arguments:
@@ -43,7 +43,7 @@ while [[ $# -gt 0 ]]; do
             force_stop=true
             shift
             ;;
-        --hosts)
+        -H|--hosts)
             if [[ -z "$2" || "$2" == -* ]]; then
                 print_error "[ERROR] --hosts requires a comma-separated list of hostnames."
                 fn_show_help
@@ -82,7 +82,7 @@ stop_vm() {
     
     # Check if VM exists in 'virsh list'
     if ! sudo virsh list | awk '{print $2}' | grep -Fxq "$vm_name"; then
-        print_warning "[WARNING] VM \"$vm_name\" is not running."
+        print_info "[INFO] VM \"$vm_name\" is not running (already stopped)."
         return 0
     fi
     
@@ -122,6 +122,24 @@ if [[ -n "$hosts_list" ]]; then
         print_error "[ERROR] No valid hostnames provided in --hosts list."
         exit 1
     fi
+    
+    # Remove duplicates while preserving order
+    declare -A seen_hosts
+    unique_hosts=()
+    for vm_name in "${validated_hosts[@]}"; do
+        if [[ -z "${seen_hosts[$vm_name]}" ]]; then
+            seen_hosts[$vm_name]=1
+            unique_hosts+=("$vm_name")
+        fi
+    done
+    
+    # Check if duplicates were found
+    if [[ ${#unique_hosts[@]} -lt ${#validated_hosts[@]} ]]; then
+        duplicate_count=$((${#validated_hosts[@]} - ${#unique_hosts[@]}))
+        print_warning "[WARNING] Removed $duplicate_count duplicate hostname(s) from the list."
+    fi
+    
+    validated_hosts=("${unique_hosts[@]}")
     
     # Warning prompt unless force flag is used
     if [[ "$force_stop" == false ]]; then
@@ -174,7 +192,6 @@ fi
 
 # Stop the VM
 if stop_vm "$qemu_kvm_hostname"; then
-    echo ""
     exit 0
 else
     exit 1
