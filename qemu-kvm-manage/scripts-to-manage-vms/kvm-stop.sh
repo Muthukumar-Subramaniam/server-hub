@@ -165,9 +165,8 @@ if [[ -n "$hosts_list" ]]; then
     done
     
     # Report results
-    echo ""
     if [[ ${#failed_vms[@]} -eq 0 ]]; then
-        print_success "[SUCCESS] All VMs stopped successfully.\n"
+        print_success "[SUCCESS] All VMs stopped successfully."
         exit 0
     else
         print_error "[FAILED] Some VMs failed to stop: ${failed_vms[*]}"
