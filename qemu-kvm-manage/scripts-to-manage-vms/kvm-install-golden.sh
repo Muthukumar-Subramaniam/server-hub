@@ -310,7 +310,7 @@ done
 if [[ $TOTAL_VMS -gt 1 ]]; then
     echo ""
     print_info "[INFO] Installation Summary:"
-    print_success "[SUCCESS] Successfully initiated installation: ${#SUCCESSFUL_VMS[@]} VM(s)"
+    print_success "[SUCCESS] Successfully initiated installation via golden image disk: ${#SUCCESSFUL_VMS[@]} VM(s)"
     if [[ ${#SUCCESSFUL_VMS[@]} -gt 0 ]]; then
         for vm in "${SUCCESSFUL_VMS[@]}"; do
             print_success "  ✓ $vm"
