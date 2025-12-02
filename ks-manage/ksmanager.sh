@@ -303,7 +303,6 @@ opensuse_leap_os_availability=$(fn_check_distro_availability "opensuse-leap")
 
 fn_select_os_distro() {
     print_info "[INFO] Please select the OS distribution to install:
-
   1)  AlmaLinux                ${almalinux_os_availability}
   2)  Rocky Linux              ${rocky_os_availability}
   3)  OracleLinux              ${oraclelinux_os_availability}
@@ -311,8 +310,8 @@ fn_select_os_distro() {
   5)  Red Hat Enterprise Linux ${rhel_os_availability}
   6)  Fedora Linux             ${fedora_os_availability}
   7)  Ubuntu Server LTS        ${ubuntu_lts_os_availability}
-  8)  openSUSE Leap Latest     ${opensuse_leap_os_availability}
-"
+  8)  openSUSE Leap Latest     ${opensuse_leap_os_availability}"
+
     read -p "Enter option number (default: AlmaLinux): " os_distribution
 
     case "${os_distribution}" in
