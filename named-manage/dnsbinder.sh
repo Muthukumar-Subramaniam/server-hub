@@ -1029,7 +1029,6 @@ fn_delete_host_record() {
 		if [[ ! ${v_input_delete_confirmation} == "-y" ]]
 		then
 			read -p "Please confirm deletion of records (y/n) : " v_confirmation
-			echo
 		else
 			v_confirmation='y'
 		fi
@@ -1098,7 +1097,6 @@ fn_rename_host_record() {
 		if [[ ! ${v_input_rename_confirmation} == "-y" ]]
 		then
 			read -p "Please confirm to rename the record ${v_host_record}.${v_domain_name} to ${v_rename_record}.${v_domain_name} (y/n) : " v_confirmation
-			echo
 		else
 			v_confirmation='y'
 		fi
@@ -1474,7 +1472,6 @@ fn_delete_cname_record() {
 		if [[ ! ${v_input_delete_confirmation} == "-y" ]]
 		then
 			read -p "Please confirm deletion of cname record \"${v_input_cname}.${v_domain_name}\" (y/n) : " v_confirmation
-			echo
 		else
 			v_confirmation='y'
 		fi
