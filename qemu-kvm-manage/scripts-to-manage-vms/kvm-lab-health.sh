@@ -35,10 +35,10 @@ done
 # -------------------------------------------------------------
 # Header
 # -------------------------------------------------------------
-echo "-------------------------------------------------------------"
-echo "KVM Lab Infra Health Check"
-echo "Lab Infra Server : ${lab_infra_server_hostname} ( ${lab_infra_server_ipv4_address} )"
-echo "-------------------------------------------------------------"
+print_info "-------------------------------------------------------------
+KVM Lab Infra Health Check
+Lab Infra Server : ${lab_infra_server_hostname} ( ${lab_infra_server_ipv4_address} )
+-------------------------------------------------------------"
 
 active_services=0
 inactive_services=0
@@ -56,10 +56,10 @@ for entry in "${services_to_check[@]}"; do
     fi
 
     if [[ $? -eq 0 ]]; then
-        printf "[ \033[0;32m✓\033[0m ] %-*s [ %s/%s ]\n" "$max_len" "$service_name" "$service_port" "$service_proto"
+        printf "\033[0;36m[ \033[0;32m✓\033[0;36m ] %-*s [ %s/%s ]\033[0m\n" "$max_len" "$service_name" "$service_port" "$service_proto"
         ((active_services++))
     else
-        printf "[ \033[0;31m✗\033[0m ] %-*s [ %s/%s ]\n" "$max_len" "$service_name" "$service_port" "$service_proto"
+        printf "\033[0;36m[ \033[0;31m✗\033[0;36m ] %-*s [ %s/%s ]\033[0m\n" "$max_len" "$service_name" "$service_port" "$service_proto"
         ((inactive_services++))
     fi
 done
@@ -81,4 +81,4 @@ elif [[ $total_services -eq $active_services ]]; then
 else
     print_warning "[WARNING] KVM Lab Infra health is DEGRADED."
 fi
-echo "-------------------------------------------------------------"
+print_info "-------------------------------------------------------------"
