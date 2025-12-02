@@ -99,12 +99,17 @@ check_existing_lab_deployment() {
   elif [[ $found_issues -eq 1 ]]; then
     echo
     print_warning "[WARNING] Some lab components already exist."
-    read -rp "Continue with deployment? (y/N): " continue_confirm
+    print_warning "[WARNING] Continuing may overwrite existing SSH keys or configuration."
+    echo
+    read -rp "Type 'OVERWRITE' to continue with deployment: " continue_confirm
     
-    if [[ ! "$continue_confirm" =~ ^[Yy]$ ]]; then
+    if [[ "$continue_confirm" != "OVERWRITE" ]]; then
       print_info "[INFO] Deployment cancelled."
       exit 0
     fi
+    
+    print_warning "[WARNING] Proceeding with deployment..."
+    sleep 1
   else
     print_success "[SUCCESS] No existing lab deployment detected. Safe to proceed."
   fi
@@ -540,11 +545,16 @@ deploy_lab_infra_server_host() {
       print_warning "[WARNING]   - $svc"
     done
     echo
-    read -rp "These services may be overwritten. Continue? (y/N): " host_continue
-    if [[ ! "$host_continue" =~ ^[Yy]$ ]]; then
+    print_warning "[WARNING] These services will be reconfigured/overwritten."
+    read -rp "Type 'RECONFIGURE' to continue with host deployment: " host_continue
+    
+    if [[ "$host_continue" != "RECONFIGURE" ]]; then
       print_info "[INFO] Host deployment cancelled."
       exit 0
     fi
+    
+    print_warning "[WARNING] Proceeding with host deployment..."
+    sleep 1
   fi
   
     # -----------------------------
