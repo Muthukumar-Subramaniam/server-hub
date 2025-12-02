@@ -83,6 +83,7 @@ restart_vm() {
     # Check if VM exists in 'virsh list'
     if ! sudo virsh list | awk '{print $2}' | grep -Fxq "$vm_name"; then
         print_error "[ERROR] VM \"$vm_name\" is not running."
+        print_info "[INFO] If you want to start the VM, use: kvm-start $vm_name"
         return 1
     fi
     
