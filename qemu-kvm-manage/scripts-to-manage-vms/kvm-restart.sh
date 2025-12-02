@@ -146,6 +146,7 @@ if [[ -n "$hosts_list" ]]; then
         print_warning "[WARNING] This will perform cold restart on ${#validated_hosts[@]} VM(s): ${validated_hosts[*]}"
         print_notify "[NOTIFY] This is equivalent to pressing the reset button (may cause data loss)."
         read -p "Are you sure you want to continue? (yes/no): " confirmation
+        echo -ne "\033[1A\033[2K"  # Move up one line and clear it
         if [[ "$confirmation" != "yes" ]]; then
             print_info "[INFO] Operation cancelled by user."
             exit 0
@@ -183,12 +184,12 @@ if [[ "$force_restart" == false ]]; then
     print_warning "[WARNING] This will perform cold restart on VM \"$qemu_kvm_hostname\"."
     print_notify "[NOTIFY] This is equivalent to pressing the reset button (may cause data loss)."
     read -p "Are you sure you want to continue? (yes/no): " confirmation
+    echo -ne "\033[1A\033[2K"  # Move up one line and clear it
     if [[ "$confirmation" != "yes" ]]; then
         print_info "[INFO] Operation cancelled by user."
         exit 0
     fi
 fi
-
 # Restart the VM
 if restart_vm "$qemu_kvm_hostname"; then
     exit 0

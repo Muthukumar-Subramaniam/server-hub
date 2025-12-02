@@ -63,6 +63,7 @@ golden_image_path="/kvm-hub/golden-images-disk-store/${qemu_kvm_hostname}.qcow2"
 if [ -f "${golden_image_path}" ]; then
     print_warning "[WARNING] Golden image \"${qemu_kvm_hostname}\" already exists!"
     read -p "Do you want to delete and recreate it? (yes/no): " answer
+    echo -ne "\033[1A\033[2K"  # Move up one line and clear it
     case "$answer" in
         yes|YES)
             print_info "[INFO] Deleting existing golden image..."

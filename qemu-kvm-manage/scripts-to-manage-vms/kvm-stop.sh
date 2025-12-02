@@ -146,6 +146,7 @@ if [[ -n "$hosts_list" ]]; then
         print_warning "[WARNING] This will forcefully power off ${#validated_hosts[@]} VM(s): ${validated_hosts[*]}"
         print_notify "[NOTIFY] This is equivalent to pulling the power plug (may cause data loss)."
         read -p "Are you sure you want to continue? (yes/no): " confirmation
+        echo -ne "\033[1A\033[2K"  # Move up one line and clear it
         if [[ "$confirmation" != "yes" ]]; then
             print_info "[INFO] Operation cancelled by user."
             exit 0
@@ -183,12 +184,12 @@ if [[ "$force_stop" == false ]]; then
     print_warning "[WARNING] This will forcefully power off VM \"$qemu_kvm_hostname\"."
     print_notify "[NOTIFY] This is equivalent to pulling the power plug (may cause data loss)."
     read -p "Are you sure you want to continue? (yes/no): " confirmation
+    echo -ne "\033[1A\033[2K"  # Move up one line and clear it
     if [[ "$confirmation" != "yes" ]]; then
         print_info "[INFO] Operation cancelled by user."
         exit 0
     fi
 fi
-
 # Stop the VM
 if stop_vm "$qemu_kvm_hostname"; then
     exit 0

@@ -146,6 +146,7 @@ if [[ -n "$hosts_list" ]]; then
         print_warning "[WARNING] This will send graceful shutdown signal to ${#validated_hosts[@]} VM(s): ${validated_hosts[*]}"
         print_notify "[NOTIFY] Guest OS will attempt to shutdown cleanly (requires guest tools)."
         read -p "Are you sure you want to continue? (yes/no): " confirmation
+        echo -ne "\033[1A\033[2K"  # Move up one line and clear it
         if [[ "$confirmation" != "yes" ]]; then
             print_info "[INFO] Operation cancelled by user."
             exit 0

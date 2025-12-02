@@ -190,6 +190,7 @@ if [[ -n "$hosts_list" ]]; then
         print_warning "[WARNING] This will permanently delete ${#validated_hosts[@]} VM(s): ${validated_hosts[*]}"
         print_notify "[NOTIFY] All VM data and associated files will be removed."
         read -p "Are you sure you want to continue? (yes/no): " confirmation
+        echo -ne "\033[1A\033[2K"  # Move up one line and clear it
         if [[ "$confirmation" != "yes" ]]; then
             print_info "[INFO] Operation cancelled by user."
             exit 0
