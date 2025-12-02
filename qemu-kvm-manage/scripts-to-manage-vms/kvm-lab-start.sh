@@ -146,7 +146,7 @@ when_lab_infra_server_is_vm() {
 
     # ====== STEP 1: Check and start libvirtd if needed ======
     if sudo systemctl is-active --quiet libvirtd; then
-        print_success "[SUCCESS] libvirtd is already running"
+        print_info "[INFO] libvirtd is already running"
     else
         print_info "[INFO] Starting libvirtd..." nskip
         if ! sudo systemctl restart libvirtd; then
