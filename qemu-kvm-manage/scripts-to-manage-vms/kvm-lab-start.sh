@@ -28,7 +28,7 @@ when_lab_infra_server_is_host() {
 
     # ====== STEP 1: Check and start libvirtd if needed ======
     if sudo systemctl is-active --quiet libvirtd; then
-        print_success "[SUCCESS] libvirtd is already running"
+        print_info "[INFO] libvirtd is already running"
     else
         print_info "[INFO] Starting libvirtd..." nskip
         if ! sudo systemctl restart libvirtd; then
@@ -274,18 +274,18 @@ when_lab_infra_server_is_vm() {
     configure_dns_for_bridge || return 1
 
     if $all_services_active; then
-        print_success "[SUCCESS] kvm lab infra is started, and all essential services are live."
+        print_success "KVM Lab Infra is started, and all essential services are live."
     else
-        print_warning "[WARNING] kvm lab infra is started, but some services need attention."
+        print_warning "KVM Lab Infra is started, but some services need attention."
         print_info "[INFO] Total: ${#services_to_check[@]}, Active: $active_services, Inactive: $inactive_services"
     fi
 }
     
 # ====== MAIN LOGIC ======
 
-print_info "=============================================================="
+print_info "--------------------------------------------------------------"
 print_info "KVM Lab Infrastructure Startup"
-print_info "=============================================================="
+print_info "--------------------------------------------------------------"
 
 if $lab_infra_server_mode_is_host; then
     print_notify "[NOTIFY] Lab Infra Server Mode: HOST ( $lab_infra_server_hostname )"
@@ -298,5 +298,5 @@ else
 fi
 
 exit_code=$?
-print_info "=============================================================="
+print_info "--------------------------------------------------------------"
 exit $exit_code
