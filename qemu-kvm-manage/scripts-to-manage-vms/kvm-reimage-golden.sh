@@ -4,219 +4,420 @@
 # please open an issue at: https://github.com/Muthukumar-Subramaniam/server-hub/issues   #
 #----------------------------------------------------------------------------------------#
 
+source /server-hub/common-utils/color-functions.sh
 source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/defaults.sh
 DIR_PATH_SCRIPTS_TO_MANAGE_VMS='/server-hub/qemu-kvm-manage/scripts-to-manage-vms'
 
 ATTACH_CONSOLE="no"
 FORCE_DEFAULT="no"
-qemu_kvm_hostname=""
+HOSTNAMES=()
+LOG_FILE=""
 
-# Fail fast if more than 3 args given
-if [[ $# -gt 3 ]]; then
-  echo "❌ Too many arguments."
-  echo "ℹ️  Usage: $(basename $0) [hostname] [--console|-c] [--force-default]"
-  exit 1
-fi
+# Function to show help
+fn_show_help() {
+    print_notify "Usage: kvm-reimage-golden [OPTIONS] [hostname]
 
+Options:
+  -c, --console        Attach console during reimage (single VM only)
+  -f, --force-default  Destroy VM and reinstall with default specs (2 vCPUs, 2 GiB RAM, 20 GiB disk)
+  -H, --hosts          Specify multiple hostnames (comma-separated)
+  -h, --help           Show this help message
+
+Arguments:
+  hostname             Name of the VM to reimage via golden image disk (optional, will prompt if not given)
+
+Examples:
+  kvm-reimage-golden vm1                                # Reimage single VM
+  kvm-reimage-golden vm1 --console                      # Reimage and attach console
+  kvm-reimage-golden vm1 --force-default                # Reimage with default specs
+  kvm-reimage-golden --hosts vm1,vm2,vm3                # Reimage multiple VMs
+  kvm-reimage-golden -H vm1,vm2,vm3 --force-default     # Reimage multiple with defaults
+"
+}
+
+# Cleanup function
+cleanup() {
+    if [[ -n "$LOG_FILE" && -f "$LOG_FILE" ]]; then
+        rm -f "$LOG_FILE"
+    fi
+}
+
+trap cleanup EXIT
+
+# Parse arguments
 while [[ $# -gt 0 ]]; do
-  case "$1" in
-    --console|-c)
-      if [[ "$ATTACH_CONSOLE" == "yes" ]]; then
-        echo "❌ Duplicate --console/-c option."
-        exit 1
-      fi
-      ATTACH_CONSOLE="yes"
-      shift
-      ;;
-    --force-default)
-      if [[ "$FORCE_DEFAULT" == "yes" ]]; then
-        echo "❌ Duplicate --force-default option."
-        exit 1
-      fi
-      FORCE_DEFAULT="yes"
-      shift
-      ;;
-    --help|-h)
-      echo "Usage: $(basename $0) [hostname] [--console|-c] [--force-default]"
-      echo
-      echo "Arguments:"
-      echo "  hostname         Name of the VM to be reimaged (optional, will prompt if not given)"
-      echo "  --console,-c     Attach console during reimage (optional)"
-      echo "  --force-default  Destroy VM and reinstall with default specs (2 vCPUs, 2 GiB RAM, 20 GiB disk) (optional)"
-      exit 0
-      ;;
-    *)
-      if [[ -z "$qemu_kvm_hostname" ]]; then
-        qemu_kvm_hostname="$1"
-      else
-        echo "❌ Unexpected argument: $1"
-        echo "ℹ️  Usage: $(basename $0) [hostname] [--console|-c] [--force-default]"
-        exit 1
-      fi
-      shift
-      ;;
-  esac
+    case "$1" in
+        -h|--help)
+            fn_show_help
+            exit 0
+            ;;
+        -c|--console)
+            if [[ "$ATTACH_CONSOLE" == "yes" ]]; then
+                print_error "[ERROR] Duplicate --console/-c option."
+                fn_show_help
+                exit 1
+            fi
+            ATTACH_CONSOLE="yes"
+            shift
+            ;;
+        -f|--force-default)
+            if [[ "$FORCE_DEFAULT" == "yes" ]]; then
+                print_error "[ERROR] Duplicate --force-default option."
+                fn_show_help
+                exit 1
+            fi
+            FORCE_DEFAULT="yes"
+            shift
+            ;;
+        -H|--hosts)
+            if [[ -z "$2" || "$2" == -* ]]; then
+                print_error "[ERROR] --hosts/-H requires a comma-separated list of hostnames."
+                fn_show_help
+                exit 1
+            fi
+            IFS=',' read -ra HOSTNAMES <<< "$2"
+            shift 2
+            ;;
+        -*)
+            print_error "[ERROR] No such option: $1"
+            fn_show_help
+            exit 1
+            ;;
+        *)
+            if [[ ${#HOSTNAMES[@]} -eq 0 ]]; then
+                HOSTNAMES+=("$1")
+            else
+                print_error "[ERROR] Cannot mix positional hostname with --hosts/-H option."
+                fn_show_help
+                exit 1
+            fi
+            shift
+            ;;
+    esac
 done
 
-# If hostname still not set, prompt
-source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/input-hostname.sh "$qemu_kvm_hostname"
-
-# Check if VM exists in 'virsh list --all'
-if ! sudo virsh list --all | awk '{print $2}' | grep -Fxq "$qemu_kvm_hostname"; then
-    echo "❌ Error: VM \"$qemu_kvm_hostname\" does not exist."
+# Validate console + multiple VMs conflict
+if [[ "$ATTACH_CONSOLE" == "yes" && ${#HOSTNAMES[@]} -gt 1 ]]; then
+    print_error "[ERROR] --console/-c option cannot be used with multiple VMs."
+    fn_show_help
     exit 1
 fi
 
-# Prevent re-imaging of lab infra server VM
-if [[ "$qemu_kvm_hostname" == "$lab_infra_server_hostname" ]]; then
-    echo "❌❌❌  FATAL ERROR: Cannot Re-image Lab Infra Server! ❌❌❌"
-    echo "You are attempting to re-image the lab infrastructure server VM: $lab_infra_server_hostname"
-    echo "This VM hosts the critical services required for re-imaging operations."
-    echo "All essential lab services run on this VM and must not be destroyed."
+# Remove duplicates from HOSTNAMES
+if [[ ${#HOSTNAMES[@]} -gt 1 ]]; then
+    UNIQUE_HOSTNAMES=($(printf '%s\n' "${HOSTNAMES[@]}" | sort -u))
+    if [[ ${#UNIQUE_HOSTNAMES[@]} -ne ${#HOSTNAMES[@]} ]]; then
+        print_warning "[WARNING] Removed duplicate hostnames from the list."
+        HOSTNAMES=("${UNIQUE_HOSTNAMES[@]}")
+    fi
+fi
+
+# If no hostnames provided, prompt for one
+if [[ ${#HOSTNAMES[@]} -eq 0 ]]; then
+    source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/input-hostname.sh ""
+    HOSTNAMES=("$qemu_kvm_hostname")
+fi
+
+# Validate all hostnames using input-hostname.sh
+if [[ ${#HOSTNAMES[@]} -gt 0 ]]; then
+    validated_hosts=()
+    for vm_name in "${HOSTNAMES[@]}"; do
+        vm_name=$(echo "$vm_name" | xargs) # Trim whitespace
+        [[ -z "$vm_name" ]] && continue  # Skip empty entries
+        # Use input-hostname.sh to validate and normalize
+        source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/input-hostname.sh "$vm_name"
+        validated_hosts+=("$qemu_kvm_hostname")
+    done
+    HOSTNAMES=("${validated_hosts[@]}")
+fi
+
+# Check if any valid hosts remain after validation
+if [[ ${#HOSTNAMES[@]} -eq 0 ]]; then
+    print_error "[ERROR] No valid hostnames provided."
     exit 1
-else
-    echo -e "\n⚠️  WARNING: This will re-image VM \"$qemu_kvm_hostname\" using golden image!"
-    echo -e "    All existing data on this VM will be permanently lost.\n"
-    read -rp "❓ Are you sure you want to proceed? (yes/[no]): " confirmation
-    if [[ "$confirmation" != "yes" ]]; then
-        echo -e "\n⛔ Aborted.\n"
+fi
+
+# Main reimage loop
+TOTAL_VMS=${#HOSTNAMES[@]}
+CURRENT_VM=0
+FAILED_VMS=()
+SUCCESSFUL_VMS=()
+
+for qemu_kvm_hostname in "${HOSTNAMES[@]}"; do
+    ((CURRENT_VM++))
+    
+    if [[ $TOTAL_VMS -gt 1 ]]; then
+        print_info "[INFO] Processing VM ${CURRENT_VM}/${TOTAL_VMS}: ${qemu_kvm_hostname}"
+    fi
+
+    # Check if VM exists in 'virsh list --all'
+    if ! sudo virsh list --all | awk '{print $2}' | grep -Fxq "$qemu_kvm_hostname"; then
+        print_error "[ERROR] VM \"$qemu_kvm_hostname\" does not exist."
+        if [[ $TOTAL_VMS -eq 1 ]]; then
+            exit 1
+        else
+            FAILED_VMS+=("$qemu_kvm_hostname")
+            continue
+        fi
+    fi
+
+    # Prevent re-imaging of lab infra server VM
+    if [[ "$qemu_kvm_hostname" == "$lab_infra_server_hostname" ]]; then
+        print_error "[ERROR] Cannot reimage Lab Infra Server!"
+        print_warning "[WARNING] You are attempting to reimage the lab infrastructure server VM: $lab_infra_server_hostname"
+        print_info "[INFO] This VM hosts critical services and must not be destroyed."
+        if [[ $TOTAL_VMS -eq 1 ]]; then
+            exit 1
+        else
+            FAILED_VMS+=("$qemu_kvm_hostname")
+            continue
+        fi
+    fi
+    
+    # Confirmation prompt for single VM (unless --hosts with multiple VMs)
+    if [[ $TOTAL_VMS -eq 1 ]]; then
+        print_warning "[WARNING] This will reimage VM \"$qemu_kvm_hostname\" using golden image!"
+        print_warning "[WARNING] All existing data on this VM will be permanently lost."
+        read -rp "Are you sure you want to proceed? (yes/no): " confirmation
+        if [[ "$confirmation" != "yes" ]]; then
+            print_info "[INFO] Operation cancelled by user."
+            exit 0
+        fi
+    fi
+
+    print_info "[INFO] Creating first boot environment for '${qemu_kvm_hostname}' using ksmanager..."
+
+    LOG_FILE="/tmp/reimage-vm-logs-${qemu_kvm_hostname}"
+    >"$LOG_FILE"
+
+    if $lab_infra_server_mode_is_host; then
+        if ! sudo ksmanager "${qemu_kvm_hostname}" --qemu-kvm --golden-image | tee -a "$LOG_FILE"; then
+            print_error "[FAILED] ksmanager execution failed for \"$qemu_kvm_hostname\"."
+            FAILED_VMS+=("$qemu_kvm_hostname")
+            continue
+        fi
+    else
+        if ! ssh -o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -t "${lab_infra_admin_username}@${lab_infra_server_ipv4_address}" "sudo ksmanager ${qemu_kvm_hostname} --qemu-kvm --golden-image" | tee -a "$LOG_FILE"; then
+            print_error "[FAILED] ksmanager execution failed for \"$qemu_kvm_hostname\"."
+            FAILED_VMS+=("$qemu_kvm_hostname")
+            continue
+        fi
+    fi
+
+    MAC_ADDRESS=$( grep "MAC Address  :" "$LOG_FILE" | awk -F': ' '{print $2}' | tr -d '[:space:]' )
+    IPV4_ADDRESS=$( grep "IPv4 Address :" "$LOG_FILE" | awk -F': ' '{print $2}' | tr -d '[:space:]' )
+    OS_DISTRO=$( grep "Requested OS :" "$LOG_FILE" | awk -F': ' '{print $2}' | tr -d '[:space:]' )
+
+    # Validate extracted values
+    if [[ -z "${MAC_ADDRESS}" ]] || [[ -z "${IPV4_ADDRESS}" ]]; then
+        print_error "[ERROR] Failed to extract information from ksmanager output for \"$qemu_kvm_hostname\"."
+        print_info "[INFO] Please check the lab infrastructure server VM at ${lab_infra_server_ipv4_address} for details."
+        FAILED_VMS+=("$qemu_kvm_hostname")
+        continue
+    fi
+
+    # Normalize OS distro names
+    if echo "$OS_DISTRO" | grep -qi "almalinux"; then
+        OS_DISTRO="almalinux"
+    elif echo "$OS_DISTRO" | grep -qi "centos"; then
+        OS_DISTRO="centos-stream"
+    elif echo "$OS_DISTRO" | grep -qi "rocky"; then
+        OS_DISTRO="rocky"
+    elif echo "$OS_DISTRO" | grep -qi "oracle"; then
+        OS_DISTRO="oraclelinux"
+    elif echo "$OS_DISTRO" | grep -qi "redhat"; then
+        OS_DISTRO="rhel"
+    elif echo "$OS_DISTRO" | grep -qi "fedora"; then
+        OS_DISTRO="fedora"
+    elif echo "$OS_DISTRO" | grep -qi "ubuntu"; then
+        OS_DISTRO="ubuntu-lts"
+    elif echo "$OS_DISTRO" | grep -qi "suse"; then
+        OS_DISTRO="opensuse-leap"
+    else
+        print_error "[ERROR] Unrecognized OS distro: $OS_DISTRO for \"$qemu_kvm_hostname\"."
+        FAILED_VMS+=("$qemu_kvm_hostname")
+        continue
+    fi
+
+    print_info "[INFO] Updating /etc/hosts file for ${qemu_kvm_hostname}..." nskip
+
+    if grep -q "${qemu_kvm_hostname}" /etc/hosts; then
+        HOST_FILE_IPV4=$( grep "${qemu_kvm_hostname}" /etc/hosts | awk '{print $1}' )
+        if [ "${HOST_FILE_IPV4}" != "${IPV4_ADDRESS}" ]; then
+            if error_msg=$(sudo sed -i.bak "/${qemu_kvm_hostname}/s/.*/${IPV4_ADDRESS} ${qemu_kvm_hostname}/" /etc/hosts 2>&1); then
+                print_success "[ SUCCESS ]"
+            else
+                print_error "[ FAILED ]"
+                print_error "$error_msg"
+                FAILED_VMS+=("$qemu_kvm_hostname")
+                continue
+            fi
+        else
+            print_success "[ SUCCESS ]"
+        fi
+    else
+        if error_msg=$(echo "${IPV4_ADDRESS} ${qemu_kvm_hostname}" | sudo tee -a /etc/hosts >/dev/null 2>&1); then
+            print_success "[ SUCCESS ]"
+        else
+            print_error "[ FAILED ]"
+            print_error "$error_msg"
+            FAILED_VMS+=("$qemu_kvm_hostname")
+            continue
+        fi
+    fi
+
+    # Validate golden image disk exists
+    golden_qcow2_disk_path="/kvm-hub/golden-images-disk-store/${OS_DISTRO}-golden-image.${lab_infra_domain_name}.qcow2"
+    if [ ! -f "${golden_qcow2_disk_path}" ]; then
+        print_error "[ERROR] Golden image disk not found for \"$qemu_kvm_hostname\"!"
+        print_info "[INFO] Expected at: ${golden_qcow2_disk_path}"
+        print_info "[INFO] To build the golden image disk, run: kvm-build-golden-qcow2-disk"
+        FAILED_VMS+=("$qemu_kvm_hostname")
+        continue
+    fi
+
+    # Shut down VM if running
+    if sudo virsh list | awk '{print $2}' | grep -Fxq "$qemu_kvm_hostname"; then
+        print_info "[INFO] VM \"$qemu_kvm_hostname\" is currently running. Shutting down before reimaging..."
+        if error_msg=$(sudo virsh destroy "$qemu_kvm_hostname" 2>&1); then
+            print_success "[SUCCESS] VM \"$qemu_kvm_hostname\" has been shut down successfully."
+        else
+            print_warning "[WARNING] Could not shut down VM \"$qemu_kvm_hostname\"."
+            print_warning "$error_msg"
+        fi
+    fi
+
+    # If --force-default is specified, destroy and reinstall VM with default specs
+    if [[ "$FORCE_DEFAULT" == "yes" ]]; then
+        print_info "[INFO] Using --force-default: VM will be destroyed and reinstalled with default specs (2 vCPUs, 2 GiB RAM, 20 GiB disk)."
+        
+        # Undefine the VM
+        print_info "[INFO] Undefining VM \"$qemu_kvm_hostname\"..."
+        if error_msg=$(sudo virsh undefine "$qemu_kvm_hostname" --nvram 2>&1); then
+            print_success "[SUCCESS] VM undefined successfully."
+        else
+            print_error "[FAILED] Could not undefine VM \"$qemu_kvm_hostname\"."
+            print_error "$error_msg"
+            FAILED_VMS+=("$qemu_kvm_hostname")
+            continue
+        fi
+        
+        # Delete VM folder and contents
+        print_info "[INFO] Deleting VM folder /kvm-hub/vms/${qemu_kvm_hostname}..."
+        if sudo rm -rf "/kvm-hub/vms/${qemu_kvm_hostname}"; then
+            print_success "[SUCCESS] VM folder deleted successfully."
+        else
+            print_error "[FAILED] Could not delete VM folder."
+            FAILED_VMS+=("$qemu_kvm_hostname")
+            continue
+        fi
+        
+        # Create fresh VM directory
+        if ! mkdir -p /kvm-hub/vms/"${qemu_kvm_hostname}"; then
+            print_error "[ERROR] Failed to create VM directory: /kvm-hub/vms/${qemu_kvm_hostname}"
+            FAILED_VMS+=("$qemu_kvm_hostname")
+            continue
+        fi
+        
+        # Clone golden image disk
+        print_info "[INFO] Cloning golden image disk to /kvm-hub/vms/${qemu_kvm_hostname}/${qemu_kvm_hostname}.qcow2..." nskip
+        if error_msg=$(sudo qemu-img convert -O qcow2 "${golden_qcow2_disk_path}" /kvm-hub/vms/${qemu_kvm_hostname}/${qemu_kvm_hostname}.qcow2 2>&1); then
+            print_success "[ SUCCESS ]"
+        else
+            print_error "[ FAILED ]"
+            print_error "$error_msg"
+            FAILED_VMS+=("$qemu_kvm_hostname")
+            continue
+        fi
+        
+        # Install VM with default specs using default-vm-install function
+        print_info "[INFO] Starting VM installation of \"$qemu_kvm_hostname\" with default specs via golden image disk..."
+        source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/select-ovmf.sh
+        source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/default-vm-install.sh
+    else
+        # Default path: preserve disk size
+        print_info "[INFO] Reimaging VM \"$qemu_kvm_hostname\" by replacing its qcow2 disk with the golden image disk..."
+        
+        vm_qcow2_disk_path="/kvm-hub/vms/${qemu_kvm_hostname}/${qemu_kvm_hostname}.qcow2"
+        current_disk_gib=$(sudo qemu-img info "${vm_qcow2_disk_path}" 2>/dev/null | grep "virtual size" | grep -o '[0-9]\+ GiB' | cut -d' ' -f1)
+        golden_disk_gib=$(sudo qemu-img info "${golden_qcow2_disk_path}" 2>/dev/null | grep "virtual size" | grep -o '[0-9]\+ GiB' | cut -d' ' -f1)
+        
+        # Use default if disk doesn't exist or size extraction failed
+        default_qcow2_disk_gib=20
+        if [[ -z "$current_disk_gib" ]]; then
+            current_disk_gib="$default_qcow2_disk_gib"
+        fi
+        if [[ -z "$golden_disk_gib" ]]; then
+            golden_disk_gib="$default_qcow2_disk_gib"
+        fi
+        
+        # Delete existing qcow2 disk and recreate with appropriate size
+        sudo rm -f "${vm_qcow2_disk_path}"
+        if ! sudo qemu-img convert -O qcow2 "${golden_qcow2_disk_path}" "${vm_qcow2_disk_path}" >/dev/null 2>&1; then
+            print_error "[ERROR] Failed to convert golden image disk for \"$qemu_kvm_hostname\"."
+            FAILED_VMS+=("$qemu_kvm_hostname")
+            continue
+        fi
+        
+        if [[ "$current_disk_gib" -gt "$golden_disk_gib" ]]; then
+            if sudo qemu-img resize "${vm_qcow2_disk_path}" "${current_disk_gib}G" >/dev/null 2>&1; then
+                print_success "[SUCCESS] Retained disk size of ${current_disk_gib} GiB for VM \"$qemu_kvm_hostname\"."
+            fi
+        fi
+        
+        # Start reimaging process
+        print_info "[INFO] Starting reimaging of VM \"$qemu_kvm_hostname\" via golden image disk..."
+        if error_msg=$(sudo virsh start "$qemu_kvm_hostname" 2>&1); then
+            print_success "[SUCCESS] VM started successfully."
+        else
+            print_error "[FAILED] Could not start VM \"$qemu_kvm_hostname\"."
+            print_error "$error_msg"
+            FAILED_VMS+=("$qemu_kvm_hostname")
+            continue
+        fi
+    fi
+
+    SUCCESSFUL_VMS+=("$qemu_kvm_hostname")
+
+    # Console attachment logic
+    if [[ "$ATTACH_CONSOLE" == "yes" ]]; then
+        print_info "[INFO] Attaching to VM console. Press Ctrl+] to exit console."
+        sudo virsh console "${qemu_kvm_hostname}"
+    elif [[ $TOTAL_VMS -eq 1 ]]; then
+        print_info "[INFO] The VM will reboot once or twice during the reimaging process (~1 minute)."
+        print_info "[INFO] To monitor reimaging progress, use: kvm-console $qemu_kvm_hostname"
+        print_info "[INFO] To check VM status, use: kvm-list"
+        print_success "[SUCCESS] VM \"$qemu_kvm_hostname\" reimaging initiated successfully via golden image disk."
+    fi
+
+    # Clean up log file for this VM
+    if [[ -n "$LOG_FILE" && -f "$LOG_FILE" ]]; then
+        rm -f "$LOG_FILE"
+    fi
+done
+
+# Summary for multiple VMs
+if [[ $TOTAL_VMS -gt 1 ]]; then
+    echo ""
+    print_info "[INFO] Reimage Summary:"
+    print_success "[SUCCESS] Successfully initiated reimaging via golden image disk: ${#SUCCESSFUL_VMS[@]} VM(s)"
+    if [[ ${#SUCCESSFUL_VMS[@]} -gt 0 ]]; then
+        for vm in "${SUCCESSFUL_VMS[@]}"; do
+            print_success "  ✓ $vm"
+        done
+    fi
+    
+    if [[ ${#FAILED_VMS[@]} -gt 0 ]]; then
+        print_error "[FAILED] Failed to initiate reimaging: ${#FAILED_VMS[@]} VM(s)"
+        for vm in "${FAILED_VMS[@]}"; do
+            print_error "  ✗ $vm"
+        done
         exit 1
     fi
-fi
-
-echo -e "\n⚙️  Creating first boot environment for '${qemu_kvm_hostname}' using ksmanager...\n"
-
-
->/tmp/reimage-vm-logs-"${qemu_kvm_hostname}"
-
-if $lab_infra_server_mode_is_host; then
-    sudo ksmanager ${qemu_kvm_hostname} --qemu-kvm --golden-image | tee -a /tmp/reimage-vm-logs-"${qemu_kvm_hostname}"
-else
-    ssh -o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -t ${lab_infra_admin_username}@${lab_infra_server_ipv4_address} "sudo ksmanager ${qemu_kvm_hostname} --qemu-kvm --golden-image" | tee -a /tmp/reimage-vm-logs-"${qemu_kvm_hostname}"
-fi
-
-MAC_ADDRESS=$( grep "MAC Address  :"  /tmp/reimage-vm-logs-"${qemu_kvm_hostname}" | awk -F': ' '{print $2}' | tr -d '[:space:]' )
-IPV4_ADDRESS=$( grep "IPv4 Address :"  /tmp/reimage-vm-logs-"${qemu_kvm_hostname}" | awk -F': ' '{print $2}' | tr -d '[:space:]' )
-OS_DISTRO=$( grep "Requested OS :"  /tmp/reimage-vm-logs-"${qemu_kvm_hostname}" | awk -F': ' '{print $2}' | tr -d '[:space:]' )
-
-if echo "$OS_DISTRO" | grep -qi "almalinux"; then
-    OS_DISTRO="almalinux"
-elif echo "$OS_DISTRO" | grep -qi "centos"; then
-    OS_DISTRO="centos-stream"
-elif echo "$OS_DISTRO" | grep -qi "rocky"; then
-    OS_DISTRO="rocky"
-elif echo "$OS_DISTRO" | grep -qi "oracle"; then
-    OS_DISTRO="oraclelinux"
-elif echo "$OS_DISTRO" | grep -qi "redhat"; then
-    OS_DISTRO="rhel"
-elif echo "$OS_DISTRO" | grep -qi "fedora"; then
-    OS_DISTRO="fedora"
-elif echo "$OS_DISTRO" | grep -qi "ubuntu"; then
-    OS_DISTRO="ubuntu-lts"
-elif echo "$OS_DISTRO" | grep -qi "suse"; then
-    OS_DISTRO="opensuse-leap"
-fi
-
-if [ -z "${IPV4_ADDRESS}" ] || [ -z "${MAC_ADDRESS}" ]; then
-	echo -e "\n❌ Error: Failed to execute ksmanager successfully!"
-	echo -e "🛠️  Please check the lab infrastructure server VM at ${lab_infra_server_ipv4_address} for details.\n"
-	exit 1
-fi
-
-echo -n -e "\n📋 Updating /etc/hosts file for ${qemu_kvm_hostname}..."
-
-if grep -q "${qemu_kvm_hostname}" /etc/hosts; then
-    HOST_FILE_IPV4=$( grep "${qemu_kvm_hostname}" /etc/hosts | awk '{print $1}' )
-    if [ "${HOST_FILE_IPV4}" != "${IPV4_ADDRESS}" ]; then
-        sudo sed -i.bak "/${qemu_kvm_hostname}/s/.*/${IPV4_ADDRESS} ${qemu_kvm_hostname}/" /etc/hosts
-    fi
-else
-    echo "${IPV4_ADDRESS} ${qemu_kvm_hostname}" | sudo tee -a /etc/hosts &>/dev/null
-fi
-
-echo -e "✅"
-
-# Validate golden image disk exists
-golden_qcow2_disk_path="/kvm-hub/golden-images-disk-store/${OS_DISTRO}-golden-image.${lab_infra_domain_name}.qcow2"
-if [ ! -f "${golden_qcow2_disk_path}" ]; then
-	echo -e "\n❌ Golden image disk not found!"
-	echo -e "📂 Expected at: ${golden_qcow2_disk_path}"
-	echo -e "🛠️  To build the golden image disk, run: \e[1;32mkvm-build-golden-qcow2-disk\e[0m\n"
-	exit 1
-fi
-
-# Shut down VM if running (common for both paths)
-if sudo virsh list | awk '{print $2}' | grep -Fxq "$qemu_kvm_hostname"; then
-    echo "ℹ️  VM \"$qemu_kvm_hostname\" is currently running. Shutting down before re-imaging..."
-    sudo virsh destroy "${qemu_kvm_hostname}" 2>/dev/null
-    echo "✅ VM \"$qemu_kvm_hostname\" has been shut down successfully."
-fi
-
-# If --force-default is specified, destroy and reinstall VM with default specs
-if [[ "$FORCE_DEFAULT" == "yes" ]]; then
-    echo "ℹ️  Using --force-default: VM will be destroyed and reinstalled with default specs (2 vCPUs, 2 GiB RAM, 20 GiB disk)."
     
-    # Undefine the VM
-    echo "ℹ️  Undefining VM \"$qemu_kvm_hostname\"..."
-    sudo virsh undefine "${qemu_kvm_hostname}" --nvram 2>/dev/null
-    echo "✅ VM undefined successfully."
-    
-    # Delete VM folder and contents
-    echo "ℹ️  Deleting VM folder /kvm-hub/vms/${qemu_kvm_hostname}..."
-    sudo rm -rf "/kvm-hub/vms/${qemu_kvm_hostname}"
-    echo "✅ VM folder deleted successfully."
-    
-    # Create fresh VM directory
-    mkdir -p /kvm-hub/vms/${qemu_kvm_hostname}
-    
-    # Clone golden image disk
-    echo -n -e "\n💾 Cloning golden image disk to /kvm-hub/vms/${qemu_kvm_hostname}/${qemu_kvm_hostname}.qcow2..."
-    sudo qemu-img convert -O qcow2 "${golden_qcow2_disk_path}" /kvm-hub/vms/${qemu_kvm_hostname}/${qemu_kvm_hostname}.qcow2
-    echo -e "✅"
-    
-    # Install VM with default specs using default-vm-install function
-    echo -e "\n🚀 Starting VM installation of \"$qemu_kvm_hostname\" with default specs via golden image disk...\n"
-    source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/select-ovmf.sh
-    source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/default-vm-install.sh
-else
-    # Default path: preserve disk size
-    echo -e "\n⚙️  Re-imaging VM \"$qemu_kvm_hostname\" by replacing its qcow2 disk with the golden image disk...\n"
-    
-    vm_qcow2_disk_path="/kvm-hub/vms/${qemu_kvm_hostname}/${qemu_kvm_hostname}.qcow2"
-    current_disk_gib=$(sudo qemu-img info "${vm_qcow2_disk_path}" 2>/dev/null | grep "virtual size" | grep -o '[0-9]\+ GiB' | cut -d' ' -f1)
-    golden_disk_gib=$(sudo qemu-img info "${golden_qcow2_disk_path}" 2>/dev/null | grep "virtual size" | grep -o '[0-9]\+ GiB' | cut -d' ' -f1)
-    
-    # Use default if disk doesn't exist or size extraction failed
-    default_qcow2_disk_gib=20
-    if [[ -z "$current_disk_gib" ]]; then
-        current_disk_gib="$default_qcow2_disk_gib"
-    fi
-    if [[ -z "$golden_disk_gib" ]]; then
-        golden_disk_gib="$default_qcow2_disk_gib"
-    fi
-    
-    # Delete existing qcow2 disk and recreate with appropriate size
-    sudo rm -f "${vm_qcow2_disk_path}"
-    sudo qemu-img convert -O qcow2 "${golden_qcow2_disk_path}" "${vm_qcow2_disk_path}" >/dev/null
-    if [[ "$current_disk_gib" -gt "$golden_disk_gib" ]]; then
-        sudo qemu-img resize "${vm_qcow2_disk_path}" "${current_disk_gib}G" >/dev/null
-        echo "✅ Retained disk size of ${current_disk_gib} GiB for VM \"$qemu_kvm_hostname\"." 
-    fi
-    
-    # Start re-imaging process
-    echo -e "\n⚙️  Starting re-imaging of VM \"$qemu_kvm_hostname\" via golden image disk...\n"
-    sudo virsh start "${qemu_kvm_hostname}" 2>/dev/null
-fi
-
-# Common console attachment logic
-if [[ "$ATTACH_CONSOLE" == "yes" ]]; then
-    echo -e "\nℹ️  Attaching to VM console. Press Ctrl+] to exit console.\n"
-    sudo virsh console "${qemu_kvm_hostname}"
-else
-    echo -e "\n✅ VM \"$qemu_kvm_hostname\" is now re-imaging via golden image disk."
-    echo "ℹ️  The VM will reboot once or twice during the re-imaging process (~1 minute)."
-    echo "ℹ️  To monitor re-imaging progress, use: kvm-console $qemu_kvm_hostname"
-    echo "ℹ️  To check VM status, use: kvm-list"
+    print_info "[INFO] All VMs will reboot once or twice during reimaging (~1 minute each)."
+    print_info "[INFO] To monitor reimaging progress, use: kvm-console <hostname>"
+    print_info "[INFO] To check VM status, use: kvm-list"
 fi
 
 
