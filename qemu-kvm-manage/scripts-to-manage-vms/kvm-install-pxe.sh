@@ -4,108 +4,269 @@
 # please open an issue at: https://github.com/Muthukumar-Subramaniam/server-hub/issues   #
 #----------------------------------------------------------------------------------------#
 
+source /server-hub/common-utils/color-functions.sh
 source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/defaults.sh
 source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/select-ovmf.sh
 
 ATTACH_CONSOLE="no"
-qemu_kvm_hostname=""
+HOSTNAMES=()
+LOG_FILE=""
 
-# Fail fast if more than 2 args given
-if [[ $# -gt 2 ]]; then
-  echo "❌ Too many arguments."
-  echo "ℹ️  Usage: $(basename $0) [hostname] [--console|-c]"
-  exit 1
-fi
+# Function to show help
+fn_show_help() {
+    print_notify "Usage: kvm-install-pxe [OPTIONS] [hostname]
 
+Options:
+  -c, --console        Attach console during installation (single VM only)
+  -H, --hosts          Specify multiple hostnames (comma-separated)
+  -h, --help           Show this help message
+
+Arguments:
+  hostname             Name of the VM to install via PXE boot (optional, will prompt if not given)
+
+Examples:
+  kvm-install-pxe vm1                           # Install single VM
+  kvm-install-pxe vm1 --console                 # Install and attach console
+  kvm-install-pxe --hosts vm1,vm2,vm3           # Install multiple VMs
+  kvm-install-pxe -H vm1,vm2,vm3                # Same as above
+"
+}
+
+# Cleanup function
+cleanup() {
+    if [[ -n "$LOG_FILE" && -f "$LOG_FILE" ]]; then
+        rm -f "$LOG_FILE"
+    fi
+}
+
+trap cleanup EXIT
+
+# Parse arguments
 while [[ $# -gt 0 ]]; do
-  case "$1" in
-    --console|-c)
-      if [[ "$ATTACH_CONSOLE" == "yes" ]]; then
-        echo "❌ Duplicate --console/-c option."
-        exit 1
-      fi
-      ATTACH_CONSOLE="yes"
-      shift
-      ;;
-    --help|-h)
-      echo "Usage: $(basename $0) [hostname] [--console|-c]"
-      echo
-      echo "Arguments:"
-      echo "  hostname      Name of the VM to be installed (optional, will prompt if not given)"
-      echo "  --console,-c  Attach console during install (optional, can appear before or after hostname)"
-      exit 0
-      ;;
-    *)
-      if [[ -z "$qemu_kvm_hostname" ]]; then
-        qemu_kvm_hostname="$1"
-      else
-        echo "❌ Unexpected argument: $1"
-        echo "ℹ️  Usage: $(basename $0) [hostname] [--console|-c]"
-        exit 1
-      fi
-      shift
-      ;;
-  esac
+    case "$1" in
+        -h|--help)
+            fn_show_help
+            exit 0
+            ;;
+        -c|--console)
+            if [[ "$ATTACH_CONSOLE" == "yes" ]]; then
+                print_error "[ERROR] Duplicate --console/-c option."
+                fn_show_help
+                exit 1
+            fi
+            ATTACH_CONSOLE="yes"
+            shift
+            ;;
+        -H|--hosts)
+            if [[ -z "$2" || "$2" == -* ]]; then
+                print_error "[ERROR] --hosts/-H requires a comma-separated list of hostnames."
+                fn_show_help
+                exit 1
+            fi
+            IFS=',' read -ra HOSTNAMES <<< "$2"
+            shift 2
+            ;;
+        -*)
+            print_error "[ERROR] No such option: $1"
+            fn_show_help
+            exit 1
+            ;;
+        *)
+            if [[ ${#HOSTNAMES[@]} -eq 0 ]]; then
+                HOSTNAMES+=("$1")
+            else
+                print_error "[ERROR] Cannot mix positional hostname with --hosts/-H option."
+                fn_show_help
+                exit 1
+            fi
+            shift
+            ;;
+    esac
 done
 
-# If hostname still not set, prompt
-source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/input-hostname.sh "$qemu_kvm_hostname"
-
-# Check if VM exists in 'virsh list --all'
-if sudo virsh list --all | awk '{print $2}' | grep -Fxq "$qemu_kvm_hostname"; then
-    echo "❌ VM \"$qemu_kvm_hostname\" exists already."
-    echo "⚠️  Either do one of the following:"
-    echo "   ➤ Remove the VM using 'kvm-remove', then try again."
-    echo "   ➤ Re-image the VM using 'kvm-reimage-golden' or 'kvm-reimage-pxe'."
+# Validate console + multiple VMs conflict
+if [[ "$ATTACH_CONSOLE" == "yes" && ${#HOSTNAMES[@]} -gt 1 ]]; then
+    print_error "[ERROR] --console/-c option cannot be used with multiple VMs."
+    fn_show_help
     exit 1
 fi
 
-echo -e "\n⚙️  Creating PXE environment for '${qemu_kvm_hostname}' using ksmanager...\n"
-
->/tmp/install-vm-logs-"${qemu_kvm_hostname}"
-
-if [ -f /kvm-hub/host_machine_is_lab_infra_server ]; then
-    sudo ksmanager ${qemu_kvm_hostname} --qemu-kvm | tee -a /tmp/install-vm-logs-"${qemu_kvm_hostname}"
-else
-    ssh -o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -t ${lab_infra_admin_username}@${lab_infra_server_ipv4_address} "sudo ksmanager ${qemu_kvm_hostname} --qemu-kvm" | tee -a /tmp/install-vm-logs-"${qemu_kvm_hostname}"
-fi
-
-MAC_ADDRESS=$( grep "MAC Address  :"  /tmp/install-vm-logs-"${qemu_kvm_hostname}" | awk -F': ' '{print $2}' | tr -d '[:space:]' )
-IPV4_ADDRESS=$( grep "IPv4 Address :"  /tmp/install-vm-logs-"${qemu_kvm_hostname}" | awk -F': ' '{print $2}' | tr -d '[:space:]' )
-
-if [ -z "${MAC_ADDRESS}" ]; then
-	echo -e "\n❌ Error: Failed to execute ksmanager successfully!"
-	echo -e "🛠️  Please check the lab infrastructure server VM at ${lab_infra_server_ipv4_address} for details.\n"
-	exit 1
-fi
-
-mkdir -p /kvm-hub/vms/${qemu_kvm_hostname}
-
-echo -n -e "\n📋 Updating /etc/hosts file for ${qemu_kvm_hostname}..."
-
-if grep -q "${qemu_kvm_hostname}" /etc/hosts; then
-    HOST_FILE_IPV4=$( grep "${qemu_kvm_hostname}" /etc/hosts | awk '{print $1}' )
-    if [ "${HOST_FILE_IPV4}" != "${IPV4_ADDRESS}" ]; then
-        sudo sed -i.bak "/${qemu_kvm_hostname}/s/.*/${IPV4_ADDRESS} ${qemu_kvm_hostname}/" /etc/hosts
+# Remove duplicates from HOSTNAMES
+if [[ ${#HOSTNAMES[@]} -gt 1 ]]; then
+    UNIQUE_HOSTNAMES=($(printf '%s\n' "${HOSTNAMES[@]}" | sort -u))
+    if [[ ${#UNIQUE_HOSTNAMES[@]} -ne ${#HOSTNAMES[@]} ]]; then
+        print_warning "[WARNING] Removed duplicate hostnames from the list."
+        HOSTNAMES=("${UNIQUE_HOSTNAMES[@]}")
     fi
-else
-    echo "${IPV4_ADDRESS} ${qemu_kvm_hostname}" | sudo tee -a /etc/hosts &>/dev/null
 fi
 
-echo -e "✅"
+# If no hostnames provided, prompt for one
+if [[ ${#HOSTNAMES[@]} -eq 0 ]]; then
+    source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/input-hostname.sh ""
+    HOSTNAMES=("$qemu_kvm_hostname")
+fi
 
-# Start installation process via PXE boot
-echo -e "\n🚀 Starting VM installation of \"$qemu_kvm_hostname\" via PXE boot...\n"
-source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/default-vm-install.sh
+# Validate all hostnames using input-hostname.sh
+if [[ ${#HOSTNAMES[@]} -gt 0 ]]; then
+    validated_hosts=()
+    for vm_name in "${HOSTNAMES[@]}"; do
+        vm_name=$(echo "$vm_name" | xargs) # Trim whitespace
+        [[ -z "$vm_name" ]] && continue  # Skip empty entries
+        # Use input-hostname.sh to validate and normalize
+        source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/input-hostname.sh "$vm_name"
+        validated_hosts+=("$qemu_kvm_hostname")
+    done
+    HOSTNAMES=("${validated_hosts[@]}")
+fi
 
-if [[ "$ATTACH_CONSOLE" == "yes" ]]; then
-    echo -e "\nℹ️  Attaching to VM console. Press Ctrl+] to exit console.\n"
-    sudo virsh console "${qemu_kvm_hostname}"
-else
-    echo -e "\n✅ VM \"$qemu_kvm_hostname\" is now installing via PXE boot."
-    echo "ℹ️  The VM will reboot once or twice during the installation process."
-    echo "ℹ️  To monitor installation progress, use: kvm-console $qemu_kvm_hostname"
-    echo "ℹ️  To check VM status, use: kvm-list"
+# Check if any valid hosts remain after validation
+if [[ ${#HOSTNAMES[@]} -eq 0 ]]; then
+    print_error "[ERROR] No valid hostnames provided."
+    exit 1
+fi
+
+# Main installation loop
+TOTAL_VMS=${#HOSTNAMES[@]}
+CURRENT_VM=0
+FAILED_VMS=()
+SUCCESSFUL_VMS=()
+
+for qemu_kvm_hostname in "${HOSTNAMES[@]}"; do
+    ((CURRENT_VM++))
+    
+    if [[ $TOTAL_VMS -gt 1 ]]; then
+        print_info "[INFO] Processing VM ${CURRENT_VM}/${TOTAL_VMS}: ${qemu_kvm_hostname}"
+    fi
+
+    # Check if VM exists in 'virsh list --all'
+    if sudo virsh list --all | awk '{print $2}' | grep -Fxq "$qemu_kvm_hostname"; then
+        print_error "[ERROR] VM \"$qemu_kvm_hostname\" exists already."
+        if [[ $TOTAL_VMS -eq 1 ]]; then
+            print_warning "[WARNING] Either do one of the following:"
+            print_info "[INFO] Remove the VM using 'kvm-remove', then try again."
+            print_info "[INFO] Re-image the VM using 'kvm-reimage-golden' or 'kvm-reimage-pxe'."
+            exit 1
+        else
+            FAILED_VMS+=("$qemu_kvm_hostname")
+            continue
+        fi
+    fi
+
+    print_info "[INFO] Creating PXE environment for '${qemu_kvm_hostname}' using ksmanager..."
+
+    LOG_FILE="/tmp/install-vm-logs-${qemu_kvm_hostname}"
+    >"$LOG_FILE"
+
+    if $lab_infra_server_mode_is_host; then
+        if ! sudo ksmanager "${qemu_kvm_hostname}" --qemu-kvm | tee -a "$LOG_FILE"; then
+            print_error "[FAILED] ksmanager execution failed for \"$qemu_kvm_hostname\"."
+            FAILED_VMS+=("$qemu_kvm_hostname")
+            continue
+        fi
+    else
+        if ! ssh -o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -t "${lab_infra_admin_username}@${lab_infra_server_ipv4_address}" "sudo ksmanager ${qemu_kvm_hostname} --qemu-kvm" | tee -a "$LOG_FILE"; then
+            print_error "[FAILED] ksmanager execution failed for \"$qemu_kvm_hostname\"."
+            FAILED_VMS+=("$qemu_kvm_hostname")
+            continue
+        fi
+    fi
+
+    MAC_ADDRESS=$( grep "MAC Address  :" "$LOG_FILE" | awk -F': ' '{print $2}' | tr -d '[:space:]' )
+    IPV4_ADDRESS=$( grep "IPv4 Address :" "$LOG_FILE" | awk -F': ' '{print $2}' | tr -d '[:space:]' )
+
+    # Validate extracted values
+    if [[ -z "${MAC_ADDRESS}" ]]; then
+        print_error "[ERROR] Failed to extract MAC address from ksmanager output for \"$qemu_kvm_hostname\"."
+        print_info "[INFO] Please check the lab infrastructure server VM at ${lab_infra_server_ipv4_address} for details."
+        FAILED_VMS+=("$qemu_kvm_hostname")
+        continue
+    fi
+
+    if [[ -z "${IPV4_ADDRESS}" ]]; then
+        print_error "[ERROR] Failed to extract IPv4 address from ksmanager output for \"$qemu_kvm_hostname\"."
+        print_info "[INFO] Please check the lab infrastructure server VM at ${lab_infra_server_ipv4_address} for details."
+        FAILED_VMS+=("$qemu_kvm_hostname")
+        continue
+    fi
+
+    # Create VM directory
+    if ! mkdir -p /kvm-hub/vms/"${qemu_kvm_hostname}"; then
+        print_error "[ERROR] Failed to create VM directory: /kvm-hub/vms/${qemu_kvm_hostname}"
+        FAILED_VMS+=("$qemu_kvm_hostname")
+        continue
+    fi
+
+    print_info "[INFO] Updating /etc/hosts file for ${qemu_kvm_hostname}..." nskip
+
+    if grep -q "${qemu_kvm_hostname}" /etc/hosts; then
+        HOST_FILE_IPV4=$( grep "${qemu_kvm_hostname}" /etc/hosts | awk '{print $1}' )
+        if [ "${HOST_FILE_IPV4}" != "${IPV4_ADDRESS}" ]; then
+            if error_msg=$(sudo sed -i.bak "/${qemu_kvm_hostname}/s/.*/${IPV4_ADDRESS} ${qemu_kvm_hostname}/" /etc/hosts 2>&1); then
+                print_success "[ SUCCESS ]"
+            else
+                print_error "[ FAILED ]"
+                print_error "$error_msg"
+                FAILED_VMS+=("$qemu_kvm_hostname")
+                continue
+            fi
+        else
+            print_success "[ SUCCESS ]"
+        fi
+    else
+        if error_msg=$(echo "${IPV4_ADDRESS} ${qemu_kvm_hostname}" | sudo tee -a /etc/hosts >/dev/null 2>&1); then
+            print_success "[ SUCCESS ]"
+        else
+            print_error "[ FAILED ]"
+            print_error "$error_msg"
+            FAILED_VMS+=("$qemu_kvm_hostname")
+            continue
+        fi
+    fi
+
+    # Start installation process via PXE boot
+    print_info "[INFO] Starting VM installation of \"$qemu_kvm_hostname\" via PXE boot..."
+    source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/default-vm-install.sh
+
+    SUCCESSFUL_VMS+=("$qemu_kvm_hostname")
+
+    if [[ "$ATTACH_CONSOLE" == "yes" ]]; then
+        print_info "[INFO] Attaching to VM console. Press Ctrl+] to exit console."
+        sudo virsh console "${qemu_kvm_hostname}"
+    elif [[ $TOTAL_VMS -eq 1 ]]; then
+        print_info "[INFO] The VM will download OS files and install (this may take a few minutes)."
+        print_info "[INFO] To monitor installation progress, use: kvm-console $qemu_kvm_hostname"
+        print_info "[INFO] To check VM status, use: kvm-list"
+        print_success "[SUCCESS] VM \"$qemu_kvm_hostname\" installation initiated successfully via PXE boot."
+    fi
+
+    # Clean up log file for this VM
+    if [[ -n "$LOG_FILE" && -f "$LOG_FILE" ]]; then
+        rm -f "$LOG_FILE"
+    fi
+done
+
+# Summary for multiple VMs
+if [[ $TOTAL_VMS -gt 1 ]]; then
+    echo ""
+    print_info "[INFO] Installation Summary:"
+    print_success "[SUCCESS] Successfully initiated installation via PXE boot: ${#SUCCESSFUL_VMS[@]} VM(s)"
+    if [[ ${#SUCCESSFUL_VMS[@]} -gt 0 ]]; then
+        for vm in "${SUCCESSFUL_VMS[@]}"; do
+            print_success "  ✓ $vm"
+        done
+    fi
+    
+    if [[ ${#FAILED_VMS[@]} -gt 0 ]]; then
+        print_error "[FAILED] Failed to initiate installation: ${#FAILED_VMS[@]} VM(s)"
+        for vm in "${FAILED_VMS[@]}"; do
+            print_error "  ✗ $vm"
+        done
+        exit 1
+    fi
+    
+    print_info "[INFO] All VMs will download OS files and install (this may take a few minutes each)."
+    print_info "[INFO] To monitor installation progress, use: kvm-console <hostname>"
+    print_info "[INFO] To check VM status, use: kvm-list"
 fi
 
 
