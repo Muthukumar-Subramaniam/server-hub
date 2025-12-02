@@ -21,8 +21,13 @@ ISO_DIR="/iso-files"
 FSTAB="/etc/fstab"
 
 print_usage() {
-  echo -e "\nUsage:\n    $(basename $0) --setup <distro>\n    $(basename $0) --cleanup <distro>"
-  echo -e "Supported distros:\n    almalinux, rocky, oraclelinux, centos-stream, rhel, ubuntu-lts, opensuse-leap\n"
+  print_info "[INFO] Usage:
+    $(basename $0) --setup <distro>
+    $(basename $0) --cleanup <distro>
+
+Supported distros:
+    almalinux, rocky, oraclelinux, centos-stream, rhel, ubuntu-lts, opensuse-leap
+"
 }
 
 fn_check_distro_availability() {
@@ -33,9 +38,9 @@ fn_check_distro_availability() {
     kernel_file_name="vmlinuz"
   fi
   if [[ ! -f "/${dnsbinder_server_fqdn}/ipxe/images/${os_distribution}-latest/${kernel_file_name}" ]]; then
-    echo '[Not-Ready]'
+    print_warning "[Not-Ready]" nskip
   else
-    echo '[Ready]'
+    print_success "[Ready]" nskip
   fi
 }
 
@@ -50,17 +55,18 @@ opensuse_leap_os_availability=$(fn_check_distro_availability "opensuse-leap")
 
 fn_select_os_distro() {
   local action_title="$1"
-  print_info "[INFO] Please select the OS distribution to ${action_title}: \n"
-  echo -e "  1)  AlmaLinux                ${almalinux_os_availability}"
-  echo -e "  2)  Rocky Linux              ${rocky_os_availability}"
-  echo -e "  3)  OracleLinux              ${oraclelinux_os_availability}"
-  echo -e "  4)  CentOS Stream            ${centos_stream_os_availability}"
-  echo -e "  5)  Red Hat Enterprise Linux ${rhel_os_availability}"
-  echo -e "  6)  Fedora Linux             ${fedora_os_availability}"
-  echo -e "  7)  Ubuntu Server LTS        ${ubuntu_lts_os_availability}"
-  echo -e "  8)  openSUSE Leap Latest     ${opensuse_leap_os_availability}"
-  echo -e "  q)  Quit\n"
+  print_info "[INFO] Please select the OS distribution to ${action_title}:
 
+  1)  AlmaLinux                ${almalinux_os_availability}
+  2)  Rocky Linux              ${rocky_os_availability}
+  3)  OracleLinux              ${oraclelinux_os_availability}
+  4)  CentOS Stream            ${centos_stream_os_availability}
+  5)  Red Hat Enterprise Linux ${rhel_os_availability}
+  6)  Fedora Linux             ${fedora_os_availability}
+  7)  Ubuntu Server LTS        ${ubuntu_lts_os_availability}
+  8)  openSUSE Leap Latest     ${opensuse_leap_os_availability}
+  q)  Quit
+"
   read -p "Enter option number (default: AlmaLinux): " os_distribution
   case "$os_distribution" in
     1 | "" ) DISTRO="almalinux" ;;
@@ -137,7 +143,8 @@ prepare_rhel() {
   local web_image_dir="/${dnsbinder_server_fqdn}/ipxe/images/${distro}-latest"
   local iso_path="${ISO_DIR}/${iso_file}"
 
-  echo -e "\nLogin from a browser with your Red Hat Developer Subscription ! \n"
+  print_info "[INFO] Login from a browser with your Red Hat Developer Subscription!
+"
   read -rp "Enter the link to download RHEL 10 ISO : " iso_url
 
   prepare_iso "$distro" "$iso_file" "$iso_url" "images/pxeboot/vmlinuz" "images/pxeboot/initrd.img"
@@ -164,7 +171,7 @@ cleanup_distro() {
   local web_image_dir="/${dnsbinder_server_fqdn}/ipxe/images/${distro}-latest"
 
   print_warning "[WARNING] This will delete ISO, mount point and boot image files for $distro."
-  read -p "❓ Are you sure you want to continue? (yes/no): " confirm
+  read -p "Are you sure you want to continue? (yes/no): " confirm
   if [[ "$confirm" != "yes" ]]; then
     print_error "[ERROR] Cleanup aborted."
     exit 1
@@ -190,8 +197,13 @@ cleanup_distro() {
 
 # Menu mode when no args
 if [[ $# -lt 1 ]]; then
-  print_info "[INFO] No arguments provided. Launching interactive mode."
-  echo -e "\nWhat would you like to do?\n  1) Setup Distro\n  2) Cleanup Distro\n  q) Quit\n"
+  print_info "[INFO] No arguments provided. Launching interactive mode.
+
+What would you like to do?
+  1) Setup Distro
+  2) Cleanup Distro
+  q) Quit
+"
   read -p "Enter option (default: 1): " action
   case "$action" in
     1 | "" ) MODE="--setup" ; MENU_TITLE="setup" ;;
