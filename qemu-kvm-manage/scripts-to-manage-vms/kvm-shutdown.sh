@@ -183,12 +183,12 @@ if [[ "$force_shutdown" == false ]]; then
     print_warning "[WARNING] This will send graceful shutdown signal to VM \"$qemu_kvm_hostname\"."
     print_notify "[NOTIFY] Guest OS will attempt to shutdown cleanly (requires guest tools)."
     read -p "Are you sure you want to continue? (yes/no): " confirmation
+    echo -ne "\033[1A\033[2K"  # Move up one line and clear it
     if [[ "$confirmation" != "yes" ]]; then
         print_info "[INFO] Operation cancelled by user."
         exit 0
     fi
 fi
-
 # Shutdown the VM
 if shutdown_vm "$qemu_kvm_hostname"; then
     exit 0
