@@ -333,7 +333,14 @@ for qemu_kvm_hostname in "${HOSTNAMES[@]}"; do
         # Install VM with default specs using default-vm-install function
         print_info "[INFO] Starting VM installation of \"$qemu_kvm_hostname\" with default specs via golden image disk..."
         source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/select-ovmf.sh
-        source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/default-vm-install.sh
+        if ! virt_install_output=$(source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/default-vm-install.sh 2>&1); then
+            print_error "[ERROR] Failed to start VM installation for \"$qemu_kvm_hostname\"."
+            if [[ -n "$virt_install_output" ]]; then
+                print_error "$virt_install_output"
+            fi
+            FAILED_VMS+=("$qemu_kvm_hostname")
+            continue
+        fi
     else
         # Default path: preserve disk size
         print_info "[INFO] Reimaging VM \"$qemu_kvm_hostname\" by replacing its qcow2 disk with the golden image disk..."

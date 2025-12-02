@@ -286,7 +286,14 @@ for qemu_kvm_hostname in "${HOSTNAMES[@]}"; do
 
     # Start installation process via golden image disk
     print_info "[INFO] Starting VM installation of \"$qemu_kvm_hostname\" via golden image disk..."
-    source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/default-vm-install.sh
+    if ! virt_install_output=$(source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/default-vm-install.sh 2>&1); then
+        print_error "[ERROR] Failed to start VM installation for \"$qemu_kvm_hostname\"."
+        if [[ -n "$virt_install_output" ]]; then
+            print_error "$virt_install_output"
+        fi
+        FAILED_VMS+=("$qemu_kvm_hostname")
+        continue
+    fi
 
     SUCCESSFUL_VMS+=("$qemu_kvm_hostname")
 

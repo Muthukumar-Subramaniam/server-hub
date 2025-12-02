@@ -1,4 +1,4 @@
-sudo virt-install \
+virt_install_error=$(sudo virt-install \
   --name ${qemu_kvm_hostname} \
   --features acpi=on,apic=on \
   --memory 2048 \
@@ -13,4 +13,10 @@ sudo virt-install \
   --cpu host-model \
   --boot loader=${OVMF_CODE_PATH},\
 nvram.template=${OVMF_VARS_PATH},\
-nvram=/kvm-hub/vms/${qemu_kvm_hostname}/${qemu_kvm_hostname}_VARS.fd,menu=on
+nvram=/kvm-hub/vms/${qemu_kvm_hostname}/${qemu_kvm_hostname}_VARS.fd,menu=on \
+  2>&1 >/dev/null)
+
+if [[ $? -ne 0 ]]; then
+    echo "$virt_install_error" >&2
+    return 1
+fi
