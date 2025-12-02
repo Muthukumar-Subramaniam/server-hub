@@ -274,8 +274,10 @@ when_lab_infra_server_is_vm() {
     configure_dns_for_bridge || return 1
 
     if $all_services_active; then
+        print_info "--------------------------------------------------------------"
         print_success "KVM Lab Infra is started, and all essential services are live."
     else
+        print_info "--------------------------------------------------------------"
         print_warning "KVM Lab Infra is started, but some services need attention."
         print_info "[INFO] Total: ${#services_to_check[@]}, Active: $active_services, Inactive: $inactive_services"
     fi
