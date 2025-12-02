@@ -615,38 +615,38 @@ fi
 
 if ! $invoked_with_golden_image; then
 	print_info "[INFO] Configuration Summary:
-  Hostname     : ${kickstart_hostname}
-  MAC Address  : ${mac_address_of_host}
-  IPv4 Address : ${ipv4_address}
-  IPv4 Netmask : ${ipv4_netmask}
-  IPv4 Gateway : ${ipv4_gateway}
-  IPv4 Network : ${ipv4_network_cidr}
-  IPv4 DNS     : ${ipv4_nameserver}
-  Domain Name  : ${ipv4_domain}
-  NTP Pool     : ${ntp_pool_name}.${ipv4_domain}
-  Web Server   : ${web_server_name}.${ipv4_domain}
-  NFS Server   : ${nfs_server_name}.${ipv4_domain}
-  DHCP Server  : ${tftp_server_name}.${ipv4_domain}
-  TFTP Server  : ${tftp_server_name}.${ipv4_domain}
-  KS Local     : ${host_kickstart_dir}
-  KS Web       : https://${host_kickstart_dir#/}
-  Requested OS : ${os_name_and_version}
+  ✓ Hostname     : ${kickstart_hostname}
+  ✓ MAC Address  : ${mac_address_of_host}
+  ✓ IPv4 Address : ${ipv4_address}
+  ✓ IPv4 Netmask : ${ipv4_netmask}
+  ✓ IPv4 Gateway : ${ipv4_gateway}
+  ✓ IPv4 Network : ${ipv4_network_cidr}
+  ✓ IPv4 DNS     : ${ipv4_nameserver}
+  ✓ Domain Name  : ${ipv4_domain}
+  ✓ NTP Pool     : ${ntp_pool_name}.${ipv4_domain}
+  ✓ Web Server   : ${web_server_name}.${ipv4_domain}
+  ✓ NFS Server   : ${nfs_server_name}.${ipv4_domain}
+  ✓ DHCP Server  : ${tftp_server_name}.${ipv4_domain}
+  ✓ TFTP Server  : ${tftp_server_name}.${ipv4_domain}
+  ✓ KS Local     : ${host_kickstart_dir}
+  ✓ KS Web       : https://${host_kickstart_dir#/}
+  ✓ Requested OS : ${os_name_and_version}
 "
 	print_success "[SUCCESS] All done! You can proceed with installation of '${kickstart_hostname}' using PXE boot."
 else
 	print_info "[INFO] Configuration Summary:
-  Hostname     : ${kickstart_hostname}
-  MAC Address  : ${mac_address_of_host}
-  IPv4 Address : ${ipv4_address}
-  IPv4 Netmask : ${ipv4_netmask}
-  IPv4 Gateway : ${ipv4_gateway}
-  IPv4 Network : ${ipv4_network_cidr}
-  IPv4 DNS     : ${ipv4_nameserver}
-  Domain Name  : ${ipv4_domain}
-  NTP Pool     : ${ntp_pool_name}.${ipv4_domain}
-  Web Server   : ${web_server_name}.${ipv4_domain}
-  NFS Server   : ${nfs_server_name}.${ipv4_domain}
-  Requested OS : ${os_name_and_version}
+  ✓ Hostname     : ${kickstart_hostname}
+  ✓ MAC Address  : ${mac_address_of_host}
+  ✓ IPv4 Address : ${ipv4_address}
+  ✓ IPv4 Netmask : ${ipv4_netmask}
+  ✓ IPv4 Gateway : ${ipv4_gateway}
+  ✓ IPv4 Network : ${ipv4_network_cidr}
+  ✓ IPv4 DNS     : ${ipv4_nameserver}
+  ✓ Domain Name  : ${ipv4_domain}
+  ✓ NTP Pool     : ${ntp_pool_name}.${ipv4_domain}
+  ✓ Web Server   : ${web_server_name}.${ipv4_domain}
+  ✓ NFS Server   : ${nfs_server_name}.${ipv4_domain}
+  ✓ Requested OS : ${os_name_and_version}
 "
 	print_success "[SUCCESS] All done! You can proceed with installation of '${kickstart_hostname}' using golden image."
 fi
