@@ -106,6 +106,25 @@ if [[ ${#HOSTNAMES[@]} -eq 0 ]]; then
     HOSTNAMES=("$qemu_kvm_hostname")
 fi
 
+# Validate all hostnames using input-hostname.sh
+if [[ ${#HOSTNAMES[@]} -gt 0 ]]; then
+    validated_hosts=()
+    for vm_name in "${HOSTNAMES[@]}"; do
+        vm_name=$(echo "$vm_name" | xargs) # Trim whitespace
+        [[ -z "$vm_name" ]] && continue  # Skip empty entries
+        # Use input-hostname.sh to validate and normalize
+        source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/input-hostname.sh "$vm_name"
+        validated_hosts+=("$qemu_kvm_hostname")
+    done
+    HOSTNAMES=("${validated_hosts[@]}")
+fi
+
+# Check if any valid hosts remain after validation
+if [[ ${#HOSTNAMES[@]} -eq 0 ]]; then
+    print_error "[ERROR] No valid hostnames provided."
+    exit 1
+fi
+
 # Main installation loop
 TOTAL_VMS=${#HOSTNAMES[@]}
 CURRENT_VM=0
