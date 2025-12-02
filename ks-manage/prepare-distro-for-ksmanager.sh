@@ -203,7 +203,6 @@ cleanup_distro() {
 # Menu mode when no args
 if [[ $# -lt 1 ]]; then
   print_info "[INFO] No arguments provided. Launching interactive mode.
-
 What would you like to do?
   1) Setup Distro
   2) Cleanup Distro
