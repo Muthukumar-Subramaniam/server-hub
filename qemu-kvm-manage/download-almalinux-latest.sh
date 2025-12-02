@@ -3,6 +3,9 @@
 # If you encounter any issues with this script, or have suggestions or feature requests, #
 # please open an issue at: https://github.com/Muthukumar-Subramaniam/server-hub/issues   #
 #----------------------------------------------------------------------------------------#
+
+source /server-hub/common-utils/color-functions.sh
+
 ISO_DIR="/iso-files"
 ISO_NAME="AlmaLinux-10-latest-x86_64-dvd.iso"
 ISO_URL="https://repo.almalinux.org/almalinux/10/isos/x86_64/$ISO_NAME"
@@ -14,33 +17,33 @@ sudo chown -R $USER:$(id -g) "$ISO_DIR"
 
 # Download ISO
 if [ -f "$ISO_DIR/$ISO_NAME" ]; then
-	echo -e "\nISO File $ISO_DIR/$ISO_NAME already exists! "
+	print_info "[INFO] ISO File $ISO_DIR/$ISO_NAME already exists!"
 else
-	echo -e "\nPlease be patient until the $ISO_NAME gets downloaded . . . \n"
+	print_info "[INFO] Please be patient until the $ISO_NAME gets downloaded..."
 	wget --continue --output-document="$ISO_DIR/$ISO_NAME" "$ISO_URL"
 fi
 
-echo -e "\nISO downloaded successfully! "
-echo -e "ISO File Path : $ISO_DIR/$ISO_NAME"
+print_success "[SUCCESS] ISO downloaded successfully!"
+print_info "[INFO] ISO File Path: $ISO_DIR/$ISO_NAME"
 
 # Download signed CHECKSUM file
-echo -e "\nDownloading CHECKSUM to validate $ISO_NAME . . . "
+print_info "[INFO] Downloading CHECKSUM to validate $ISO_NAME..."
 wget --continue --output-document="$ISO_DIR/CHECKSUM" "$CHECKSUM_URL"
 
 # Extract the expected SHA256 checksum for the ISO
-echo -e "\nPlease be patient until the CHECKSUM for the $ISO_NAME is extracted . . . "
+print_info "[INFO] Extracting CHECKSUM for $ISO_NAME..."
 EXPECTED_HASH=$(grep -E "SHA256.*$ISO_NAME" "$ISO_DIR/CHECKSUM" | awk -F'= ' '{print $2}')
 
 # Calculate actual SHA256 of downloaded ISO
 ACTUAL_HASH=$(sha256sum "$ISO_DIR/$ISO_NAME" | awk '{print $1}')
 
 # Compare
-echo -e "\n📋 Comparing checksums . . . "
+print_info "[INFO] Comparing checksums..." nskip
 if [[ "$EXPECTED_HASH" == "$ACTUAL_HASH" ]]; then
-    echo -e "\n✅ Checksum matched. ISO file $ISO_DIR/$ISO_NAME is valid. \n"
+    print_success "[SUCCESS] Checksum matched. ISO file $ISO_DIR/$ISO_NAME is valid."
 else
-    echo -e "\n❌ Checksum mismatch. ISO file $ISO_DIR/$ISO_NAME is invalid! \n"
-    echo "Expected: $EXPECTED_HASH"
-    echo "Actual:   $ACTUAL_HASH"
+    print_error "[ERROR] Checksum mismatch. ISO file $ISO_DIR/$ISO_NAME is invalid!"
+    print_info "[INFO] Expected: $EXPECTED_HASH" nskip
+    print_info "[INFO] Actual:   $ACTUAL_HASH"
     exit 1
 fi
