@@ -290,11 +290,11 @@ print_info "KVM Lab Infrastructure Startup"
 print_info "--------------------------------------------------------------"
 
 if $lab_infra_server_mode_is_host; then
-    print_notify "[NOTIFY] Lab Infra Server Mode: HOST ( $lab_infra_server_hostname )"
+    print_notify "Lab Infra Server Mode: HOST ( $lab_infra_server_hostname )"
     print_info "--------------------------------------------------------------"
     when_lab_infra_server_is_host
 else
-    print_notify "[NOTIFY] Lab Infra Server Mode: VM ( $lab_infra_server_hostname )"
+    print_notify "Lab Infra Server Mode: VM ( $lab_infra_server_hostname )"
     print_info "--------------------------------------------------------------"
     when_lab_infra_server_is_vm
 fi
