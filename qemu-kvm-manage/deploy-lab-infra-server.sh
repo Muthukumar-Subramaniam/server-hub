@@ -12,6 +12,106 @@ IFS=$'\n\t'
 
 source /server-hub/common-utils/color-functions.sh
 
+# Check if lab environment is already deployed
+check_existing_lab_deployment() {
+  local LAB_ENV_FILE="/kvm-hub/lab_environment_vars"
+  local found_issues=0
+  
+  print_info "[INFO] Checking for existing lab deployment..."
+  
+  # Check if lab environment file exists
+  if [[ -f "$LAB_ENV_FILE" ]]; then
+    print_warning "[WARNING] Found existing lab environment configuration at: $LAB_ENV_FILE"
+    found_issues=1
+    
+    # Source the file to get existing values
+    source "$LAB_ENV_FILE"
+    
+    if [[ -n "${lab_infra_server_hostname:-}" ]]; then
+      print_warning "[WARNING] Lab Infra Server appears to be already configured:" nskip
+      print_warning "[WARNING]   Hostname: ${lab_infra_server_hostname}"
+      
+      # Check if it's a VM deployment
+      if [[ "${lab_infra_server_mode_is_host:-false}" == "false" ]]; then
+        # Check if VM exists
+        if sudo virsh list --all | grep -q "${lab_infra_server_hostname}"; then
+          print_warning "[WARNING]   VM Status: EXISTS (running or stopped)"
+          found_issues=2
+        fi
+        
+        # Check if VM disk exists
+        local VM_DIR="/kvm-hub/vms/${lab_infra_server_hostname}"
+        if [[ -d "$VM_DIR" ]]; then
+          print_warning "[WARNING]   VM Directory: EXISTS at $VM_DIR"
+          found_issues=2
+        fi
+      else
+        # Check if host-mode services are running
+        print_warning "[WARNING]   Mode: HOST (deployed directly on KVM host)"
+        if sudo systemctl is-active --quiet named; then
+          print_warning "[WARNING]   DNS Service (named): ACTIVE"
+          found_issues=2
+        fi
+        if sudo systemctl is-active --quiet kea-dhcp4; then
+          print_warning "[WARNING]   DHCP Service (kea): ACTIVE"
+          found_issues=2
+        fi
+      fi
+    fi
+  fi
+  
+  # Check for SSH keys
+  if [[ -f "$HOME/.ssh/kvm_lab_global_id_rsa" ]]; then
+    print_warning "[WARNING] Lab SSH keys already exist at: $HOME/.ssh/kvm_lab_global_id_rsa"
+    found_issues=1
+  fi
+  
+  # Check for SSH config
+  if [[ -f "/etc/ssh/ssh_config.d/999-kvm-lab-global.conf" ]]; then
+    print_warning "[WARNING] Lab SSH config already exists: /etc/ssh/ssh_config.d/999-kvm-lab-global.conf"
+    found_issues=1
+  fi
+  
+  if [[ $found_issues -eq 2 ]]; then
+    echo
+    print_error "[ERROR] ═══════════════════════════════════════════════════════════════════"
+    print_error "[ERROR] CRITICAL: Lab infrastructure is already deployed!"
+    print_error "[ERROR] Re-running this script will OVERWRITE your existing setup."
+    print_error "[ERROR] ═══════════════════════════════════════════════════════════════════"
+    echo
+    print_warning "[WARNING] If you want to redeploy from scratch, you must:"
+    print_info "[INFO]   1. Backup any important data from your lab"
+    print_info "[INFO]   2. Manually remove the existing deployment:"
+    print_info "[INFO]      • Delete VM: sudo virsh undefine ${lab_infra_server_hostname:-lab-infra-server} --remove-all-storage"
+    print_info "[INFO]      • Or stop host services: sudo systemctl stop named kea-dhcp4 nginx"
+    print_info "[INFO]   3. Remove lab config: sudo rm -rf /kvm-hub/lab_environment_vars"
+    print_info "[INFO]   4. Remove SSH keys: rm -f ~/.ssh/kvm_lab_global_id_rsa*"
+    echo
+    read -rp "Do you understand the risks and want to FORCE re-deployment? (yes/NO): " force_confirm
+    
+    if [[ "$force_confirm" != "yes" ]]; then
+      print_info "[INFO] Deployment cancelled. Your existing lab is safe."
+      exit 0
+    fi
+    
+    print_warning "[WARNING] Proceeding with FORCED re-deployment..."
+    sleep 2
+  elif [[ $found_issues -eq 1 ]]; then
+    echo
+    print_warning "[WARNING] Some lab components already exist."
+    read -rp "Continue with deployment? (y/N): " continue_confirm
+    
+    if [[ ! "$continue_confirm" =~ ^[Yy]$ ]]; then
+      print_info "[INFO] Deployment cancelled."
+      exit 0
+    fi
+  else
+    print_success "[SUCCESS] No existing lab deployment detected. Safe to proceed."
+  fi
+  
+  echo
+}
+
 prepare_lab_infra_config() {
   print_info "[INFO] Preparing general Lab Infra configuration..."
   print_info "[INFO] Common configuration steps go here..."
@@ -308,9 +408,17 @@ deploy_lab_infra_server_vm() {
   # Create VM directory if it doesn't exist
   mkdir -p "$VM_DIR"
 
+  # Check if VM already exists in virsh
+  if sudo virsh list --all | grep -qw "${lab_infra_server_hostname}"; then
+      print_error "[ERROR] Lab Infra VM '${lab_infra_server_hostname}' already exists in libvirt!"
+      print_info "[INFO] To remove it, run: sudo virsh undefine ${lab_infra_server_hostname} --remove-all-storage"
+      exit 1
+  fi
+
   # Check if VM disk already exists
   if [[ -f "$VM_DISK_PATH" ]]; then
-      print_error "[ERROR] Lab Infra VM '${lab_infra_server_hostname}' already exists at $VM_DISK_PATH. Aborting to avoid overwrite."
+      print_error "[ERROR] Lab Infra VM disk already exists at $VM_DISK_PATH."
+      print_info "[INFO] To remove it, run: sudo rm -rf ${VM_DIR}"
       exit 1
   fi
 
@@ -411,6 +519,34 @@ nvram="${VM_DIR}/${lab_infra_server_hostname}_VARS.fd",menu=on
 deploy_lab_infra_server_host() {
   prepare_lab_infra_config
   print_info "[INFO] Starting deployment of lab infra server directly on the KVM host..."
+  
+  # Check if critical services are already running (indicates existing deployment)
+  print_info "[INFO] Checking for existing host-mode services..."
+  local existing_services=()
+  
+  if sudo systemctl is-active --quiet named; then
+    existing_services+=("named (DNS)")
+  fi
+  if sudo systemctl is-active --quiet kea-dhcp4; then
+    existing_services+=("kea-dhcp4 (DHCP)")
+  fi
+  if sudo systemctl is-active --quiet nginx; then
+    existing_services+=("nginx (Web)")
+  fi
+  
+  if [[ ${#existing_services[@]} -gt 0 ]]; then
+    print_warning "[WARNING] Found active lab services on host:"
+    for svc in "${existing_services[@]}"; do
+      print_warning "[WARNING]   - $svc"
+    done
+    echo
+    read -rp "These services may be overwritten. Continue? (y/N): " host_continue
+    if [[ ! "$host_continue" =~ ^[Yy]$ ]]; then
+      print_info "[INFO] Host deployment cancelled."
+      exit 0
+    fi
+  fi
+  
     # -----------------------------
   # Deployment mode flag
   # -----------------------------
@@ -604,6 +740,13 @@ deploy_lab_infra_server_host() {
   print_success "[SUCCESS] Successfully deployed Lab Infra Server ${lab_infra_server_hostname} on your machine!"
   
 }
+
+#-------------------------------------------------------------
+# Main execution starts here
+#-------------------------------------------------------------
+
+# CRITICAL: Check for existing deployment before proceeding
+check_existing_lab_deployment
 
 #-------------------------------------------------------------
 # Deployment selection prompt
