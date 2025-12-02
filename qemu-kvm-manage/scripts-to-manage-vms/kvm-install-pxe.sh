@@ -264,7 +264,7 @@ if [[ $TOTAL_VMS -gt 1 ]]; then
         exit 1
     fi
     
-    print_info "[INFO] All VMs will download OS files and install (this may take a few minutes each)."
+    print_info "[INFO] Installation via PXE boot may take a few minutes per VM."
     print_info "[INFO] To monitor installation progress, use: kvm-console <hostname>"
     print_info "[INFO] To check VM status, use: kvm-list"
 fi
