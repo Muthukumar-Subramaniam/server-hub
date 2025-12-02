@@ -29,28 +29,37 @@ Supported distros:
     almalinux, rocky, oraclelinux, centos-stream, rhel, ubuntu-lts, opensuse-leap"
 }
 
-fn_check_distro_availability() {
+fn_is_distro_ready() {
   local os_distribution="$1"
   if [[ "$os_distribution" == "opensuse-leap" ]]; then
     kernel_file_name="linux"
   else
     kernel_file_name="vmlinuz"
   fi
-  if [[ ! -f "/${dnsbinder_server_fqdn}/ipxe/images/${os_distribution}-latest/${kernel_file_name}" ]]; then
-    print_warning "[Not-Ready]" nskip
+  if [[ -f "/${dnsbinder_server_fqdn}/ipxe/images/${os_distribution}-latest/${kernel_file_name}" ]]; then
+    return 0  # Ready
   else
-    print_success "[Ready]" nskip
+    return 1  # Not Ready
   fi
 }
 
-almalinux_os_availability=$(fn_check_distro_availability "almalinux")
-rocky_os_availability=$(fn_check_distro_availability "rocky")
-oraclelinux_os_availability=$(fn_check_distro_availability "oraclelinux")
-centos_stream_os_availability=$(fn_check_distro_availability "centos-stream")
-rhel_os_availability=$(fn_check_distro_availability "rhel")
-fedora_os_availability=$(fn_check_distro_availability "fedora")
-ubuntu_lts_os_availability=$(fn_check_distro_availability "ubuntu-lts")
-opensuse_leap_os_availability=$(fn_check_distro_availability "opensuse-leap")
+fn_get_distro_status_display() {
+  local os_distribution="$1"
+  if fn_is_distro_ready "$os_distribution"; then
+    print_success "[Ready]" nskip
+  else
+    print_warning "[Not-Ready]" nskip
+  fi
+}
+
+almalinux_os_availability=$(fn_get_distro_status_display "almalinux")
+rocky_os_availability=$(fn_get_distro_status_display "rocky")
+oraclelinux_os_availability=$(fn_get_distro_status_display "oraclelinux")
+centos_stream_os_availability=$(fn_get_distro_status_display "centos-stream")
+rhel_os_availability=$(fn_get_distro_status_display "rhel")
+fedora_os_availability=$(fn_get_distro_status_display "fedora")
+ubuntu_lts_os_availability=$(fn_get_distro_status_display "ubuntu-lts")
+opensuse_leap_os_availability=$(fn_get_distro_status_display "opensuse-leap")
 
 fn_select_os_distro() {
   local action_title="$1"
@@ -130,7 +139,7 @@ prepare_iso() {
 
 prepare_rhel() {
   local distro="rhel"
-  if [[ $(fn_check_distro_availability "$distro") == "[Ready]" ]]; then
+  if fn_is_distro_ready "$distro"; then
     print_warning "[WARNING] Distro '$distro' already appears to be prepared."
     print_info "[INFO] Please cleanup first using: $(basename $0) --cleanup $distro"
     exit 1
@@ -148,7 +157,7 @@ prepare_rhel() {
 
 prepare_ubuntu() {
   local distro="ubuntu-lts"
-  if [[ $(fn_check_distro_availability "$distro") == "[Ready]" ]]; then
+  if fn_is_distro_ready "$distro"; then
     print_warning "[WARNING] Distro '$distro' already appears to be prepared."
     print_info "[INFO] Please cleanup first using: $(basename $0) --cleanup $distro"
     exit 1
@@ -234,7 +243,7 @@ case "$MODE" in
   --setup)
     case "$DISTRO" in
       almalinux)
-        if [[ $(fn_check_distro_availability "almalinux") == "[Ready]" ]]; then
+        if fn_is_distro_ready "almalinux"; then
           print_warning "[WARNING] Distro 'almalinux' already appears to be prepared."
           print_info "[INFO] Please cleanup first using: $(basename $0) --cleanup almalinux"
           exit 1
@@ -244,7 +253,7 @@ case "$MODE" in
           "images/pxeboot/vmlinuz" "images/pxeboot/initrd.img"
         ;;
       rocky)
-        if [[ $(fn_check_distro_availability "rocky") == "[Ready]" ]]; then
+        if fn_is_distro_ready "rocky"; then
           print_warning "[WARNING] Distro 'rocky' already appears to be prepared."
           print_info "[INFO] Please cleanup first using: $(basename $0) --cleanup rocky"
           exit 1
@@ -254,7 +263,7 @@ case "$MODE" in
           "images/pxeboot/vmlinuz" "images/pxeboot/initrd.img"
         ;;
       fedora)
-        if [[ $(fn_check_distro_availability "fedora") == "[Ready]" ]]; then
+        if fn_is_distro_ready "fedora"; then
           print_warning "[WARNING] Distro 'fedora' already appears to be prepared."
           print_info "[INFO] Please cleanup first using: $(basename $0) --cleanup rocky"
           exit 1
@@ -264,7 +273,7 @@ case "$MODE" in
           "images/pxeboot/vmlinuz" "images/pxeboot/initrd.img"
         ;;
       oraclelinux)
-        if [[ $(fn_check_distro_availability "oraclelinux") == "[Ready]" ]]; then
+        if fn_is_distro_ready "oraclelinux"; then
           print_warning "[WARNING] Distro 'oraclelinux' already appears to be prepared."
           print_info "[INFO] Please cleanup first using: $(basename $0) --cleanup oraclelinux"
           exit 1
@@ -274,7 +283,7 @@ case "$MODE" in
           "images/pxeboot/vmlinuz" "images/pxeboot/initrd.img"
         ;;
       centos-stream)
-        if [[ $(fn_check_distro_availability "centos-stream") == "[Ready]" ]]; then
+        if fn_is_distro_ready "centos-stream"; then
           print_warning "[WARNING] Distro 'centos-stream' already appears to be prepared."
           print_info "[INFO] Please cleanup first using: $(basename $0) --cleanup centos-stream"
           exit 1
@@ -290,7 +299,7 @@ case "$MODE" in
         prepare_ubuntu
         ;;
       opensuse-leap)
-        if [[ $(fn_check_distro_availability "opensuse-leap") == "[Ready]" ]]; then
+        if fn_is_distro_ready "opensuse-leap"; then
           print_warning "[WARNING] Distro 'opensuse-leap' already appears to be prepared."
           print_info "[INFO] Please cleanup first using: $(basename $0) --cleanup opensuse-leap"
           exit 1
