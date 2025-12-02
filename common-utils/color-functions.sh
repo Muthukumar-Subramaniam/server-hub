@@ -9,7 +9,7 @@ MAKE_IT_MAGENTA='\033[0;35m'
 RESET_COLOR='\033[0m' # Reset to default color
 
 print_error() {
-	if [[ -z "${2}" ]] || [[ "${2}" != "nskip" ]] 
+	if [[ -z "${2:-}" ]] || [[ "${2:-}" != "nskip" ]] 
 	then
 		echo -e "${MAKE_IT_RED}${1}${RESET_COLOR}"
 	else
@@ -18,7 +18,7 @@ print_error() {
 }
 
 print_success() {
-	if [[ -z "${2}" ]] || [[ "${2}" != "nskip" ]] 
+	if [[ -z "${2:-}" ]] || [[ "${2:-}" != "nskip" ]] 
 	then
 		echo -e "${MAKE_IT_GREEN}${1}${RESET_COLOR}"
 	else
@@ -27,7 +27,7 @@ print_success() {
 }
 
 print_warning() {
-	if [[ -z "${2}" ]] || [[ "${2}" != "nskip" ]] 
+	if [[ -z "${2:-}" ]] || [[ "${2:-}" != "nskip" ]] 
 	then
 		echo -e "${MAKE_IT_YELLOW}${1}${RESET_COLOR}"
 	else
@@ -36,7 +36,7 @@ print_warning() {
 }
 
 print_info() {
-	if [[ -z "${2}" ]] || [[ "${2}" != "nskip" ]] 
+	if [[ -z "${2:-}" ]] || [[ "${2:-}" != "nskip" ]] 
 	then
 		echo -e "${MAKE_IT_CYAN}${1}${RESET_COLOR}"
 	else
@@ -45,7 +45,7 @@ print_info() {
 }
 
 print_notify() {
-	if [[ -z "${2}" ]] || [[ "${2}" != "nskip" ]] 
+	if [[ -z "${2:-}" ]] || [[ "${2:-}" != "nskip" ]] 
 	then
 		echo -e "${MAKE_IT_WHITE}${1}${RESET_COLOR}"
 	else
