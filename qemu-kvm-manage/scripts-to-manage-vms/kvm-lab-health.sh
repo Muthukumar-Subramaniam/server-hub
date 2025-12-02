@@ -1,7 +1,8 @@
 #!/bin/bash
 # KVM Lab Infrastructure Health Check Tool
 
-# Source environment defaults
+# Source color functions and environment defaults
+source /server-hub/common-utils/color-functions.sh
 source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/defaults.sh
 
 # Define port numbers
@@ -55,10 +56,10 @@ for entry in "${services_to_check[@]}"; do
     fi
 
     if [[ $? -eq 0 ]]; then
-        printf "[ ✅ ] %-*s [ %s/%s ]\n" "$max_len" "$service_name" "$service_port" "$service_proto"
+        printf "[ \033[0;32m✓\033[0m ] %-*s [ %s/%s ]\n" "$max_len" "$service_name" "$service_port" "$service_proto"
         ((active_services++))
     else
-        printf "[ ❌ ] %-*s [ %s/%s ]\n" "$max_len" "$service_name" "$service_port" "$service_proto"
+        printf "[ \033[0;31m✗\033[0m ] %-*s [ %s/%s ]\n" "$max_len" "$service_name" "$service_port" "$service_proto"
         ((inactive_services++))
     fi
 done
@@ -67,17 +68,17 @@ done
 # Summary
 # -------------------------------------------------------------
 total_services=${#services_to_check[@]}
-echo "-------------------------------------------------------------"
-echo "Health Check Summary of KVM Lab Infra:"
-echo "Total Services    : $total_services"
-echo "Active Services   : $active_services"
-echo "Inactive Services : $inactive_services"
-echo "-------------------------------------------------------------"
+print_info "-------------------------------------------------------------
+Health Check Summary of KVM Lab Infra:
+Total Services    : $total_services
+Active Services   : $active_services
+Inactive Services : $inactive_services
+-------------------------------------------------------------"
 if [[ $active_services -eq 0 ]]; then
-    echo -e "❌ KVM Lab Infra health is CRITICAL."
+    print_error "[FAILED] KVM Lab Infra health is CRITICAL."
 elif [[ $total_services -eq $active_services ]]; then
-    echo -e "✅ KVM Lab Infra health is STABLE."
+    print_success "[SUCCESS] KVM Lab Infra health is STABLE."
 else
-    echo -e "⚠️  KVM Lab Infra health is DEGRADED."
+    print_warning "[WARNING] KVM Lab Infra health is DEGRADED."
 fi
 echo "-------------------------------------------------------------"
