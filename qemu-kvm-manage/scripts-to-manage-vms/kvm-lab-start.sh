@@ -12,10 +12,10 @@ lab_bridge_interface_name="labbr0"
 
 # ====== DNS CONFIGURATION FUNCTION ======
 configure_dns_for_bridge() {
-    print_info "[INFO] Configuring DNS for $lab_bridge_interface_name..."
+    print_info "[INFO] Configuring DNS for $lab_bridge_interface_name..." nskip
     sudo resolvectl dns "$lab_bridge_interface_name" "$lab_infra_server_ipv4_address" || print_warning "[WARNING] Could not set DNS server"
     sudo resolvectl domain "$lab_bridge_interface_name" "$lab_infra_domain_name" || print_warning "[WARNING] Could not set DNS domain"
-    print_success "[SUCCESS] DNS configured"
+    print_success " [SUCCESS]"
 }
 
 when_lab_infra_server_is_host() {
@@ -30,12 +30,13 @@ when_lab_infra_server_is_host() {
     if sudo systemctl is-active --quiet libvirtd; then
         print_success "[SUCCESS] libvirtd is already running"
     else
-        print_info "[INFO] Starting libvirtd..."
+        print_info "[INFO] Starting libvirtd..." nskip
         if ! sudo systemctl restart libvirtd; then
+            echo
             print_error "[ERROR] Failed to start libvirtd"
             return 1
         fi
-        print_success "[SUCCESS] libvirtd started successfully"
+        print_success " [SUCCESS]"
     fi
     
     # ====== STEP 2: Wait for labbr0 ======
@@ -44,6 +45,7 @@ when_lab_infra_server_is_host() {
     local bridge_creation_elapsed_seconds=0
     until ip link show "$lab_bridge_interface_name" &>/dev/null; do
         if [ $bridge_creation_elapsed_seconds -ge $bridge_creation_timeout_seconds ]; then
+            echo
             print_error "[ERROR] Timeout waiting for $lab_bridge_interface_name"
             return 1
         fi
@@ -51,16 +53,15 @@ when_lab_infra_server_is_host() {
         sleep 1
         bridge_creation_elapsed_seconds=$((bridge_creation_elapsed_seconds + 1))
     done
-    echo
-    print_success "[SUCCESS] $lab_bridge_interface_name detected!"
+    print_success " [SUCCESS]"
     
     # ====== STEP 3: Create dummy link if missing ======
     if ! ip link show "$lab_bridge_dummy_interface_name" &>/dev/null; then
-        print_info "[INFO] Creating dummy interface $lab_bridge_dummy_interface_name to keep $lab_bridge_interface_name always up..."
-        sudo ip link add name "$lab_bridge_dummy_interface_name" type dummy || { print_error "[ERROR] Failed to create dummy interface"; return 1; }
-        sudo ip link set "$lab_bridge_dummy_interface_name" master "$lab_bridge_interface_name" || { print_error "[ERROR] Failed to attach dummy to bridge"; return 1; }
-        sudo ip link set "$lab_bridge_dummy_interface_name" up || { print_error "[ERROR] Failed to bring up dummy interface"; return 1; }
-        print_success "[SUCCESS] Dummy interface created and attached"
+        print_info "[INFO] Creating dummy interface $lab_bridge_dummy_interface_name to keep $lab_bridge_interface_name always up..." nskip
+        sudo ip link add name "$lab_bridge_dummy_interface_name" type dummy || { echo; print_error "[ERROR] Failed to create dummy interface"; return 1; }
+        sudo ip link set "$lab_bridge_dummy_interface_name" master "$lab_bridge_interface_name" || { echo; print_error "[ERROR] Failed to attach dummy to bridge"; return 1; }
+        sudo ip link set "$lab_bridge_dummy_interface_name" up || { echo; print_error "[ERROR] Failed to bring up dummy interface"; return 1; }
+        print_success " [SUCCESS]"
     else
         print_info "[INFO] Dummy interface $lab_bridge_dummy_interface_name already exists."
     fi
@@ -78,25 +79,25 @@ when_lab_infra_server_is_host() {
         sleep 1
         bridge_up_elapsed_seconds=$((bridge_up_elapsed_seconds + 1))
     done
-    echo
-    print_success "[SUCCESS] $lab_bridge_interface_name is UP and running!"
+    print_success " [SUCCESS]"
     
     # ====== STEP 5: Assign IP address ======
-    print_info "[INFO] Configuring IP ${lab_infra_server_ipv4_address} netmask ${lab_infra_server_ipv4_netmask} on $lab_bridge_interface_name..."
+    print_info "[INFO] Configuring IP ${lab_infra_server_ipv4_address} netmask ${lab_infra_server_ipv4_netmask} on $lab_bridge_interface_name..." nskip
     # Add the secondary IP address with netmask
     if sudo ip addr add "${lab_infra_server_ipv4_address}/${lab_infra_server_ipv4_netmask}" dev "$lab_bridge_interface_name" 2>/dev/null; then
-        print_success "[SUCCESS] IP address assigned successfully"
+        print_success " [SUCCESS]"
     else
-        print_info "[INFO] IP address may already be assigned"
+        print_info " [INFO] IP address may already be assigned"
     fi
 
     # ====== STEP 6: Restart named service ======
-    print_info "[INFO] Restarting named service..."
+    print_info "[INFO] Restarting named service..." nskip
     if ! sudo systemctl restart named; then
+        echo
         print_error "[ERROR] Failed to restart named service"
         return 1
     fi
-    print_success "[SUCCESS] Named service restarted"
+    print_success " [SUCCESS]"
     
     # ====== STEP 7: Restart dependent services ======
     print_info "[INFO] Restarting dependent lab services..."
@@ -147,12 +148,13 @@ when_lab_infra_server_is_vm() {
     if sudo systemctl is-active --quiet libvirtd; then
         print_success "[SUCCESS] libvirtd is already running"
     else
-        print_info "[INFO] Starting libvirtd..."
+        print_info "[INFO] Starting libvirtd..." nskip
         if ! sudo systemctl restart libvirtd; then
+            echo
             print_error "[ERROR] Failed to start libvirtd"
             return 1
         fi
-        print_success "[SUCCESS] libvirtd started successfully"
+        print_success " [SUCCESS]"
     fi
     # ====== STEP 2: Wait for labbr0 ======
     print_info "[INFO] Waiting for $lab_bridge_interface_name to be created..." nskip
@@ -167,24 +169,25 @@ when_lab_infra_server_is_vm() {
         sleep 1
         bridge_creation_elapsed_seconds=$((bridge_creation_elapsed_seconds + 1))
     done
-    echo
-    print_success "[SUCCESS] $lab_bridge_interface_name detected!"
+    print_success " [SUCCESS]"
     # ====== STEP 3: Check and start lab infra server VM ======
-    print_info "[INFO] Checking lab infra server VM status..."
+    print_info "[INFO] Checking lab infra server VM status..." nskip
     if sudo virsh list --state-running | awk '{print $2}' | grep -Fxq "$lab_infra_server_hostname"; then
-        print_success "[SUCCESS] Lab infra server VM ($lab_infra_server_hostname) is already running"
+        print_success " [RUNNING]"
     else
-        print_info "[INFO] Lab infra server VM ($lab_infra_server_hostname) is not running. Starting..."
+        echo
+        print_info "[INFO] Starting VM..." nskip
         if sudo virsh start "$lab_infra_server_hostname" >/dev/null 2>&1; then
-            print_success "[SUCCESS] Lab infra server VM started successfully"
+            print_success " [SUCCESS]"
         else
+            echo
             print_error "[ERROR] Failed to start lab infra server VM"
             return 1
         fi
     fi
 
     # ====== STEP 4: Wait for lab infra server VM to be SSH accessible ======
-    print_info "[INFO] Waiting for lab infra server VM to become SSH accessible..."
+    print_info "[INFO] Waiting for VM to become SSH accessible..." nskip
     local ssh_check_timeout=120
     local ssh_check_elapsed=0
     local ssh_check_interval=5
@@ -209,13 +212,13 @@ when_lab_infra_server_is_vm() {
         ssh_check_elapsed=$((ssh_check_elapsed + ssh_check_interval))
         echo -n "."
     done
-    [ $ssh_check_elapsed -gt 0 ] && echo
     
     if [[ "$vm_is_ssh_accessible" != "true" ]]; then
-        print_error "[ERROR] Lab infra server VM did not become SSH accessible within ${ssh_check_timeout} seconds"
+        echo
+        print_error "[ERROR] VM did not become SSH accessible within ${ssh_check_timeout} seconds"
         return 1
     fi
-    print_success "[SUCCESS] Lab infra server VM is SSH accessible"
+    print_success " [SUCCESS]"
     # ====== STEP 5: Check essential services connectivity ======
     print_info "[INFO] Checking essential services connectivity..."
     
@@ -285,11 +288,11 @@ print_info "KVM Lab Infrastructure Startup"
 print_info "=============================================================="
 
 if $lab_infra_server_mode_is_host; then
-    print_notify "[NOTIFY] Lab Infra Server Mode: HOST"
+    print_notify "[NOTIFY] Lab Infra Server Mode: HOST ( $lab_infra_server_hostname )"
     print_info "--------------------------------------------------------------"
     when_lab_infra_server_is_host
 else
-    print_notify "[NOTIFY] Lab Infra Server Mode: VM"
+    print_notify "[NOTIFY] Lab Infra Server Mode: VM ( $lab_infra_server_hostname )"
     print_info "--------------------------------------------------------------"
     when_lab_infra_server_is_vm
 fi
