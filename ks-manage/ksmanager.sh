@@ -286,9 +286,9 @@ fn_check_distro_availability() {
 	fi
 
 	if [[ ! -f "${ipxe_web_dir}/images/${os_distribution}-latest/${kernel_file_name}" ]]; then
-		echo '[Not-Ready]'
+		print_warning '[Not-Ready]'
 	else
-		echo '[Ready]'
+		print_success '[Ready]'
 	fi
 }
 
@@ -302,7 +302,7 @@ ubuntu_lts_os_availability=$(fn_check_distro_availability "ubuntu-lts")
 opensuse_leap_os_availability=$(fn_check_distro_availability "opensuse-leap")
 
 fn_select_os_distro() {
-    print_info "[INFO] Please select the OS distribution to install:
+    print_notify "Please select the OS distribution to install:
   1)  AlmaLinux                ${almalinux_os_availability}
   2)  Rocky Linux              ${rocky_os_availability}
   3)  OracleLinux              ${oraclelinux_os_availability}
