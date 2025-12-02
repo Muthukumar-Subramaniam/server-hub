@@ -55,7 +55,7 @@ opensuse_leap_os_availability=$(fn_check_distro_availability "opensuse-leap")
 
 fn_select_os_distro() {
   local action_title="$1"
-  print_info "[INFO] Please select the OS distribution to ${action_title}:
+  print_notify "Please select the OS distribution to ${action_title}:
 
   1)  AlmaLinux                ${almalinux_os_availability}
   2)  Rocky Linux              ${rocky_os_availability}
