@@ -1,7 +1,13 @@
 #!/usr/bin/env bash
+#----------------------------------------------------------------------------------------#
+# If you encounter any issues with this script, or have suggestions or feature requests, #
+# please open an issue at: https://github.com/Muthukumar-Subramaniam/server-hub/issues   #
+#----------------------------------------------------------------------------------------#
 # lab-rootfs-extender
 # Usage:
 #   ./lab-rootfs-extender [remote-host/localhost]
+
+source /server-hub/common-utils/color-functions.sh
 
 # --- Config ---
 SSH_OPTS="-o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
@@ -21,16 +27,17 @@ fi
 # Remote execution logic
 # ----------------------
 if [[ "$REMOTE_HOST" != "localhost" ]]; then
-    echo -n "[INFO] Checking SSH connectivity to $REMOTE_HOST . . . "
+    print_info "[INFO] Checking SSH connectivity to $REMOTE_HOST..." nskip
     if ! ssh $SSH_OPTS "$REMOTE_HOST" "true" >/dev/null 2>&1; then
-        echo -e "\n[ERROR] SSH connection to $REMOTE_HOST failed. Ensure SSH access works."
+        print_error "[ FAILED ]"
+        print_error "[ERROR] SSH connection to $REMOTE_HOST failed. Ensure SSH access works."
         exit 1
     fi
-    echo "[ok]"
+    print_success "[ SUCCESS ]"
 
-    echo "[INFO] Executing lab-rootfs-extender utility on host $REMOTE_HOST ..."
+    print_info "[INFO] Executing lab-rootfs-extender utility on host $REMOTE_HOST..."
     ssh $SSH_OPTS -t "$REMOTE_HOST" "sudo bash $SCRIPT_LOCATION localhost"
-    echo "[INFO] Remote execution completed on $REMOTE_HOST."
+    print_info "[INFO] Remote execution completed on $REMOTE_HOST."
     exit 0
 fi
 
@@ -38,103 +45,124 @@ fi
 # Local execution logic
 # ----------------------
 FS_BEFORE=$(df -h / | awk 'NR==2{print $2}')
-echo "[INFO] Root filesystem size BEFORE expansion: $FS_BEFORE"
+print_info "[INFO] Root filesystem size before expansion: $FS_BEFORE"
 
 # Ensure growpart is installed
 fn_get_growpart() {
-    echo -n "[INFO] Check if 'growpart' utility is available ..."
+    print_info "[INFO] Checking if 'growpart' utility is available..." nskip
     if ! command -v growpart >/dev/null 2>&1; then
-        echo -n "[WARN] 'growpart' not found. Trying to create binary link from lab infra server-hub nfs share ..."
-        if ! sudo ln -s /server-hub/common-utils/growpart /usr/bin/growpart; then
-    	    echo -n "[WARN] Some issue in creating binary link of 'growpart' from lab infra server-hub nfs share, Trying to download from official internet repo ..."
-    	    if ! sudo curl -fsSL -o /usr/bin/growpart https://raw.githubusercontent.com/canonical/cloud-utils/main/bin/growpart;then
-		return 1
-	     else
-		sudo chmod +x /usr/bin/growpart
-    	        echo "[ok]"
-		return 0
-	    fi
+        print_warning "[ NOT FOUND ]"
+        print_info "[INFO] Creating binary link from lab infra server-hub NFS share..." nskip
+        if ! sudo ln -s /server-hub/common-utils/growpart /usr/bin/growpart 2>/dev/null; then
+            print_warning "[ FAILED ]"
+            print_info "[INFO] Downloading 'growpart' from official repository..." nskip
+            if ! sudo curl -fsSL -o /usr/bin/growpart https://raw.githubusercontent.com/canonical/cloud-utils/main/bin/growpart 2>/dev/null; then
+                print_error "[ FAILED ]"
+                return 1
+            else
+                sudo chmod +x /usr/bin/growpart
+                print_success "[ SUCCESS ]"
+                return 0
+            fi
         else
-    	    echo "[ok]"
-	    return 0
+            print_success "[ SUCCESS ]"
+            return 0
         fi
     else
-        echo "[ok]"
-	return 0
+        print_success "[ SUCCESS ]"
+        return 0
     fi
 }
 
 ROOT_DEV=$(findmnt -n -o SOURCE /)
-echo "[INFO] Root device: $ROOT_DEV"
+print_info "[INFO] Root device: $ROOT_DEV"
 
 # Only XFS supported
 FS_TYPE=$(findmnt -n -o FSTYPE /)
 if [[ "$FS_TYPE" != "xfs" ]]; then
-    echo "[ERROR] Unsupported filesystem type: $FS_TYPE. This script only supports XFS."
+    print_error "[ERROR] Unsupported filesystem type: $FS_TYPE. This script only supports XFS."
     exit 1
 fi
 
 if [[ "$ROOT_DEV" =~ ^/dev/mapper/ ]]; then
-    echo "[INFO] Detected LVM-based root filesystem."
+    print_info "[INFO] Detected LVM-based root filesystem."
 
     # Get VG name from LV path
     VG_NAME=$(sudo lvs --noheadings -o vg_name "$ROOT_DEV" | awk '{$1=$1};1')
-    echo "[INFO] Volume Group: $VG_NAME"
+    print_info "[INFO] Volume Group: $VG_NAME"
 
     # Get PV (first if multiple)
     PV_PATH=$(sudo pvs --noheadings -o pv_name --select vg_name="$VG_NAME" | awk '{$1=$1};1' | head -n1)
-    echo "[INFO] Physical Volume: $PV_PATH"
+    print_info "[INFO] Physical Volume: $PV_PATH"
 
     # Get disk and partition number from lsblk
     DISK="/dev/$(lsblk -no pkname "$PV_PATH" | sort | head -n1 | tr -d '[:space:]')"
     PART_NUM=$(lsblk -no partn "$PV_PATH" | tr -d '[:space:]')
 
     if fn_get_growpart; then
-        echo -n "[STEP] Growing partition $PV_PATH ... "
-        sudo growpart "$DISK" "$PART_NUM" >/dev/null 2>&1
-        echo "[ok]"
+        print_info "[INFO] Growing partition $PV_PATH..." nskip
+        if sudo growpart "$DISK" "$PART_NUM" >/dev/null 2>&1; then
+            print_success "[ SUCCESS ]"
+        else
+            print_warning "[ SKIPPED ]"
+        fi
 
-        echo -n "[STEP] Resizing PV $PV_PATH ... "
-        sudo pvresize "$PV_PATH" >/dev/null 2>&1
-        echo "[ok]"
+        print_info "[INFO] Resizing PV $PV_PATH..." nskip
+        if sudo pvresize "$PV_PATH" >/dev/null 2>&1; then
+            print_success "[ SUCCESS ]"
+        else
+            print_error "[ FAILED ]"
+        fi
 
-        echo -n "[STEP] Extending LV $ROOT_DEV ... "
-        sudo lvextend -l +100%FREE "$ROOT_DEV" >/dev/null 2>&1
-        echo "[ok]"
+        print_info "[INFO] Extending LV $ROOT_DEV..." nskip
+        if sudo lvextend -l +100%FREE "$ROOT_DEV" >/dev/null 2>&1; then
+            print_success "[ SUCCESS ]"
+        else
+            print_warning "[ SKIPPED ]"
+        fi
 
-        echo -n "[STEP] Extending XFS filesystem on / ... "
-        sudo xfs_growfs / >/dev/null 2>&1
-        echo "[ok]"
+        print_info "[INFO] Extending XFS filesystem on /..." nskip
+        if sudo xfs_growfs / >/dev/null 2>&1; then
+            print_success "[ SUCCESS ]"
+        else
+            print_error "[ FAILED ]"
+        fi
     else
-        echo "[SKIP] Growing partition $PV_PATH ... [ 'growpart' not found ]"
+        print_warning "[WARNING] Skipping partition growth - 'growpart' utility not available."
     fi
 else
-    echo "[INFO] Detected non-LVM root filesystem (plain partition)."
+    print_info "[INFO] Detected non-LVM root filesystem (plain partition)."
 
     # Get disk and partition number from lsblk
     DISK="/dev/$(lsblk -no pkname "$ROOT_DEV" | sort | head -n1 | tr -d '[:space:]')"
     PART_NUM=$(lsblk -no partn "$ROOT_DEV" | tr -d '[:space:]')
 
-    echo "[INFO] Disk: $DISK, Partition: $PART_NUM"
+    print_info "[INFO] Disk: $DISK, Partition: $PART_NUM"
 
     if fn_get_growpart; then
-        echo -n "[STEP] Growing partition ${DISK}${PART_NUM} ... "
-        sudo growpart "$DISK" "$PART_NUM" >/dev/null 2>&1
-        echo "[ok]"
+        print_info "[INFO] Growing partition ${DISK}${PART_NUM}..." nskip
+        if sudo growpart "$DISK" "$PART_NUM" >/dev/null 2>&1; then
+            print_success "[ SUCCESS ]"
+        else
+            print_warning "[ SKIPPED ]"
+        fi
 
-        echo -n "[STEP] Extending XFS filesystem on / ... "
-        sudo xfs_growfs / >/dev/null 2>&1
-        echo "[ok]"
+        print_info "[INFO] Extending XFS filesystem on /..." nskip
+        if sudo xfs_growfs / >/dev/null 2>&1; then
+            print_success "[ SUCCESS ]"
+        else
+            print_error "[ FAILED ]"
+        fi
     else
-        echo "[SKIP] Growing partition $PV_PATH ... [ 'growpart' not found ]"
+        print_warning "[WARNING] Skipping partition growth - 'growpart' utility not available."
     fi
 fi
 
 FS_AFTER=$(df -h / | awk 'NR==2{print $2}')
 
 if [[ "$FS_BEFORE" == "$FS_AFTER" ]]; then
-    echo "[WARN] No change in root filesystem size."
+    print_warning "[WARNING] No change in root filesystem size."
 else
-    echo "[INFO] Root filesystem size AFTER expansion: $FS_AFTER"
-    echo "[SUCCESS] Root filesystem successfully expanded!"
+    print_info "[INFO] Root filesystem size after expansion: $FS_AFTER"
+    print_success "[SUCCESS] Root filesystem successfully expanded!"
 fi
