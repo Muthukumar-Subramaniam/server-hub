@@ -257,7 +257,7 @@ for qemu_kvm_hostname in "${HOSTNAMES[@]}"; do
     if [ ! -f /kvm-hub/golden-images-disk-store/${OS_DISTRO}-golden-image.${lab_infra_domain_name}.qcow2 ]; then
         print_error "[ERROR] Golden image disk not found for \"$qemu_kvm_hostname\"!"
         print_info "[INFO] Expected at: /kvm-hub/golden-images-disk-store/${OS_DISTRO}-golden-image.${lab_infra_domain_name}.qcow2"
-        print_info "[INFO] To build the golden image disk, run: kvm-build-golden-qcow2-disk"
+        print_info "[INFO] To build the golden image disk, run: kvm-build-golden-image"
         FAILED_VMS+=("$qemu_kvm_hostname")
         continue
     fi

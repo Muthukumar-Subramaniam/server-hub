@@ -10,7 +10,7 @@ source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/select-ovmf.s
 
 # Function to show help
 fn_show_help() {
-    print_notify "Usage: kvm-build-golden-qcow2-disk
+    print_notify "Usage: kvm-build-golden-image
 
 Description:
   Creates a golden image disk by installing a VM via PXE boot.
@@ -38,16 +38,16 @@ fi
 
 print_info "[INFO] Invoking ksmanager to create PXE environment for golden image..."
 
->/tmp/kvm-build-golden-qcow2-disk.log
+>/tmp/kvm-build-golden-image.log
 
 if $lab_infra_server_mode_is_host; then
-    sudo ksmanager --qemu-kvm --create-golden-image | tee -a /tmp/kvm-build-golden-qcow2-disk.log
+    sudo ksmanager --qemu-kvm --create-golden-image | tee -a /tmp/kvm-build-golden-image.log
 else
-    ssh -o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -t ${lab_infra_admin_username}@${lab_infra_server_ipv4_address} "sudo ksmanager --qemu-kvm --create-golden-image" | tee -a /tmp/kvm-build-golden-qcow2-disk.log
+    ssh -o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -t ${lab_infra_admin_username}@${lab_infra_server_ipv4_address} "sudo ksmanager --qemu-kvm --create-golden-image" | tee -a /tmp/kvm-build-golden-image.log
 fi
 
-MAC_ADDRESS=$( grep "MAC Address  :"  /tmp/kvm-build-golden-qcow2-disk.log | awk -F': ' '{print $2}' | tr -d '[:space:]' )
-qemu_kvm_hostname=$( grep "Hostname     :"  /tmp/kvm-build-golden-qcow2-disk.log | awk -F': ' '{print $2}' | tr -d '[:space:]' )
+MAC_ADDRESS=$( grep "MAC Address  :"  /tmp/kvm-build-golden-image.log | awk -F': ' '{print $2}' | tr -d '[:space:]' )
+qemu_kvm_hostname=$( grep "Hostname     :"  /tmp/kvm-build-golden-image.log | awk -F': ' '{print $2}' | tr -d '[:space:]' )
 
 if [ -z ${MAC_ADDRESS} ]; then
     print_error "[FAILED] Something went wrong while executing ksmanager!"

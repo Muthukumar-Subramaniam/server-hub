@@ -137,7 +137,7 @@ Your workstation is now equipped with professional-grade VM management tools:
 
 ### 📦 VM Deployment & Management
 ```bash
-kvm-build-golden-qcow2-disk   # 🎨 Create reusable golden base images
+kvm-build-golden-image        # 🎨 Create reusable golden base images
 kvm-install-golden            # 🚀 Deploy VMs instantly from golden images
 kvm-install-pxe               # 🌐 Deploy VMs via network PXE boot
 kvm-reimage-golden            # 🔄 Reinstall VMs from golden images
