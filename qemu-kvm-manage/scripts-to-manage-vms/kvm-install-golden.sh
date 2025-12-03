@@ -143,8 +143,8 @@ for qemu_kvm_hostname in "${HOSTNAMES[@]}"; do
         print_error "[ERROR] VM \"$qemu_kvm_hostname\" exists already."
         if [[ $TOTAL_VMS -eq 1 ]]; then
             print_warning "[WARNING] Either do one of the following:"
-            print_info "[INFO] Remove the VM using 'kvm-remove', then try again."
-            print_info "[INFO] Re-image the VM using 'kvm-reimage-golden' or 'kvm-reimage-pxe'."
+            print_info "[INFO] Remove the VM using 'kvmlabctl remove', then try again."
+            print_info "[INFO] Re-image the VM using 'kvmlabctl reimage-golden' or 'kvmlabctl reimage-pxe'."
             exit 1
         else
             FAILED_VMS+=("$qemu_kvm_hostname")
@@ -257,7 +257,7 @@ for qemu_kvm_hostname in "${HOSTNAMES[@]}"; do
     if [ ! -f /kvm-hub/golden-images-disk-store/${OS_DISTRO}-golden-image.${lab_infra_domain_name}.qcow2 ]; then
         print_error "[ERROR] Golden image disk not found for \"$qemu_kvm_hostname\"!"
         print_info "[INFO] Expected at: /kvm-hub/golden-images-disk-store/${OS_DISTRO}-golden-image.${lab_infra_domain_name}.qcow2"
-        print_info "[INFO] To build the golden image disk, run: kvm-build-golden-image"
+        print_info "[INFO] To build the golden image disk, run: kvmlabctl build-golden-image"
         FAILED_VMS+=("$qemu_kvm_hostname")
         continue
     fi
@@ -302,8 +302,8 @@ for qemu_kvm_hostname in "${HOSTNAMES[@]}"; do
         sudo virsh console "${qemu_kvm_hostname}"
     elif [[ $TOTAL_VMS -eq 1 ]]; then
         print_info "[INFO] The VM will reboot once or twice during the installation process (~1 minute)."
-        print_info "[INFO] To monitor installation progress, use: kvm-console $qemu_kvm_hostname"
-        print_info "[INFO] To check VM status, use: kvm-list"
+        print_info "[INFO] To monitor installation progress, use: kvmlabctl console $qemu_kvm_hostname"
+        print_info "[INFO] To check VM status, use: kvmlabctl list"
         print_success "[SUCCESS] VM \"$qemu_kvm_hostname\" installation initiated successfully via golden image disk."
     fi
 
@@ -333,6 +333,6 @@ if [[ $TOTAL_VMS -gt 1 ]]; then
     fi
     
     print_info "[INFO] All VMs will reboot once or twice during installation (~1 minute each)."
-    print_info "[INFO] To monitor installation progress, use: kvm-console <hostname>"
-    print_info "[INFO] To check VM status, use: kvm-list"
+    print_info "[INFO] To monitor installation progress, use: kvmlabctl console <hostname>"
+    print_info "[INFO] To check VM status, use: kvmlabctl list"
 fi

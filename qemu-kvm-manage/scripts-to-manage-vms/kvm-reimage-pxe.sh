@@ -353,8 +353,8 @@ for qemu_kvm_hostname in "${HOSTNAMES[@]}"; do
         sudo virsh console "${qemu_kvm_hostname}"
     elif [[ $TOTAL_VMS -eq 1 ]]; then
         print_info "[INFO] Reimaging via PXE boot takes a few minutes."
-        print_info "[INFO] To monitor reimaging progress, use: kvm-console $qemu_kvm_hostname"
-        print_info "[INFO] To check VM status, use: kvm-list"
+        print_info "[INFO] To monitor reimaging progress, use: kvmlabctl console $qemu_kvm_hostname"
+        print_info "[INFO] To check VM status, use: kvmlabctl list"
         print_success "[SUCCESS] VM \"$qemu_kvm_hostname\" reimaging initiated successfully via PXE boot."
     fi
 
@@ -384,6 +384,6 @@ if [[ $TOTAL_VMS -gt 1 ]]; then
     fi
     
     print_info "[INFO] Reimaging via PXE boot takes a few minutes per VM."
-    print_info "[INFO] To monitor reimaging progress, use: kvm-console <hostname>"
-    print_info "[INFO] To check VM status, use: kvm-list"
+    print_info "[INFO] To monitor reimaging progress, use: kvmlabctl console <hostname>"
+    print_info "[INFO] To check VM status, use: kvmlabctl list"
 fi

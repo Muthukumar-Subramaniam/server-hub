@@ -271,7 +271,7 @@ for qemu_kvm_hostname in "${HOSTNAMES[@]}"; do
     if [ ! -f "${golden_qcow2_disk_path}" ]; then
         print_error "[ERROR] Golden image disk not found for \"$qemu_kvm_hostname\"!"
         print_info "[INFO] Expected at: ${golden_qcow2_disk_path}"
-        print_info "[INFO] To build the golden image disk, run: kvm-build-golden-image"
+        print_info "[INFO] To build the golden image disk, run: kvmlabctl build-golden-image"
         FAILED_VMS+=("$qemu_kvm_hostname")
         continue
     fi
@@ -392,8 +392,8 @@ for qemu_kvm_hostname in "${HOSTNAMES[@]}"; do
         sudo virsh console "${qemu_kvm_hostname}"
     elif [[ $TOTAL_VMS -eq 1 ]]; then
         print_info "[INFO] Reimaging via golden image disk takes ~1 minute."
-        print_info "[INFO] To monitor reimaging progress, use: kvm-console $qemu_kvm_hostname"
-        print_info "[INFO] To check VM status, use: kvm-list"
+        print_info "[INFO] To monitor reimaging progress, use: kvmlabctl console $qemu_kvm_hostname"
+        print_info "[INFO] To check VM status, use: kvmlabctl list"
         print_success "[SUCCESS] VM \"$qemu_kvm_hostname\" reimaging initiated successfully via golden image disk."
     fi
 
@@ -423,8 +423,8 @@ if [[ $TOTAL_VMS -gt 1 ]]; then
     fi
     
     print_info "[INFO] Reimaging via golden image disk takes ~1 minute per VM."
-    print_info "[INFO] To monitor reimaging progress, use: kvm-console <hostname>"
-    print_info "[INFO] To check VM status, use: kvm-list"
+    print_info "[INFO] To monitor reimaging progress, use: kvmlabctl console <hostname>"
+    print_info "[INFO] To check VM status, use: kvmlabctl list"
 fi
 
 
