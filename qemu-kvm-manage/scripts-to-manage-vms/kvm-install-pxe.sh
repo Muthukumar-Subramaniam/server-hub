@@ -14,7 +14,7 @@ LOG_FILE=""
 
 # Function to show help
 fn_show_help() {
-    print_notify "Usage: kvmlabctl install-pxe [OPTIONS] [hostname]
+    print_info "Usage: kvmlabctl install-pxe [OPTIONS] [hostname]
 
 Options:
   -c, --console        Attach console during installation (single VM only)

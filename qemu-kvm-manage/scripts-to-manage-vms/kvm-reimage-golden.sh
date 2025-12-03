@@ -15,7 +15,7 @@ LOG_FILE=""
 
 # Function to show help
 fn_show_help() {
-    print_notify "Usage: kvmlabctl reimage-golden [OPTIONS] [hostname]
+    print_info "Usage: kvmlabctl reimage-golden [OPTIONS] [hostname]
 
 Options:
   -c, --console        Attach console during reimage (single VM only)

@@ -13,7 +13,7 @@ vm_hostname_arg=""
 
 # Function to show help
 fn_show_help() {
-    print_notify "Usage: kvmlabctl start [OPTIONS] [hostname]
+    print_info "Usage: kvmlabctl start [OPTIONS] [hostname]
 
 Options:
   -H, --hosts <list>   Comma-separated list of VM hostnames to start

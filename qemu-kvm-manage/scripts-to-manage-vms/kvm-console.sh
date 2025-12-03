@@ -12,7 +12,7 @@ vm_hostname_arg=""
 
 # Function to show help
 fn_show_help() {
-    print_notify "Usage: kvmlabctl console [OPTIONS] [hostname]
+    print_info "Usage: kvmlabctl console [OPTIONS] [hostname]
 
 Options:
   -h, --help           Show this help message

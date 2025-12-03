@@ -14,7 +14,7 @@ vm_hostname_arg=""
 
 # Function to show help
 fn_show_help() {
-    print_notify "Usage: kvmlabctl restart [OPTIONS] [hostname]
+    print_info "Usage: kvmlabctl restart [OPTIONS] [hostname]
 
 Options:
   -f, --force          Skip confirmation prompt and force cold restart

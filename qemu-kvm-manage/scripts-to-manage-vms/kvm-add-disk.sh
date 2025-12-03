@@ -9,7 +9,7 @@ source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/defaults.sh
 
 # Function to show help
 fn_show_help() {
-    print_notify "Usage: kvmlabctl add-disk [OPTIONS] [hostname]
+    print_info "Usage: kvmlabctl add-disk [OPTIONS] [hostname]
 
 Options:
   -h, --help           Show this help message

@@ -16,7 +16,7 @@ vm_hostname_arg=""
 
 # Function to show help
 fn_show_help() {
-    print_notify "Usage: kvmlabctl remove [OPTIONS] [hostname]
+    print_info "Usage: kvmlabctl remove [OPTIONS] [hostname]
 
 Options:
   -f, --force          Skip confirmation prompt (except for lab infra server)
