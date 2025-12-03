@@ -82,11 +82,7 @@ fi
 
 print_info "[INFO] Creating custom tools to manage QEMU/KVM..." nskip
 scripts_directory="/server-hub/qemu-kvm-manage/scripts-to-manage-vms"
-for vm_tool_script in $scripts_directory/*.sh; do
-    target_symlink="/usr/bin/${vm_tool_script##*/}"
-    target_symlink="${target_symlink%.sh}"
-    [[ -f "$vm_tool_script" && ! -e "$target_symlink" ]] && sudo ln -s "$vm_tool_script" "$target_symlink"
-done
+sudo ln -sf "$scripts_directory/kvmlabctl.sh" /usr/bin/kvmlabctl
 print_success "[SUCCESS]"
 
 print_info "[INFO] Installing bash completion for kvmlabctl..." nskip
