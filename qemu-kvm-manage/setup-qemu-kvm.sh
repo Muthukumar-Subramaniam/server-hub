@@ -88,6 +88,11 @@ for vm_tool_script in $scripts_directory/*.sh; do
     [[ -f "$vm_tool_script" && ! -e "$target_symlink" ]] && sudo ln -s "$vm_tool_script" "$target_symlink"
 done
 print_success "[SUCCESS]"
+
+print_info "[INFO] Installing bash completion for kvmlabctl..." nskip
+sudo ln -sf "$scripts_directory/kvmlabctl-completion.bash" /etc/bash_completion.d/kvmlabctl-completion.bash
+print_success "[SUCCESS]"
+
 print_success "[SUCCESS] QEMU/KVM setup completed successfully!"
 
 exit
