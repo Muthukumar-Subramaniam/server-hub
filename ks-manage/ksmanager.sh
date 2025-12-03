@@ -301,7 +301,40 @@ fedora_os_availability=$(fn_check_distro_availability "fedora")
 ubuntu_lts_os_availability=$(fn_check_distro_availability "ubuntu-lts")
 opensuse_leap_os_availability=$(fn_check_distro_availability "opensuse-leap")
 
+fn_auto_detect_os_from_hostname() {
+    local hostname_lower=$(echo "${kickstart_short_hostname}" | tr '[:upper:]' '[:lower:]')
+    
+    # Check for OS distribution keywords in hostname
+    if [[ "${hostname_lower}" == *"almalinux"* ]]; then
+        echo "almalinux"
+    elif [[ "${hostname_lower}" == *"rocky"* ]]; then
+        echo "rocky"
+    elif [[ "${hostname_lower}" == *"oraclelinux"* ]]; then
+        echo "oraclelinux"
+    elif [[ "${hostname_lower}" == *"centos"* ]]; then
+        echo "centos-stream"
+    elif [[ "${hostname_lower}" == *"rhel"* ]]; then
+        echo "rhel"
+    elif [[ "${hostname_lower}" == *"fedora"* ]]; then
+        echo "fedora"
+    elif [[ "${hostname_lower}" == *"ubuntu"* ]]; then
+        echo "ubuntu-lts"
+    elif [[ "${hostname_lower}" == *"opensuse"* || "${hostname_lower}" == *"suse"* ]]; then
+        echo "opensuse-leap"
+    else
+        echo ""
+    fi
+}
+
 fn_select_os_distro() {
+    local auto_detected_os=$(fn_auto_detect_os_from_hostname)
+    
+    if [[ -n "${auto_detected_os}" ]]; then
+        print_success "[SUCCESS] Auto-detected OS distribution from hostname: ${auto_detected_os}"
+        os_distribution="${auto_detected_os}"
+        return
+    fi
+    
     print_notify "Please select the OS distribution to install:
   1)  AlmaLinux                ${almalinux_os_availability}
   2)  Rocky Linux              ${rocky_os_availability}
