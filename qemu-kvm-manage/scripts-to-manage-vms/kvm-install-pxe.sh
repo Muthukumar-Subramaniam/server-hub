@@ -256,8 +256,8 @@ done
 if [[ $TOTAL_VMS -gt 1 ]]; then
     echo ""
     print_info "[INFO] Installation Summary:"
-    print_success "[SUCCESS] Successfully initiated installation via PXE boot: ${#SUCCESSFUL_VMS[@]} VM(s)"
     if [[ ${#SUCCESSFUL_VMS[@]} -gt 0 ]]; then
+        print_success "[SUCCESS] Successfully initiated installation via PXE boot: ${#SUCCESSFUL_VMS[@]} VM(s)"
         for vm in "${SUCCESSFUL_VMS[@]}"; do
             print_success "  ✓ $vm"
         done
