@@ -9,7 +9,7 @@ source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/defaults.sh
 # Function to show help
 fn_show_help() {
     cat <<EOF
-Usage: kvm-resize [hostname]
+Usage: kvmlabctl resize [hostname]
 
 Arguments:
   hostname  Name of the VM to be resized of memory/cpu/disk (optional, will prompt if not given)

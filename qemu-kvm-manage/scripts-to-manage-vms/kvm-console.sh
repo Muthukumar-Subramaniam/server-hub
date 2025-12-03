@@ -12,7 +12,7 @@ vm_hostname_arg=""
 
 # Function to show help
 fn_show_help() {
-    print_notify "Usage: kvm-console [OPTIONS] [hostname]
+    print_notify "Usage: kvmlabctl console [OPTIONS] [hostname]
 
 Options:
   -h, --help           Show this help message
@@ -21,7 +21,7 @@ Arguments:
   hostname             Name of the VM to access console (optional, will prompt if not given)
 
 Examples:
-  kvm-console vm1                   # Access console of VM
+  kvmlabctl console vm1                   # Access console of VM
   
 Note: Press Ctrl+] to exit the console.
 "

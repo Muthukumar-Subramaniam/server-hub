@@ -14,7 +14,7 @@ LOG_FILE=""
 
 # Function to show help
 fn_show_help() {
-    print_notify "Usage: kvm-install-pxe [OPTIONS] [hostname]
+    print_notify "Usage: kvmlabctl install-pxe [OPTIONS] [hostname]
 
 Options:
   -c, --console        Attach console during installation (single VM only)
@@ -25,10 +25,10 @@ Arguments:
   hostname             Name of the VM to install via PXE boot (optional, will prompt if not given)
 
 Examples:
-  kvm-install-pxe vm1                           # Install single VM
-  kvm-install-pxe vm1 --console                 # Install and attach console
-  kvm-install-pxe --hosts vm1,vm2,vm3           # Install multiple VMs
-  kvm-install-pxe -H vm1,vm2,vm3                # Same as above
+  kvmlabctl install-pxe vm1                           # Install single VM
+  kvmlabctl install-pxe vm1 --console                 # Install and attach console
+  kvmlabctl install-pxe --hosts vm1,vm2,vm3           # Install multiple VMs
+  kvmlabctl install-pxe -H vm1,vm2,vm3                # Same as above
 "
 }
 

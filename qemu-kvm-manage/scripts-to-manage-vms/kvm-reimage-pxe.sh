@@ -15,7 +15,7 @@ LOG_FILE=""
 
 # Function to show help
 fn_show_help() {
-    print_notify "Usage: kvm-reimage-pxe [OPTIONS] [hostname]
+    print_notify "Usage: kvmlabctl reimage-pxe [OPTIONS] [hostname]
 
 Options:
   -c, --console        Attach console during reimage (single VM only)
@@ -27,11 +27,11 @@ Arguments:
   hostname             Name of the VM to reimage via PXE boot (optional, will prompt if not given)
 
 Examples:
-  kvm-reimage-pxe vm1                                # Reimage single VM
-  kvm-reimage-pxe vm1 --console                      # Reimage and attach console
-  kvm-reimage-pxe vm1 --force-default                # Reimage with default specs
-  kvm-reimage-pxe --hosts vm1,vm2,vm3                # Reimage multiple VMs
-  kvm-reimage-pxe -H vm1,vm2,vm3 --force-default     # Reimage multiple with defaults
+  kvmlabctl reimage-pxe vm1                                # Reimage single VM
+  kvmlabctl reimage-pxe vm1 --console                      # Reimage and attach console
+  kvmlabctl reimage-pxe vm1 --force-default                # Reimage with default specs
+  kvmlabctl reimage-pxe --hosts vm1,vm2,vm3                # Reimage multiple VMs
+  kvmlabctl reimage-pxe -H vm1,vm2,vm3 --force-default     # Reimage multiple with defaults
 "
 }
 

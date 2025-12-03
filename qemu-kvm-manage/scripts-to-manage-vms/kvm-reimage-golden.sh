@@ -15,7 +15,7 @@ LOG_FILE=""
 
 # Function to show help
 fn_show_help() {
-    print_notify "Usage: kvm-reimage-golden [OPTIONS] [hostname]
+    print_notify "Usage: kvmlabctl reimage-golden [OPTIONS] [hostname]
 
 Options:
   -c, --console        Attach console during reimage (single VM only)
@@ -27,11 +27,11 @@ Arguments:
   hostname             Name of the VM to reimage via golden image disk (optional, will prompt if not given)
 
 Examples:
-  kvm-reimage-golden vm1                                # Reimage single VM
-  kvm-reimage-golden vm1 --console                      # Reimage and attach console
-  kvm-reimage-golden vm1 --force-default                # Reimage with default specs
-  kvm-reimage-golden --hosts vm1,vm2,vm3                # Reimage multiple VMs
-  kvm-reimage-golden -H vm1,vm2,vm3 --force-default     # Reimage multiple with defaults
+  kvmlabctl reimage-golden vm1                                # Reimage single VM
+  kvmlabctl reimage-golden vm1 --console                      # Reimage and attach console
+  kvmlabctl reimage-golden vm1 --force-default                # Reimage with default specs
+  kvmlabctl reimage-golden --hosts vm1,vm2,vm3                # Reimage multiple VMs
+  kvmlabctl reimage-golden -H vm1,vm2,vm3 --force-default     # Reimage multiple with defaults
 "
 }
 

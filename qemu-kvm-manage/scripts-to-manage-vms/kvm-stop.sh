@@ -14,7 +14,7 @@ vm_hostname_arg=""
 
 # Function to show help
 fn_show_help() {
-    print_notify "Usage: kvm-stop [OPTIONS] [hostname]
+    print_notify "Usage: kvmlabctl stop [OPTIONS] [hostname]
 
 Options:
   -f, --force          Skip confirmation prompt and force power-off
@@ -25,10 +25,10 @@ Arguments:
   hostname             Name of the VM to Power-OFF (optional, will prompt if not given)
 
 Examples:
-  kvm-stop vm1                    # Stop single VM with confirmation
-  kvm-stop -f vm1                 # Stop single VM without confirmation
-  kvm-stop --hosts vm1,vm2,vm3    # Stop multiple VMs with confirmation
-  kvm-stop -f --hosts vm1,vm2     # Stop multiple VMs without confirmation
+  kvmlabctl stop vm1                    # Stop single VM with confirmation
+  kvmlabctl stop -f vm1                 # Stop single VM without confirmation
+  kvmlabctl stop --hosts vm1,vm2,vm3    # Stop multiple VMs with confirmation
+  kvmlabctl stop -f --hosts vm1,vm2     # Stop multiple VMs without confirmation
 "
 }
 

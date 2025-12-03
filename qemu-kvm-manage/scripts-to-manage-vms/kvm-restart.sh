@@ -14,7 +14,7 @@ vm_hostname_arg=""
 
 # Function to show help
 fn_show_help() {
-    print_notify "Usage: kvm-restart [OPTIONS] [hostname]
+    print_notify "Usage: kvmlabctl restart [OPTIONS] [hostname]
 
 Options:
   -f, --force          Skip confirmation prompt and force cold restart
@@ -25,10 +25,10 @@ Arguments:
   hostname             Name of the VM to do cold restart (optional, will prompt if not given)
 
 Examples:
-  kvm-restart vm1                    # Restart single VM with confirmation
-  kvm-restart -f vm1                 # Restart single VM without confirmation
-  kvm-restart --hosts vm1,vm2,vm3    # Restart multiple VMs with confirmation
-  kvm-restart -f --hosts vm1,vm2     # Restart multiple VMs without confirmation
+  kvmlabctl restart vm1                    # Restart single VM with confirmation
+  kvmlabctl restart -f vm1                 # Restart single VM without confirmation
+  kvmlabctl restart --hosts vm1,vm2,vm3    # Restart multiple VMs with confirmation
+  kvmlabctl restart -f --hosts vm1,vm2     # Restart multiple VMs without confirmation
 "
 }
 

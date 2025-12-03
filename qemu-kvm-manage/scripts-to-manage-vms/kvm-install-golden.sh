@@ -14,7 +14,7 @@ LOG_FILE=""
 
 # Function to show help
 fn_show_help() {
-    print_notify "Usage: kvm-install-golden [OPTIONS] [hostname]
+    print_notify "Usage: kvmlabctl install-golden [OPTIONS] [hostname]
 
 Options:
   -c, --console        Attach console during installation (single VM only)
@@ -25,10 +25,10 @@ Arguments:
   hostname             Name of the VM to install via golden image disk (optional, will prompt if not given)
 
 Examples:
-  kvm-install-golden vm1                           # Install single VM
-  kvm-install-golden vm1 --console                 # Install and attach console
-  kvm-install-golden --hosts vm1,vm2,vm3           # Install multiple VMs
-  kvm-install-golden -H vm1,vm2,vm3                # Same as above
+  kvmlabctl install-golden vm1                           # Install single VM
+  kvmlabctl install-golden vm1 --console                 # Install and attach console
+  kvmlabctl install-golden --hosts vm1,vm2,vm3           # Install multiple VMs
+  kvmlabctl install-golden -H vm1,vm2,vm3                # Same as above
 "
 }
 
