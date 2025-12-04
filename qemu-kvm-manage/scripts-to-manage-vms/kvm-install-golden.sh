@@ -91,15 +91,6 @@ for qemu_kvm_hostname in "${HOSTNAMES[@]}"; do
 
     source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/clone-golden-image-disk.sh
     if ! clone_golden_image_disk "$qemu_kvm_hostname" "${OS_DISTRO}"; then
-        else
-            print_error "[ FAILED ]"
-            print_error "Disk file was not created properly for \"$qemu_kvm_hostname\"."
-            FAILED_VMS+=("$qemu_kvm_hostname")
-            continue
-        fi
-    else
-        print_error "[ FAILED ]"
-        print_error "$error_msg"
         FAILED_VMS+=("$qemu_kvm_hostname")
         continue
     fi

@@ -105,12 +105,8 @@ for qemu_kvm_hostname in "${HOSTNAMES[@]}"; do
         fi
         
         # Create new disk with default size
-        print_info "[INFO] Creating new disk /kvm-hub/vms/${qemu_kvm_hostname}/${qemu_kvm_hostname}.qcow2 with 20 GiB..." nskip
-        if error_msg=$(sudo qemu-img create -f qcow2 /kvm-hub/vms/${qemu_kvm_hostname}/${qemu_kvm_hostname}.qcow2 20G 2>&1); then
-            print_success "[ SUCCESS ]"
-        else
-            print_error "[ FAILED ]"
-            print_error "$error_msg"
+        source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/create-vm-disk.sh
+        if ! create_vm_disk "${qemu_kvm_hostname}" 20; then
             FAILED_VMS+=("$qemu_kvm_hostname")
             continue
         fi
