@@ -133,14 +133,14 @@ for qemu_kvm_hostname in "${HOSTNAMES[@]}"; do
         source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/delete-vm-disk.sh
         delete_vm_disk "$qemu_kvm_hostname"
         
-        if ! sudo qemu-img create -f qcow2 "${vm_qcow2_disk_path}" "${default_qcow2_disk_gib}G" >/dev/null 2>&1; then
+        if ! sudo qemu-img create -f qcow2 "${vm_qcow2_disk_path}" "20G" >/dev/null 2>&1; then
             print_error "[ERROR] Failed to create qcow2 disk for \"$qemu_kvm_hostname\"."
             FAILED_VMS+=("$qemu_kvm_hostname")
             continue
         fi
         
         source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/resize-disk-if-larger.sh
-        resize_disk_if_larger "$qemu_kvm_hostname" "$current_disk_gib" "$default_qcow2_disk_gib"
+        resize_disk_if_larger "$qemu_kvm_hostname" "$current_disk_gib" "20"
         
         # Start reimaging process
         source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/start-vm-for-reimage.sh
