@@ -5,87 +5,182 @@
 #----------------------------------------------------------------------------------------#
 
 source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/defaults.sh
+source /server-hub/common-utils/color-functions.sh
 
 # Function to show help
 fn_show_help() {
-    cat <<EOF
-Usage: qlabvmctl resize [hostname]
+    print_info "Usage: qlabvmctl resize [OPTIONS] [hostname]
+
+Options:
+  -f, --force          Force power-off without prompt if VM is running
+  -t, --type <type>    Resource type to resize: memory, cpu, disk (default: prompt)
+  -m, --memory <size>  Memory size in GiB (power of 2, default: prompt)
+  -c, --cpu <count>    vCPU count (power of 2, default: prompt)
+  -d, --disk <size>    Disk increase size in GiB (multiple of 5, 5-50, default: prompt)
+  -h, --help           Show this help message
 
 Arguments:
-  hostname  Name of the VM to be resized of memory/cpu/disk (optional, will prompt if not given)
-EOF
+  hostname             Name of the VM to resize (optional, will prompt if not given)
+
+Examples:
+  qlabvmctl resize vm1                        # Interactive mode
+  qlabvmctl resize -f -t memory -m 8 vm1      # Automated memory resize to 8GiB
+  qlabvmctl resize -f -t cpu -c 4 vm1         # Automated CPU resize to 4 vCPUs
+  qlabvmctl resize -f -t disk -d 10 vm1       # Automated disk increase by 10GiB
+"
 }
 
-# Handle help and argument validation
-if [[ $# -gt 1 ]]; then
-    echo -e "❌ Too many arguments.\n"
-    fn_show_help
-    exit 1
-fi
+# Parse arguments
+force_poweroff=false
+vm_hostname_arg=""
+resize_type_arg=""
+memory_size_arg=""
+cpu_count_arg=""
+disk_increase_arg=""
 
-if [[ "$1" == "-h" || "$1" == "--help" ]]; then
-    fn_show_help
-    exit 0
-fi
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        -h|--help)
+            fn_show_help
+            exit 0
+            ;;
+        -f|--force)
+            force_poweroff=true
+            shift
+            ;;
+        -t|--type)
+            if [[ -z "$2" || "$2" == -* ]]; then
+                print_error "[ERROR] Option -t/--type requires a value (memory, cpu, or disk)."
+                exit 1
+            fi
+            resize_type_arg="$2"
+            shift 2
+            ;;
+        -m|--memory)
+            if [[ -z "$2" || "$2" == -* ]]; then
+                print_error "[ERROR] Option -m/--memory requires a value."
+                exit 1
+            fi
+            memory_size_arg="$2"
+            shift 2
+            ;;
+        -c|--cpu)
+            if [[ -z "$2" || "$2" == -* ]]; then
+                print_error "[ERROR] Option -c/--cpu requires a value."
+                exit 1
+            fi
+            cpu_count_arg="$2"
+            shift 2
+            ;;
+        -d|--disk)
+            if [[ -z "$2" || "$2" == -* ]]; then
+                print_error "[ERROR] Option -d/--disk requires a value."
+                exit 1
+            fi
+            disk_increase_arg="$2"
+            shift 2
+            ;;
+        -*)
+            print_error "[ERROR] Unknown option: $1"
+            fn_show_help
+            exit 1
+            ;;
+        *)
+            if [[ -n "$vm_hostname_arg" ]]; then
+                print_error "[ERROR] Multiple hostnames provided. Only one VM can be processed at a time."
+                fn_show_help
+                exit 1
+            fi
+            vm_hostname_arg="$1"
+            shift
+            ;;
+    esac
+done
 
-if [[ "$1" == -* ]]; then
-    echo -e "❌ No such option: $1\n"
-    fn_show_help
-    exit 1
-fi
-
-# Use first argument or prompt for hostname
-source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/input-hostname.sh "$1"
+# Use argument or prompt for hostname
+source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/input-hostname.sh "$vm_hostname_arg"
 
 # Check if VM exists in 'virsh list --all'
 if ! sudo virsh list --all | awk '{print $2}' | grep -Fxq "$qemu_kvm_hostname"; then
-    echo "❌ Error: VM '$qemu_kvm_hostname' does not exist."
+    print_error "[ERROR] VM \"$qemu_kvm_hostname\" does not exist."
     exit 1
 fi
 
 fn_shutdown_or_poweroff() {
-    echo -e "\n⚠️  VM '$qemu_kvm_hostname' is still Running ! "
-    echo -e "    Select any of the below options to proceed further.\n"
-    echo "	1) Try Graceful Shutdown"
-    echo "	2) Force Power Off"
-    echo -e "	q) Quit\n"
+    # If force flag is set, try graceful shutdown first, then force if needed
+    if [[ "$force_poweroff" == true ]]; then
+        print_info "[INFO] Force flag detected. Attempting graceful shutdown first..."
+        source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/shutdown-vm.sh
+        SHUTDOWN_VM_CONTEXT="Attempting graceful shutdown" SHUTDOWN_VM_STRICT=false shutdown_vm "$qemu_kvm_hostname"
+        
+        # Wait for VM to shut down with timeout
+        print_info "[INFO] Waiting for VM \"${qemu_kvm_hostname}\" to shut down (timeout: 30s)..."
+        TIMEOUT=30
+        ELAPSED=0
+        while sudo virsh list | awk '{print $2}' | grep -Fxq "$qemu_kvm_hostname"; do
+            if (( ELAPSED >= TIMEOUT )); then
+                print_warning "[WARNING] Graceful shutdown timed out. Forcing power off..."
+                source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/poweroff-vm.sh
+                if ! POWEROFF_VM_CONTEXT="Forcing power off after timeout" POWEROFF_VM_STRICT=true poweroff_vm "$qemu_kvm_hostname"; then
+                    exit 1
+                fi
+                break
+            fi
+            sleep 2
+            ((ELAPSED+=2))
+        done
+        
+        if ! sudo virsh list | awk '{print $2}' | grep -Fxq "$qemu_kvm_hostname"; then
+            print_success "[SUCCESS] VM has been shut down successfully. Proceeding further."
+        fi
+        return 0
+    fi
+    
+    print_warning "[WARNING] VM \"$qemu_kvm_hostname\" is still running!"
+    print_info "[INFO] Select an option to proceed:\n"
+    echo "\t1) Try Graceful Shutdown"
+    echo "\t2) Force Power Off"
+    echo -e "\tq) Quit\n"
 
-    read -rp "Enter your choice : " selected_choice
+    read -rp "Enter your choice: " selected_choice
 
     case "$selected_choice" in
         1)
-            echo -e "\n🛑 Initiating graceful shutdown . . ."
-	        echo -e "\n🔍 Checking SSH connectivity to ${qemu_kvm_hostname} . . ."
-            if nc -zw5 "${qemu_kvm_hostname}" 22; then
-                echo -e "\n🔗 SSH connectivity seems to be fine. Initiating graceful shutdown . . .\n"
-                ssh -o LogLevel=QUIET \
-                    -o StrictHostKeyChecking=no \
-                    -o UserKnownHostsFile=/dev/null \
-                    "${lab_infra_admin_username}@${qemu_kvm_hostname}" \
-                    "sudo shutdown -h now"
-
-                echo -e "\n⏳ Waiting for VM '${qemu_kvm_hostname}' to shut down . . ."
-                while sudo virsh list | awk '{print $2}' | grep -Fxq "$qemu_kvm_hostname"; do
-                    sleep 1
-                done
-                echo -e "\n✅ VM has been shut down successfully, Proceeding further."
-            else
-                echo -e "\n❌ SSH connection issue with ${qemu_kvm_hostname}.\n❌ Cannot perform graceful shutdown.\n"
-		        exit 1
+            print_info "[INFO] Initiating graceful shutdown..."
+            source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/shutdown-vm.sh
+            if ! SHUTDOWN_VM_CONTEXT="Initiating graceful shutdown" shutdown_vm "$qemu_kvm_hostname"; then
+                exit 1
             fi
+            
+            # Wait for VM to shut down with timeout
+            print_info "[INFO] Waiting for VM \"${qemu_kvm_hostname}\" to shut down (timeout: 60s)..."
+            TIMEOUT=60
+            ELAPSED=0
+            while sudo virsh list | awk '{print $2}' | grep -Fxq "$qemu_kvm_hostname"; do
+                if (( ELAPSED >= TIMEOUT )); then
+                    print_warning "[WARNING] VM did not shut down within ${TIMEOUT}s."
+                    print_info "[INFO] You may want to force power off instead."
+                    exit 1
+                fi
+                sleep 2
+                ((ELAPSED+=2))
+            done
+            print_success "[SUCCESS] VM has been shut down successfully. Proceeding further."
             ;;
         2)
-            echo -e "\n⚡ Forcing power off . . ."
-	        sudo virsh destroy "${qemu_kvm_hostname}" &>/dev/null
-	        sleep 1
-	        echo -e "✅ VM '$qemu_kvm_hostname' is stopped successfully. \n"
+            print_info "[INFO] Forcing power off..."
+            source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/poweroff-vm.sh
+            if ! POWEROFF_VM_CONTEXT="Forcing power off" POWEROFF_VM_STRICT=true poweroff_vm "$qemu_kvm_hostname"; then
+                exit 1
+            fi
             ;;
         q)
-            echo -e "\n👋 Quitting without any action.\n"
-            exit
+            print_info "[INFO] Quitting without any action."
+            exit 0
             ;;
         *)
-            echo "❌ Invalid option. Please choose between 1 and 3."
+            print_error "[ERROR] Invalid option!"
+            exit 1
             ;;
     esac
 }
