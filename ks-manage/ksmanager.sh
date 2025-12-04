@@ -112,33 +112,47 @@ fn_check_and_create_host_record() {
 	if ! host "${kickstart_hostname}" "${dnsbinder_server_ipv4_address}" &>/dev/null
 	then
 		print_error "[ERROR] No DNS record found for \"${kickstart_hostname}\"."
-		while :
-		do
-			read -r -p "Enter (y) to create a DNS record for \"${kickstart_hostname}\" or (n) to exit: " v_confirmation
+		
+		if $invoked_with_qemu_kvm; then
+			print_info "[INFO] Creating DNS record for \"${kickstart_hostname}\" using dnsbinder..."
+			"${dnsbinder_script}" -c "${kickstart_hostname}"
 
-			if [[ "${v_confirmation}" == "y" ]]
+			if host "${kickstart_hostname}" "${dnsbinder_server_ipv4_address}" &>/dev/null
 			then
-				print_info "[INFO] Creating DNS record for \"${kickstart_hostname}\" using dnsbinder..."
-				"${dnsbinder_script}" -c "${kickstart_hostname}"
-
-				if host "${kickstart_hostname}" "${dnsbinder_server_ipv4_address}" &>/dev/null
-				then
-					print_info "[INFO] Proceeding with kickstart creation..."
-					break
-				else
-					print_error "[ERROR] Failed to create DNS record for \"${kickstart_hostname}\"."
-					exit 1
-				fi
-
-			elif [[ "${v_confirmation}" == "n" ]]
-			then
-				print_info "[INFO] Operation cancelled by user."
-				exit
+				print_info "[INFO] Proceeding with kickstart creation..."
 			else
-				print_warning "[WARNING] Invalid input. Please enter 'y' or 'n'."
-				continue
+				print_error "[ERROR] Failed to create DNS record for \"${kickstart_hostname}\"."
+				exit 1
 			fi
-		done
+		else
+			while :
+			do
+				read -r -p "Enter (y) to create a DNS record for \"${kickstart_hostname}\" or (n) to exit: " v_confirmation
+
+				if [[ "${v_confirmation}" == "y" ]]
+				then
+					print_info "[INFO] Creating DNS record for \"${kickstart_hostname}\" using dnsbinder..."
+					"${dnsbinder_script}" -c "${kickstart_hostname}"
+
+					if host "${kickstart_hostname}" "${dnsbinder_server_ipv4_address}" &>/dev/null
+					then
+						print_info "[INFO] Proceeding with kickstart creation..."
+						break
+					else
+						print_error "[ERROR] Failed to create DNS record for \"${kickstart_hostname}\"."
+						exit 1
+					fi
+
+				elif [[ "${v_confirmation}" == "n" ]]
+				then
+					print_info "[INFO] Operation cancelled by user."
+					exit
+				else
+					print_warning "[WARNING] Invalid input. Please enter 'y' or 'n'."
+					continue
+				fi
+			done
+		fi
 	else
 		print_success "[SUCCESS] DNS record found for \"${kickstart_hostname}\"."
 		print_info "[INFO] $(host ${kickstart_hostname} ${dnsbinder_server_ipv4_address} | grep 'has address')"
@@ -212,6 +226,17 @@ invoked_with_golden_image=false
 for input_arguement in "$@"; do
     if [[ "$input_arguement" == "--golden-image" ]]; then
         invoked_with_golden_image=true
+        break
+    fi
+done
+
+# Parse --distro flag
+distro_from_flag=""
+for i in "${!@}"; do
+    arg="${!i}"
+    if [[ "$arg" == "--distro" ]]; then
+        next_i=$((i + 1))
+        distro_from_flag="${!next_i}"
         break
     fi
 done
@@ -327,6 +352,57 @@ fn_auto_detect_os_from_hostname() {
 }
 
 fn_select_os_distro() {
+    # Check if --distro flag was provided
+    if [[ -n "${distro_from_flag}" ]]; then
+        case "${distro_from_flag}" in
+            alma|almalinux) 
+                os_distribution="almalinux"
+                print_success "[SUCCESS] OS distribution selected via --distro flag: ${os_distribution}"
+                return
+                ;;
+            rocky) 
+                os_distribution="rocky"
+                print_success "[SUCCESS] OS distribution selected via --distro flag: ${os_distribution}"
+                return
+                ;;
+            oracle|oraclelinux) 
+                os_distribution="oraclelinux"
+                print_success "[SUCCESS] OS distribution selected via --distro flag: ${os_distribution}"
+                return
+                ;;
+            centos|centos-stream) 
+                os_distribution="centos-stream"
+                print_success "[SUCCESS] OS distribution selected via --distro flag: ${os_distribution}"
+                return
+                ;;
+            rhel|redhat) 
+                os_distribution="rhel"
+                print_success "[SUCCESS] OS distribution selected via --distro flag: ${os_distribution}"
+                return
+                ;;
+            fedora) 
+                os_distribution="fedora"
+                print_success "[SUCCESS] OS distribution selected via --distro flag: ${os_distribution}"
+                return
+                ;;
+            ubuntu-lts|ubuntu) 
+                os_distribution="ubuntu-lts"
+                print_success "[SUCCESS] OS distribution selected via --distro flag: ${os_distribution}"
+                return
+                ;;
+            opensuse-leap|opensuse|suse) 
+                os_distribution="opensuse-leap"
+                print_success "[SUCCESS] OS distribution selected via --distro flag: ${os_distribution}"
+                return
+                ;;
+            *)
+                print_error "[ERROR] Invalid distro specified with --distro flag: ${distro_from_flag}"
+                print_info "[INFO] Valid options: almalinux, rocky, oraclelinux, centos-stream, rhel, fedora, ubuntu-lts, opensuse-leap"
+                exit 1
+                ;;
+        esac
+    fi
+    
     local auto_detected_os=$(fn_auto_detect_os_from_hostname)
     
     if [[ -n "${auto_detected_os}" ]]; then
