@@ -14,9 +14,10 @@ fn_show_help() {
 Options:
   -f, --force          Force power-off without prompt if VM is running
   -t, --type <type>    Resource type to resize: memory, cpu, disk (default: prompt)
-  -m, --memory <size>  Memory size in GiB (power of 2, default: prompt)
-  -c, --cpu <count>    vCPU count (power of 2, default: prompt)
-  -d, --disk <size>    Disk increase size in GiB (multiple of 5, 5-50, default: prompt)
+  -c, --count <num>    vCPU count (power of 2, min 2, only for cpu type, default: prompt)
+  -g, --gib <size>     Size in GiB (default: prompt)
+                       - For memory: power of 2 (2, 4, 8, 16...), less than host memory
+                       - For disk: multiple of 5 (5, 10, 15...), range 5-50 GiB (OS disk only)
   -h, --help           Show this help message
 
 Arguments:
@@ -24,9 +25,9 @@ Arguments:
 
 Examples:
   qlabvmctl resize vm1                        # Interactive mode
-  qlabvmctl resize -f -t memory -m 8 vm1      # Automated memory resize to 8GiB
+  qlabvmctl resize -f -t memory -g 8 vm1      # Automated memory resize to 8GiB
   qlabvmctl resize -f -t cpu -c 4 vm1         # Automated CPU resize to 4 vCPUs
-  qlabvmctl resize -f -t disk -d 10 vm1       # Automated disk increase by 10GiB
+  qlabvmctl resize -f -t disk -g 10 vm1       # Automated OS disk increase by 10GiB
 "
 }
 
@@ -34,9 +35,8 @@ Examples:
 force_poweroff=false
 vm_hostname_arg=""
 resize_type_arg=""
-memory_size_arg=""
-cpu_count_arg=""
-disk_increase_arg=""
+count_arg=""
+gib_arg=""
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -56,28 +56,20 @@ while [[ $# -gt 0 ]]; do
             resize_type_arg="$2"
             shift 2
             ;;
-        -m|--memory)
+        -c|--count)
             if [[ -z "$2" || "$2" == -* ]]; then
-                print_error "[ERROR] Option -m/--memory requires a value."
+                print_error "[ERROR] Option -c/--count requires a value."
                 exit 1
             fi
-            memory_size_arg="$2"
+            count_arg="$2"
             shift 2
             ;;
-        -c|--cpu)
+        -g|--gib)
             if [[ -z "$2" || "$2" == -* ]]; then
-                print_error "[ERROR] Option -c/--cpu requires a value."
+                print_error "[ERROR] Option -g/--gib requires a value."
                 exit 1
             fi
-            cpu_count_arg="$2"
-            shift 2
-            ;;
-        -d|--disk)
-            if [[ -z "$2" || "$2" == -* ]]; then
-                print_error "[ERROR] Option -d/--disk requires a value."
-                exit 1
-            fi
-            disk_increase_arg="$2"
+            gib_arg="$2"
             shift 2
             ;;
         -*)
@@ -194,21 +186,21 @@ resize_vm_memory() {
     current_vm_mem_gib=$(( current_mem_kib / 1024 / 1024 ))
 
     # Get memory size from argument or prompt
-    if [[ -n "$memory_size_arg" ]]; then
+    if [[ -n "$gib_arg" ]]; then
         # Validate provided memory size
-        if ! [[ "$memory_size_arg" =~ ^[0-9]+$ ]]; then
-            print_error "[ERROR] Invalid memory size: $memory_size_arg. Must be numeric."
+        if ! [[ "$gib_arg" =~ ^[0-9]+$ ]]; then
+            print_error "[ERROR] Invalid memory size: $gib_arg. Must be numeric."
             exit 1
         fi
-        if (( memory_size_arg < 2 || (memory_size_arg & (memory_size_arg - 1)) != 0 )); then
+        if (( gib_arg < 2 || (gib_arg & (gib_arg - 1)) != 0 )); then
             print_error "[ERROR] Memory size must be a power of 2 (2, 4, 8...)."
             exit 1
         fi
-        if (( memory_size_arg >= host_mem_gib )); then
+        if (( gib_arg >= host_mem_gib )); then
             print_error "[ERROR] Memory size must be less than host memory ${host_mem_gib} GiB."
             exit 1
         fi
-        vm_mem_gib="$memory_size_arg"
+        vm_mem_gib="$gib_arg"
         print_success "[SUCCESS] Using memory size: ${vm_mem_gib} GiB"
     else
         # Prompt for memory size
@@ -255,25 +247,25 @@ resize_vm_cpu() {
     host_cpu_count=$(nproc)
 
     # Get CPU count from argument or prompt
-    if [[ -n "$cpu_count_arg" ]]; then
+    if [[ -n "$count_arg" ]]; then
         # Validate provided CPU count
-        if ! [[ "$cpu_count_arg" =~ ^[0-9]+$ ]]; then
-            print_error "[ERROR] Invalid vCPU count: $cpu_count_arg. Must be numeric."
+        if ! [[ "$count_arg" =~ ^[0-9]+$ ]]; then
+            print_error "[ERROR] Invalid vCPU count: $count_arg. Must be numeric."
             exit 1
         fi
-        if (( cpu_count_arg < 2 )); then
+        if (( count_arg < 2 )); then
             print_error "[ERROR] vCPU count must be at least 2."
             exit 1
         fi
-        if ! (( (cpu_count_arg & (cpu_count_arg - 1)) == 0 )); then
+        if ! (( (count_arg & (count_arg - 1)) == 0 )); then
             print_error "[ERROR] vCPU count must be a power of 2 (2, 4, 8...)."
             exit 1
         fi
-        if (( cpu_count_arg > host_cpu_count )); then
+        if (( count_arg > host_cpu_count )); then
             print_error "[ERROR] Cannot exceed host CPU count ${host_cpu_count}."
             exit 1
         fi
-        new_vcpus_of_vm="$cpu_count_arg"
+        new_vcpus_of_vm="$count_arg"
         print_success "[SUCCESS] Using vCPU count: ${new_vcpus_of_vm}"
     else
         # Prompt for CPU count
@@ -330,21 +322,21 @@ resize_vm_disk() {
     current_disk_gib=$(sudo qemu-img info "${vm_qcow2_disk_path}" | grep "virtual size" | grep -o '[0-9]\+ GiB' | cut -d' ' -f1)
 
     # Get disk increase size from argument or prompt
-    if [[ -n "$disk_increase_arg" ]]; then
+    if [[ -n "$gib_arg" ]]; then
         # Validate provided disk increase size
-        if ! [[ "$disk_increase_arg" =~ ^[0-9]+$ ]]; then
-            print_error "[ERROR] Invalid disk increase size: $disk_increase_arg. Must be numeric."
+        if ! [[ "$gib_arg" =~ ^[0-9]+$ ]]; then
+            print_error "[ERROR] Invalid disk increase size: $gib_arg. Must be numeric."
             exit 1
         fi
-        if (( disk_increase_arg % 5 != 0 )); then
+        if (( gib_arg % 5 != 0 )); then
             print_error "[ERROR] Disk increase size must be a multiple of 5 GiB."
             exit 1
         fi
-        if (( disk_increase_arg < 5 || disk_increase_arg > 50 )); then
+        if (( gib_arg < 5 || gib_arg > 50 )); then
             print_error "[ERROR] Disk increase size must be between 5 and 50 GiB."
             exit 1
         fi
-        grow_size_gib="$disk_increase_arg"
+        grow_size_gib="$gib_arg"
         print_success "[SUCCESS] Using disk increase size: ${grow_size_gib} GiB"
     else
         # Prompt for disk increase size
