@@ -13,20 +13,26 @@ fn_show_help() {
 
 Options:
   -f, --force          Force power-off without prompt if VM is running
+  -n, --count <num>    Number of disks to add (1-10, default: prompt)
+  -s, --size <size>    Disk size in GB (multiple of 5, range: 5-50, default: prompt)
   -h, --help           Show this help message
 
 Arguments:
   hostname             Name of the VM to add disks to (optional, will prompt if not given)
 
 Examples:
-  qlabvmctl add-disk vm1                  # Add disks to VM with interactive prompts
-  qlabvmctl add-disk -f vm1               # Force power-off if running without prompt
+  qlabvmctl add-disk vm1                        # Interactive mode with prompts
+  qlabvmctl add-disk -f vm1                     # Force power-off if running
+  qlabvmctl add-disk -n 2 -s 10 vm1             # Add 2x10GB disks with prompts
+  qlabvmctl add-disk -f -n 3 -s 20 vm1          # Fully automated: 3x20GB disks
 "
 }
 
 # Parse arguments
 force_poweroff=false
 vm_hostname_arg=""
+disk_count_arg=""
+disk_size_arg=""
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -37,6 +43,22 @@ while [[ $# -gt 0 ]]; do
         -f|--force)
             force_poweroff=true
             shift
+            ;;
+        -n|--count)
+            if [[ -z "$2" || "$2" == -* ]]; then
+                print_error "[ERROR] Option -n/--count requires a value."
+                exit 1
+            fi
+            disk_count_arg="$2"
+            shift 2
+            ;;
+        -s|--size)
+            if [[ -z "$2" || "$2" == -* ]]; then
+                print_error "[ERROR] Option -s/--size requires a value."
+                exit 1
+            fi
+            disk_size_arg="$2"
+            shift 2
             ;;
         -*)
             print_error "[ERROR] Unknown option: $1"
@@ -149,28 +171,52 @@ else
     fn_shutdown_or_poweroff
 fi
 
-print_info "[INFO] Select number of disks to add (1-10):"
-while true; do
-    read -rp "Enter disk count: " DISK_COUNT
-    if [[ "$DISK_COUNT" =~ ^[1-9][0-9]*$ ]] && (( DISK_COUNT <= 10 )); then
-        print_success "[SUCCESS] Selected $DISK_COUNT disk(s)."
-        break
-    else
-        print_error "[ERROR] Invalid input! Enter a number between 1 and 10."
+# Get disk count (from argument or prompt)
+if [[ -n "$disk_count_arg" ]]; then
+    # Validate provided disk count
+    if [[ ! "$disk_count_arg" =~ ^[1-9][0-9]*$ ]] || (( disk_count_arg > 10 )); then
+        print_error "[ERROR] Invalid disk count: $disk_count_arg. Must be between 1 and 10."
+        exit 1
     fi
-done
+    DISK_COUNT="$disk_count_arg"
+    print_success "[SUCCESS] Using disk count: $DISK_COUNT"
+else
+    # Prompt for disk count
+    print_info "[INFO] Select number of disks to add (1-10):"
+    while true; do
+        read -rp "Enter disk count: " DISK_COUNT
+        if [[ "$DISK_COUNT" =~ ^[1-9][0-9]*$ ]] && (( DISK_COUNT <= 10 )); then
+            print_success "[SUCCESS] Selected $DISK_COUNT disk(s)."
+            break
+        else
+            print_error "[ERROR] Invalid input! Enter a number between 1 and 10."
+        fi
+    done
+fi
 
-print_info "[INFO] Allowed disk size: Steps of 5GB (5, 10, 15 ... up to 50GB)"
-while true; do
-    read -rp "Enter disk size in GB (default 5): " DISK_SIZE_GB
-    DISK_SIZE_GB=${DISK_SIZE_GB:-5}
-    if [[ "$DISK_SIZE_GB" =~ ^[0-9]+$ ]] && (( DISK_SIZE_GB >= 5 && DISK_SIZE_GB % 5 == 0 && DISK_SIZE_GB <= 50 )); then
-        print_success "[SUCCESS] Selected ${DISK_SIZE_GB}GB disk size."
-        break
-    else
-        print_error "[ERROR] Invalid size! Enter a multiple of 5 between 5 and 50."
+# Get disk size (from argument or prompt)
+if [[ -n "$disk_size_arg" ]]; then
+    # Validate provided disk size
+    if [[ ! "$disk_size_arg" =~ ^[0-9]+$ ]] || (( disk_size_arg < 5 || disk_size_arg % 5 != 0 || disk_size_arg > 50 )); then
+        print_error "[ERROR] Invalid disk size: $disk_size_arg. Must be a multiple of 5 between 5 and 50."
+        exit 1
     fi
-done
+    DISK_SIZE_GB="$disk_size_arg"
+    print_success "[SUCCESS] Using disk size: ${DISK_SIZE_GB}GB"
+else
+    # Prompt for disk size
+    print_info "[INFO] Allowed disk size: Steps of 5GB (5, 10, 15 ... up to 50GB)"
+    while true; do
+        read -rp "Enter disk size in GB (default 5): " DISK_SIZE_GB
+        DISK_SIZE_GB=${DISK_SIZE_GB:-5}
+        if [[ "$DISK_SIZE_GB" =~ ^[0-9]+$ ]] && (( DISK_SIZE_GB >= 5 && DISK_SIZE_GB % 5 == 0 && DISK_SIZE_GB <= 50 )); then
+            print_success "[SUCCESS] Selected ${DISK_SIZE_GB}GB disk size."
+            break
+        else
+            print_error "[ERROR] Invalid size! Enter a multiple of 5 between 5 and 50."
+        fi
+    done
+fi
 
 VM_DIR="/kvm-hub/vms/${qemu_kvm_hostname}"
 
