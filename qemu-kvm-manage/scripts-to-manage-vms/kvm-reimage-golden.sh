@@ -137,11 +137,8 @@ for qemu_kvm_hostname in "${HOSTNAMES[@]}"; do
         # Install VM with default specs using default-vm-install function
         print_info "[INFO] Starting VM installation of \"$qemu_kvm_hostname\" with default specs via golden image disk..."
         source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/select-ovmf.sh
-        if ! virt_install_output=$(source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/default-vm-install.sh 2>&1); then
-            print_error "[ERROR] Failed to start VM installation for \"$qemu_kvm_hostname\"."
-            if [[ -n "$virt_install_output" ]]; then
-                print_error "$virt_install_output"
-            fi
+        source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/start-vm-installation.sh
+        if ! start_vm_installation "$qemu_kvm_hostname" "golden image disk with default specs"; then
             FAILED_VMS+=("$qemu_kvm_hostname")
             continue
         fi
@@ -177,12 +174,8 @@ for qemu_kvm_hostname in "${HOSTNAMES[@]}"; do
         fi
         
         # Start reimaging process
-        print_info "[INFO] Starting reimaging of VM \"$qemu_kvm_hostname\" via golden image disk..."
-        if error_msg=$(sudo virsh start "$qemu_kvm_hostname" 2>&1); then
-            print_success "[SUCCESS] VM started successfully."
-        else
-            print_error "[FAILED] Could not start VM \"$qemu_kvm_hostname\"."
-            print_error "$error_msg"
+        source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/start-vm-for-reimage.sh
+        if ! start_vm_for_reimage "$qemu_kvm_hostname" "reimaging via golden image disk"; then
             FAILED_VMS+=("$qemu_kvm_hostname")
             continue
         fi
