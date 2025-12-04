@@ -3,7 +3,7 @@
 # parse-vm-command-args.sh
 # 
 # Reusable argument parsing function for VM management commands
-# Handles common flags: -c/--console, -H/--hosts, -h/--help, -C/--clean-install
+# Handles common flags: -c/--console, -f/--force, -H/--hosts, -h/--help, -C/--clean-install
 #
 # Usage:
 #   source /path/to/parse-vm-command-args.sh
@@ -12,6 +12,7 @@
 # This function sets the following global variables:
 #   ATTACH_CONSOLE  - "yes" or "no"
 #   CLEAN_INSTALL   - "yes" or "no" (if supported)
+#   FORCE_REIMAGE   - "true" or "false" (if supported)
 #   HOSTNAMES       - Array of validated hostnames
 #   TOTAL_VMS       - Number of VMs to process
 #
@@ -19,6 +20,7 @@
 
 parse_vm_command_args() {
     local supports_clean_install="${SUPPORTS_CLEAN_INSTALL:-no}"
+    local supports_force="${SUPPORTS_FORCE:-no}"
     
     # Parse arguments
     while [[ $# -gt 0 ]]; do
@@ -34,6 +36,20 @@ parse_vm_command_args() {
                     exit 1
                 fi
                 ATTACH_CONSOLE="yes"
+                shift
+                ;;
+            -f|--force)
+                if [[ "$supports_force" != "yes" ]]; then
+                    print_error "[ERROR] No such option: $1"
+                    fn_show_help
+                    exit 1
+                fi
+                if [[ "$FORCE_REIMAGE" == "true" ]]; then
+                    print_error "[ERROR] Duplicate --force/-f option."
+                    fn_show_help
+                    exit 1
+                fi
+                FORCE_REIMAGE="true"
                 shift
                 ;;
             -C|--clean-install)

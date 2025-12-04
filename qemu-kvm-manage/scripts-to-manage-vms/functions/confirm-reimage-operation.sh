@@ -1,15 +1,16 @@
-#!/bin/bash
-#
 # confirm-reimage-operation.sh
 # 
-# Prompts user for confirmation before reimaging a VM
+# Prompts user for confirmation before reimaging a VM (unless --force flag is used)
 #
 # Usage:
 #   source /path/to/confirm-reimage-operation.sh
 #   confirm_reimage_operation "vm-hostname" "golden image" # or "PXE boot"
 #
+# Environment Variables:
+#   FORCE_REIMAGE - Set to "true" to skip confirmation prompt
+#
 # Returns:
-#   0 - User confirmed
+#   0 - User confirmed or force flag is set
 #   (exits if user declined)
 
 confirm_reimage_operation() {
@@ -20,6 +21,11 @@ confirm_reimage_operation() {
     if [[ -z "$vm_hostname" || -z "$reimage_method" ]]; then
         print_error "[ERROR] confirm_reimage_operation: Missing required parameters."
         exit 1
+    fi
+    
+    # Skip confirmation if force flag is set
+    if [[ "${FORCE_REIMAGE}" == "true" ]]; then
+        return 0
     fi
     
     # Only prompt for single VM operations

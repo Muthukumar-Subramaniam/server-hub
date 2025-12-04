@@ -10,8 +10,10 @@ DIR_PATH_SCRIPTS_TO_MANAGE_VMS='/server-hub/qemu-kvm-manage/scripts-to-manage-vm
 
 ATTACH_CONSOLE="no"
 CLEAN_INSTALL="no"
+FORCE_REIMAGE="false"
 HOSTNAMES=()
 SUPPORTS_CLEAN_INSTALL="yes"
+SUPPORTS_FORCE="yes"
 
 # Function to show help
 fn_show_help() {
@@ -20,6 +22,7 @@ fn_show_help() {
 Options:
   -c, --console        Attach console during reimage (single VM only)
   -C, --clean-install  Destroy VM and reinstall with default specs (2 vCPUs, 2 GiB RAM, 20 GiB disk)
+  -f, --force          Skip confirmation prompt
   -H, --hosts          Specify multiple hostnames (comma-separated)
   -h, --help           Show this help message
 
@@ -30,6 +33,7 @@ Examples:
   qlabvmctl reimage-golden vm1                               # Reimage single VM
   qlabvmctl reimage-golden vm1 --console                     # Reimage and attach console
   qlabvmctl reimage-golden vm1 --clean-install               # Reimage with default specs
+  qlabvmctl reimage-golden -f vm1                            # Reimage without confirmation
   qlabvmctl reimage-golden --hosts vm1,vm2,vm3               # Reimage multiple VMs
   qlabvmctl reimage-golden -H vm1,vm2,vm3 --clean-install   # Reimage multiple with defaults
 "
