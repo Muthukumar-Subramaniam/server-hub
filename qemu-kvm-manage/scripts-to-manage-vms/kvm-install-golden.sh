@@ -72,7 +72,11 @@ for qemu_kvm_hostname in "${HOSTNAMES[@]}"; do
         if [[ ! -f "/server-hub/qemu-kvm-manage/golden-images/${NORMALIZED_DISTRO}-golden.qcow2" ]]; then
             print_error "[ERROR] Golden image not found for '${OS_DISTRO}'"
             print_info "[INFO] Available golden images:"
-            ls -1 /server-hub/qemu-kvm-manage/golden-images/*.qcow2 2>/dev/null | xargs -n1 basename | sed 's/-golden.qcow2//' | sed 's/^/  - /' || echo "  (none)"
+            if ls /server-hub/qemu-kvm-manage/golden-images/*.qcow2 &>/dev/null; then
+                ls -1 /server-hub/qemu-kvm-manage/golden-images/*.qcow2 | xargs -n1 basename | sed 's/-golden.qcow2//' | sed 's/^/  - /'
+            else
+                echo "  (none)"
+            fi
             print_info "[INFO] Use 'qlabvmctl build-golden-image --distro ${OS_DISTRO}' to create it"
             FAILED_VMS+=("$qemu_kvm_hostname")
             continue
