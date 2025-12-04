@@ -7,10 +7,6 @@
 source /server-hub/common-utils/color-functions.sh
 source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/defaults.sh
 
-# Initialize variables
-hosts_list=""
-vm_hostname_arg=""
-
 # Function to show help
 fn_show_help() {
     print_info "Usage: qlabvmctl start [OPTIONS] [hostname]
@@ -28,39 +24,12 @@ Examples:
 "
 }
 
-# Parse options
-while [[ $# -gt 0 ]]; do
-    case "$1" in
-        -h|--help)
-            fn_show_help
-            exit 0
-            ;;
-        -H|--hosts)
-            if [[ -z "$2" || "$2" == -* ]]; then
-                print_error "[ERROR] --hosts requires a comma-separated list of hostnames."
-                fn_show_help
-                exit 1
-            fi
-            hosts_list="$2"
-            shift 2
-            ;;
-        -*)
-            print_error "[ERROR] No such option: $1"
-            fn_show_help
-            exit 1
-            ;;
-        *)
-            # This is the hostname argument
-            if [[ -n "$hosts_list" ]]; then
-                print_error "[ERROR] Cannot use both hostname argument and --hosts option."
-                fn_show_help
-                exit 1
-            fi
-            vm_hostname_arg="$1"
-            shift
-            ;;
-    esac
-done
+# Parse arguments
+source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/parse-vm-control-args.sh
+parse_vm_control_args "$@"
+
+hosts_list="$HOSTS_LIST"
+vm_hostname_arg="$VM_HOSTNAME_ARG"
 
 # Function to start a single VM
 start_vm() {
