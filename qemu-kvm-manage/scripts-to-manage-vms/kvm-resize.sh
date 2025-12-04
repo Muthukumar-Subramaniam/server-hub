@@ -129,10 +129,10 @@ fn_shutdown_or_poweroff() {
     fi
     
     print_warning "[WARNING] VM \"$qemu_kvm_hostname\" is still running!"
-    print_info "[INFO] Select an option to proceed:\n"
-    echo "\t1) Try Graceful Shutdown"
-    echo "\t2) Force Power Off"
-    echo -e "\tq) Quit\n"
+    print_notify "[INFO] Select an option to proceed:
+  1) Try Graceful Shutdown
+  2) Force Power Off
+  q) Quit"
 
     read -rp "Enter your choice: " selected_choice
 
@@ -206,23 +206,23 @@ resize_vm_memory() {
         # Prompt for memory size
         print_info "[INFO] Memory of Host Machine: ${host_mem_gib} GiB"
         print_info "[INFO] Memory of VM '${qemu_kvm_hostname}': ${current_vm_mem_gib} GiB"
-        print_info "[INFO] Allowed sizes: Powers of 2 — e.g., 2, 4, 8... but less than ${host_mem_gib} GiB\n"
+        print_info "[INFO] Allowed sizes: Powers of 2 — e.g., 2, 4, 8... but less than ${host_mem_gib} GiB"
 
         while true; do
             read -rp "Enter new VM memory size (GiB): " vm_mem_gib
 
             if ! [[ "$vm_mem_gib" =~ ^[0-9]+$ ]]; then
-                print_error "[ERROR] Invalid input for VM memory size. Must be numeric.\n"
+                print_error "[ERROR] Invalid input for VM memory size. Must be numeric."
                 continue
             fi
 
             if (( vm_mem_gib < 2 || (vm_mem_gib & (vm_mem_gib - 1)) != 0 )); then
-                print_error "[ERROR] VM memory size must be a power of 2 (2, 4, 8...)\n"
+                print_error "[ERROR] VM memory size must be a power of 2 (2, 4, 8...)"
                 continue
             fi
 
             if (( vm_mem_gib >= host_mem_gib )); then
-                print_error "[ERROR] VM memory size must be less than host memory ${host_mem_gib} GiB\n"
+                print_error "[ERROR] VM memory size must be less than host memory ${host_mem_gib} GiB"
                 continue
             fi
             break
@@ -271,28 +271,28 @@ resize_vm_cpu() {
         # Prompt for CPU count
         print_info "[INFO] Host logical CPUs: $host_cpu_count"
         print_info "[INFO] Current vCPUs of VM '${qemu_kvm_hostname}': $current_vcpus_of_vm"
-        print_info "[INFO] Allowed values: Powers of 2 — e.g., 2, 4, 8... up to ${host_cpu_count}\n"
+        print_info "[INFO] Allowed values: Powers of 2 — e.g., 2, 4, 8... up to ${host_cpu_count}"
 
         while true; do
             read -rp "Enter new vCPU count: " new_vcpus_of_vm
 
             if ! [[ "$new_vcpus_of_vm" =~ ^[0-9]+$ ]]; then
-                print_error "[ERROR] Invalid input for vCPU count. Must be numeric.\n"
+                print_error "[ERROR] Invalid input for vCPU count. Must be numeric."
                 continue
             fi
 
             if (( new_vcpus_of_vm < 2 )); then
-                print_error "[ERROR] vCPU count must be at least 2.\n"
+                print_error "[ERROR] vCPU count must be at least 2."
                 continue
             fi
 
             if ! (( (new_vcpus_of_vm & (new_vcpus_of_vm - 1)) == 0 )); then
-                print_error "[ERROR] vCPU count must be a power of 2 (2, 4, 8...)\n"
+                print_error "[ERROR] vCPU count must be a power of 2 (2, 4, 8...)"
                 continue
             fi
 
             if (( new_vcpus_of_vm > host_cpu_count )); then
-                print_error "[ERROR] Cannot exceed host CPU count ${host_cpu_count}\n"
+                print_error "[ERROR] Cannot exceed host CPU count ${host_cpu_count}"
                 continue
             fi
             break
@@ -341,23 +341,23 @@ resize_vm_disk() {
     else
         # Prompt for disk increase size
         print_info "[INFO] Current disk size of VM '${qemu_kvm_hostname}': ${current_disk_gib} GiB"
-        print_info "[INFO] Allowed sizes for increase: Steps of 5 GiB — e.g., 5, 10, 15... up to 50 GiB\n"
+        print_info "[INFO] Allowed sizes for increase: Steps of 5 GiB — e.g., 5, 10, 15... up to 50 GiB"
 
         while true; do
             read -rp "Enter increase size (GiB): " grow_size_gib
 
             if ! [[ "$grow_size_gib" =~ ^[0-9]+$ ]]; then
-                print_error "[ERROR] Invalid input for increase size of disk. Must be numeric.\n"
+                print_error "[ERROR] Invalid input for increase size of disk. Must be numeric."
                 continue
             fi
 
             if (( grow_size_gib % 5 != 0 )); then
-                print_error "[ERROR] Increase in disk size must be a multiple of 5 GiB.\n"
+                print_error "[ERROR] Increase in disk size must be a multiple of 5 GiB."
                 continue
             fi
 
             if (( grow_size_gib < 5 || grow_size_gib > 50 )); then
-                print_error "[ERROR] Increase in disk size must be between 5 and 50 GiB.\n"
+                print_error "[ERROR] Increase in disk size must be between 5 and 50 GiB."
                 continue
             fi
             break
@@ -443,11 +443,11 @@ fi
 # Interactive mode - show menu
 while true; do
     print_info "[INFO] Resize Resource of VM '$qemu_kvm_hostname'"
-    print_info "[INFO] Select an option:\n"
-    echo "\t1) Resize Memory"
-    echo "\t2) Resize CPU"
-    echo "\t3) Resize Disk"
-    echo -e "\tq) Quit\n"
+    print_notify "[INFO] Select an option:
+  1) Resize Memory
+  2) Resize CPU
+  3) Resize Disk
+  q) Quit"
 
     read -rp "Enter your choice: " resize_choice
 
@@ -472,7 +472,7 @@ while true; do
             exit 0
             ;;
         *)
-            print_error "[ERROR] Invalid option!\n"
+            print_error "[ERROR] Invalid option!"
             ;;
     esac
 done
