@@ -105,11 +105,19 @@ remove_vm() {
         print_info "[INFO] Skipping ksmanager database cleanup (--ignore-ksmanager-cleanup flag set)"
     else
         print_info "[INFO] Cleaning up ksmanager databases for $vm_name..."
-        source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/run-ksmanager.sh
-        if run_ksmanager "$vm_name" "--remove-host" &>/dev/null; then
-            print_info "[INFO] Removed $vm_name from ksmanager databases"
+        # Call ksmanager directly for cleanup (run-ksmanager is for VM creation/imaging)
+        if $lab_infra_server_mode_is_host; then
+            if sudo ksmanager "$vm_name" --remove-host &>/dev/null; then
+                print_info "[INFO] Removed $vm_name from ksmanager databases"
+            else
+                print_warning "[WARNING] Could not clean up ksmanager databases for $vm_name"
+            fi
         else
-            print_warning "[WARNING] Could not clean up ksmanager databases for $vm_name"
+            if ssh -o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "${lab_infra_admin_username}@${lab_infra_server_ipv4_address}" "sudo ksmanager $vm_name --remove-host" &>/dev/null; then
+                print_info "[INFO] Removed $vm_name from ksmanager databases"
+            else
+                print_warning "[WARNING] Could not clean up ksmanager databases for $vm_name"
+            fi
         fi
     fi
     
