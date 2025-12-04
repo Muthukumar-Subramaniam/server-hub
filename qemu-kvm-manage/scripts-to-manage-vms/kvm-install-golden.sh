@@ -227,31 +227,11 @@ for qemu_kvm_hostname in "${HOSTNAMES[@]}"; do
         continue
     fi
 
-    print_info "[INFO] Updating /etc/hosts file for ${qemu_kvm_hostname}..." nskip
-
-    if grep -q "${qemu_kvm_hostname}" /etc/hosts; then
-        HOST_FILE_IPV4=$( grep "${qemu_kvm_hostname}" /etc/hosts | awk '{print $1}' )
-        if [ "${HOST_FILE_IPV4}" != "${IPV4_ADDRESS}" ]; then
-            if error_msg=$(sudo sed -i.bak "/${qemu_kvm_hostname}/s/.*/${IPV4_ADDRESS} ${qemu_kvm_hostname}/" /etc/hosts 2>&1); then
-                print_success "[ SUCCESS ]"
-            else
-                print_error "[ FAILED ]"
-                print_error "$error_msg"
-                FAILED_VMS+=("$qemu_kvm_hostname")
-                continue
-            fi
-        else
-            print_success "[ SUCCESS ]"
-        fi
-    else
-        if error_msg=$(echo "${IPV4_ADDRESS} ${qemu_kvm_hostname}" | sudo tee -a /etc/hosts >/dev/null 2>&1); then
-            print_success "[ SUCCESS ]"
-        else
-            print_error "[ FAILED ]"
-            print_error "$error_msg"
-            FAILED_VMS+=("$qemu_kvm_hostname")
-            continue
-        fi
+    # Update /etc/hosts
+    source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/update-etc-hosts.sh
+    if ! update_etc_hosts "${qemu_kvm_hostname}" "${IPV4_ADDRESS}"; then
+        FAILED_VMS+=("$qemu_kvm_hostname")
+        continue
     fi
 
     if [ ! -f /kvm-hub/golden-images-disk-store/${OS_DISTRO}-golden-image.${lab_infra_domain_name}.qcow2 ]; then
