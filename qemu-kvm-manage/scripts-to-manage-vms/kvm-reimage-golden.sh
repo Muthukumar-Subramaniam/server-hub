@@ -157,11 +157,8 @@ for qemu_kvm_hostname in "${HOSTNAMES[@]}"; do
             continue
         fi
         
-        if [[ "$current_disk_gib" -gt "$golden_disk_gib" ]]; then
-            if sudo qemu-img resize "${vm_qcow2_disk_path}" "${current_disk_gib}G" >/dev/null 2>&1; then
-                print_success "[SUCCESS] Retained disk size of ${current_disk_gib} GiB for VM \"$qemu_kvm_hostname\"."
-            fi
-        fi
+        source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/resize-disk-if-larger.sh
+        resize_disk_if_larger "$qemu_kvm_hostname" "$current_disk_gib" "$golden_disk_gib"
         
         # Start reimaging process
         source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/start-vm-for-reimage.sh
