@@ -1,19 +1,24 @@
+# Set default values if not provided
+DISK_PATH="${DISK_PATH:-/kvm-hub/vms/${qemu_kvm_hostname}/${qemu_kvm_hostname}.qcow2}"
+NVRAM_PATH="${NVRAM_PATH:-/kvm-hub/vms/${qemu_kvm_hostname}/${qemu_kvm_hostname}_VARS.fd}"
+CONSOLE_MODE="${CONSOLE_MODE:---noautoconsole}"
+
 virt_install_error=$(sudo virt-install \
   --name ${qemu_kvm_hostname} \
   --features acpi=on,apic=on \
   --memory 2048 \
   --vcpus 2 \
-  --disk path=/kvm-hub/vms/${qemu_kvm_hostname}/${qemu_kvm_hostname}.qcow2,size=20,bus=virtio,boot.order=1 \
+  --disk path=${DISK_PATH},size=20,bus=virtio,boot.order=1 \
   --os-variant almalinux9 \
   --network network=default,model=virtio,mac=${MAC_ADDRESS},boot.order=2 \
   --graphics none \
-  --noautoconsole \
+  ${CONSOLE_MODE} \
   --machine q35 \
   --watchdog none \
   --cpu host-model \
   --boot loader=${OVMF_CODE_PATH},\
 nvram.template=${OVMF_VARS_PATH},\
-nvram=/kvm-hub/vms/${qemu_kvm_hostname}/${qemu_kvm_hostname}_VARS.fd,menu=on \
+nvram=${NVRAM_PATH},menu=on \
   2>&1 >/dev/null)
 
 if [[ $? -ne 0 ]]; then

@@ -38,22 +38,15 @@ fi
 
 print_info "[INFO] Invoking ksmanager to create PXE environment for golden image..."
 
->/tmp/kvm-build-golden-image.log
-
-if $lab_infra_server_mode_is_host; then
-    sudo ksmanager --qemu-kvm --create-golden-image | tee -a /tmp/kvm-build-golden-image.log
-else
-    ssh -o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -t ${lab_infra_admin_username}@${lab_infra_server_ipv4_address} "sudo ksmanager --qemu-kvm --create-golden-image" | tee -a /tmp/kvm-build-golden-image.log
-fi
-
-MAC_ADDRESS=$( grep "MAC Address  :"  /tmp/kvm-build-golden-image.log | awk -F': ' '{print $2}' | tr -d '[:space:]' )
-qemu_kvm_hostname=$( grep "Hostname     :"  /tmp/kvm-build-golden-image.log | awk -F': ' '{print $2}' | tr -d '[:space:]' )
-
-if [ -z ${MAC_ADDRESS} ]; then
+# Run ksmanager for golden image creation
+source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/run-ksmanager.sh
+if ! run_ksmanager "" "--qemu-kvm --create-golden-image"; then
     print_error "[FAILED] Something went wrong while executing ksmanager!"
     print_info "[INFO] Please check your Lab Infra Server for the root cause."
     exit 1
 fi
+
+qemu_kvm_hostname="$EXTRACTED_HOSTNAME"
 
 mkdir -p /kvm-hub/golden-images-disk-store
 
@@ -83,27 +76,20 @@ fi
 
 print_info "[INFO] Starting installation of VM \"${qemu_kvm_hostname}\" to create golden image disk..."
 
-if sudo virt-install \
-  --name ${qemu_kvm_hostname} \
-  --features acpi=on,apic=on \
-  --memory 2048 \
-  --vcpus 2 \
-  --disk path=${golden_image_path},size=20,bus=virtio,boot.order=1 \
-  --os-variant almalinux9 \
-  --network network=default,model=virtio,mac=${MAC_ADDRESS},boot.order=2 \
-  --graphics none \
-  --watchdog none \
-  --console pty,target_type=serial \
-  --machine q35 \
-  --cpu host-model \
-  --boot loader=${OVMF_CODE_PATH},\
-nvram.template=${OVMF_VARS_PATH},\
-nvram=/kvm-hub/golden-images-disk-store/${qemu_kvm_hostname}_VARS.fd,menu=on; then
-    print_info "[INFO] VM installation completed."
-else
+# Set custom paths for golden image creation
+DISK_PATH="${golden_image_path}"
+NVRAM_PATH="/kvm-hub/golden-images-disk-store/${qemu_kvm_hostname}_VARS.fd"
+CONSOLE_MODE="--console pty,target_type=serial"
+
+if ! virt_install_output=$(source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/default-vm-install.sh 2>&1); then
     print_error "[FAILED] VM installation failed."
+    if [[ -n "$virt_install_output" ]]; then
+        print_error "$virt_install_output"
+    fi
     exit 1
 fi
+
+print_info "[INFO] VM installation completed."
 
 # Cleanup: destroy and undefine the temporary VM
 print_info "[INFO] Cleaning up temporary VM..."
