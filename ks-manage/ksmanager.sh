@@ -232,7 +232,7 @@ if $remove_host_requested; then
         sed -i "/^${cleanup_hostname} /d" "${ksmanager_hub_dir}/mac-address-cache"
         print_info "[INFO] Removed from MAC address cache"
     else
-        print_info "[INFO] No MAC address cache entry found (already removed)"
+        print_info "[INFO] No MAC address cache entry found"
     fi
     
     # 2. Remove kickstart directory
@@ -240,7 +240,7 @@ if $remove_host_requested; then
         rm -rf "${ksmanager_hub_dir}/kickstarts/${cleanup_hostname}"
         print_info "[INFO] Removed kickstart files"
     else
-        print_info "[INFO] No kickstart files found (already removed)"
+        print_info "[INFO] No kickstart files found"
     fi
     
     # 3. Remove iPXE config file
@@ -249,7 +249,7 @@ if $remove_host_requested; then
             rm -f "${ipxe_web_dir}/${ipxe_cfg_mac}.ipxe"
             print_info "[INFO] Removed iPXE config file (${ipxe_cfg_mac}.ipxe)"
         else
-            print_info "[INFO] No iPXE config file found (already removed)"
+            print_info "[INFO] No iPXE config file found"
         fi
     else
         print_info "[INFO] No iPXE config (no MAC address found)"
@@ -261,7 +261,7 @@ if $remove_host_requested; then
             rm -f "${ksmanager_hub_dir}/golden-boot-mac-configs/network-config-${ipxe_cfg_mac}"
             print_info "[INFO] Removed golden boot network config"
         else
-            print_info "[INFO] No golden boot network config found (already removed)"
+            print_info "[INFO] No golden boot network config found"
         fi
     else
         print_info "[INFO] No golden boot config (no MAC address found)"
@@ -351,7 +351,7 @@ EOF
             print_warning "[WARNING] DNS record may not have been removed properly"
         fi
     else
-        print_info "[INFO] No DNS record found (already removed)"
+        print_info "[INFO] No DNS record found"
     fi
     
     print_success "[SUCCESS] Host '${cleanup_hostname}' has been removed from all ksmanager databases."
