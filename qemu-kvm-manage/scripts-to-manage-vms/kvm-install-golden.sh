@@ -58,6 +58,27 @@ for qemu_kvm_hostname in "${HOSTNAMES[@]}"; do
 
     print_info "[INFO] Creating first boot environment for '${qemu_kvm_hostname}' using ksmanager..."
 
+    # Check if golden image exists for specified distro
+    if [[ -n "$OS_DISTRO" ]]; then
+        # Normalize OS distro name first for golden image check
+        source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/normalize-os-distro.sh
+        if ! normalize_os_distro "${OS_DISTRO}"; then
+            print_error "[ERROR] Invalid OS distribution: $OS_DISTRO"
+            FAILED_VMS+=("$qemu_kvm_hostname")
+            continue
+        fi
+        NORMALIZED_DISTRO="$NORMALIZED_OS_DISTRO"
+        
+        if [[ ! -f "/server-hub/qemu-kvm-manage/golden-images/${NORMALIZED_DISTRO}-golden.qcow2" ]]; then
+            print_error "[ERROR] Golden image not found for '${OS_DISTRO}'"
+            print_info "[INFO] Available golden images:"
+            ls -1 /server-hub/qemu-kvm-manage/golden-images/*.qcow2 2>/dev/null | xargs -n1 basename | sed 's/-golden.qcow2//' | sed 's/^/  - /' || echo "  (none)"
+            print_info "[INFO] Use 'qlabvmctl build-golden-image --distro ${OS_DISTRO}' to create it"
+            FAILED_VMS+=("$qemu_kvm_hostname")
+            continue
+        fi
+    fi
+
     # Run ksmanager and extract VM details
     source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/run-ksmanager.sh
     ksmanager_opts="--qemu-kvm --golden-image"
