@@ -193,179 +193,294 @@ resize_vm_memory() {
     current_mem_kib=$(sudo virsh dominfo "$qemu_kvm_hostname" | awk '/^Max memory/ {print $3}')
     current_vm_mem_gib=$(( current_mem_kib / 1024 / 1024 ))
 
-    echo -e "\n🖥️ Memory of Host Machine : ${host_mem_gib} GiB"
-    echo "📦 Memory of VM '${qemu_kvm_hostname}' : ${current_vm_mem_gib} GiB"
-    echo -e "📌 Allowed sizes: Powers of 2 — e.g., 2, 4, 8... but less than ${host_mem_gib} GiB\n"
-
-    while true; do
-        read -rp "Enter new VM memory size (GiB): " vm_mem_gib
-
-        if ! [[ "$vm_mem_gib" =~ ^[0-9]+$ ]]; then
-            echo -e "\n❌ Invalid input for VM memory size. Must be numeric.\n"
-            continue
+    # Get memory size from argument or prompt
+    if [[ -n "$memory_size_arg" ]]; then
+        # Validate provided memory size
+        if ! [[ "$memory_size_arg" =~ ^[0-9]+$ ]]; then
+            print_error "[ERROR] Invalid memory size: $memory_size_arg. Must be numeric."
+            exit 1
         fi
-
-	    if (( vm_mem_gib < 2 || (vm_mem_gib & (vm_mem_gib - 1)) != 0 )); then
-    	    echo -e "\n❌ VM memory size must be a power of 2 (2, 4, 8...)\n"
-            continue
-	    fi
-
-        if (( vm_mem_gib >= host_mem_gib )); then
-            echo -e "\n❌ VM memory size must be less than host memory ${host_mem_gib} GiB\n"
-            continue
+        if (( memory_size_arg < 2 || (memory_size_arg & (memory_size_arg - 1)) != 0 )); then
+            print_error "[ERROR] Memory size must be a power of 2 (2, 4, 8...)."
+            exit 1
         fi
+        if (( memory_size_arg >= host_mem_gib )); then
+            print_error "[ERROR] Memory size must be less than host memory ${host_mem_gib} GiB."
+            exit 1
+        fi
+        vm_mem_gib="$memory_size_arg"
+        print_success "[SUCCESS] Using memory size: ${vm_mem_gib} GiB"
+    else
+        # Prompt for memory size
+        print_info "[INFO] Memory of Host Machine: ${host_mem_gib} GiB"
+        print_info "[INFO] Memory of VM '${qemu_kvm_hostname}': ${current_vm_mem_gib} GiB"
+        print_info "[INFO] Allowed sizes: Powers of 2 — e.g., 2, 4, 8... but less than ${host_mem_gib} GiB\n"
 
-        vm_mem_kib=$(( vm_mem_gib * 1024 * 1024 ))
-        echo -e "\n📐 Updating memory size of VM to ${vm_mem_gib} GiB . . .\n"
-        sudo virsh setmaxmem "$qemu_kvm_hostname" "$vm_mem_kib" --config && \
-        sudo virsh setmem "$qemu_kvm_hostname" "$vm_mem_kib" --config && \
-        echo -e "✅ VM memory updated to ${vm_mem_gib} GiB, Proceeding to power on the VM.\n"
-	    sudo virsh start "${qemu_kvm_hostname}" 2>/dev/null
-	    echo -e "✅ VM '${qemu_kvm_hostname}' is started successfully after Memory resize. \n"
-        break
-    done
+        while true; do
+            read -rp "Enter new VM memory size (GiB): " vm_mem_gib
+
+            if ! [[ "$vm_mem_gib" =~ ^[0-9]+$ ]]; then
+                print_error "[ERROR] Invalid input for VM memory size. Must be numeric.\n"
+                continue
+            fi
+
+            if (( vm_mem_gib < 2 || (vm_mem_gib & (vm_mem_gib - 1)) != 0 )); then
+                print_error "[ERROR] VM memory size must be a power of 2 (2, 4, 8...)\n"
+                continue
+            fi
+
+            if (( vm_mem_gib >= host_mem_gib )); then
+                print_error "[ERROR] VM memory size must be less than host memory ${host_mem_gib} GiB\n"
+                continue
+            fi
+            break
+        done
+    fi
+
+    vm_mem_kib=$(( vm_mem_gib * 1024 * 1024 ))
+    print_info "[INFO] Updating memory size of VM to ${vm_mem_gib} GiB..."
+    if sudo virsh setmaxmem "$qemu_kvm_hostname" "$vm_mem_kib" --config && \
+       sudo virsh setmem "$qemu_kvm_hostname" "$vm_mem_kib" --config; then
+        print_success "[SUCCESS] VM memory updated to ${vm_mem_gib} GiB. Proceeding to power on the VM."
+        sudo virsh start "${qemu_kvm_hostname}" 2>/dev/null
+        print_success "[SUCCESS] VM '${qemu_kvm_hostname}' started successfully after memory resize."
+    else
+        print_error "[ERROR] Failed to update VM memory."
+        exit 1
+    fi
 }
 
 resize_vm_cpu() {
     current_vcpus_of_vm=$(sudo virsh dominfo "$qemu_kvm_hostname" | awk '/^CPU\(s\)/ {print $2}')
     host_cpu_count=$(nproc)
 
-    echo -e "\n🧠 Host logical CPUs : $host_cpu_count"
-    echo "🧾 Current vCPUs of VM '${qemu_kvm_hostname}' : $current_vcpus_of_vm"
-    echo -e "📌 Allowed values: Powers of 2 — e.g., 2, 4, 8... up to ${host_cpu_count}\n"
-
-    while true; do
-        read -rp "Enter new vCPU count: " new_vcpus_of_vm
-
-        if ! [[ "$new_vcpus_of_vm" =~ ^[0-9]+$ ]]; then
-            echo -e "\n❌ Invalid input for vCPU count. Must be numeric.\n"
-            continue
+    # Get CPU count from argument or prompt
+    if [[ -n "$cpu_count_arg" ]]; then
+        # Validate provided CPU count
+        if ! [[ "$cpu_count_arg" =~ ^[0-9]+$ ]]; then
+            print_error "[ERROR] Invalid vCPU count: $cpu_count_arg. Must be numeric."
+            exit 1
         fi
-
-        if (( new_vcpus_of_vm < 2 )); then
-            echo -e "\n❌ vCPU count must be at least 2.\n"
-            continue
+        if (( cpu_count_arg < 2 )); then
+            print_error "[ERROR] vCPU count must be at least 2."
+            exit 1
         fi
-
-        if ! (( (new_vcpus_of_vm & (new_vcpus_of_vm - 1)) == 0 )); then
-            echo -e "\n❌ vCPU count must be a power of 2 (2, 4, 8...)\n"
-            continue
+        if ! (( (cpu_count_arg & (cpu_count_arg - 1)) == 0 )); then
+            print_error "[ERROR] vCPU count must be a power of 2 (2, 4, 8...)."
+            exit 1
         fi
-
-        if (( new_vcpus_of_vm > host_cpu_count )); then
-            echo -e "\n❌ Cannot exceed host CPU count ${host_cpu_count}\n"
-            continue
+        if (( cpu_count_arg > host_cpu_count )); then
+            print_error "[ERROR] Cannot exceed host CPU count ${host_cpu_count}."
+            exit 1
         fi
+        new_vcpus_of_vm="$cpu_count_arg"
+        print_success "[SUCCESS] Using vCPU count: ${new_vcpus_of_vm}"
+    else
+        # Prompt for CPU count
+        print_info "[INFO] Host logical CPUs: $host_cpu_count"
+        print_info "[INFO] Current vCPUs of VM '${qemu_kvm_hostname}': $current_vcpus_of_vm"
+        print_info "[INFO] Allowed values: Powers of 2 — e.g., 2, 4, 8... up to ${host_cpu_count}\n"
 
-        echo -e "\n🔧 Updating vCPUs of VM '${qemu_kvm_hostname}' to ${new_vcpus_of_vm}  . . .\n"
-        sudo virsh setvcpus "$qemu_kvm_hostname" "$new_vcpus_of_vm" --maximum --config && \
-        sudo virsh setvcpus "$qemu_kvm_hostname" "$new_vcpus_of_vm" --config && \
-        echo -e "✅ vCPU count updated to $new_vcpus_of_vm, Proceeding to power on the VM.\n"
-	    sudo virsh start "${qemu_kvm_hostname}" 2>/dev/null
-	    echo -e "✅ VM '$qemu_kvm_hostname' is started successfully after vCPU resize. \n"
-        break
-    done
+        while true; do
+            read -rp "Enter new vCPU count: " new_vcpus_of_vm
+
+            if ! [[ "$new_vcpus_of_vm" =~ ^[0-9]+$ ]]; then
+                print_error "[ERROR] Invalid input for vCPU count. Must be numeric.\n"
+                continue
+            fi
+
+            if (( new_vcpus_of_vm < 2 )); then
+                print_error "[ERROR] vCPU count must be at least 2.\n"
+                continue
+            fi
+
+            if ! (( (new_vcpus_of_vm & (new_vcpus_of_vm - 1)) == 0 )); then
+                print_error "[ERROR] vCPU count must be a power of 2 (2, 4, 8...)\n"
+                continue
+            fi
+
+            if (( new_vcpus_of_vm > host_cpu_count )); then
+                print_error "[ERROR] Cannot exceed host CPU count ${host_cpu_count}\n"
+                continue
+            fi
+            break
+        done
+    fi
+
+    print_info "[INFO] Updating vCPUs of VM '${qemu_kvm_hostname}' to ${new_vcpus_of_vm}..."
+    if sudo virsh setvcpus "$qemu_kvm_hostname" "$new_vcpus_of_vm" --maximum --config && \
+       sudo virsh setvcpus "$qemu_kvm_hostname" "$new_vcpus_of_vm" --config; then
+        print_success "[SUCCESS] vCPU count updated to $new_vcpus_of_vm. Proceeding to power on the VM."
+        sudo virsh start "${qemu_kvm_hostname}" 2>/dev/null
+        print_success "[SUCCESS] VM '$qemu_kvm_hostname' started successfully after vCPU resize."
+    else
+        print_error "[ERROR] Failed to update vCPU count."
+        exit 1
+    fi
 }
 
 resize_vm_disk() {
-
-    fs_resize_scipt="/server-hub/common-utils/lab-rootfs-extender"
-
     vm_qcow2_disk_path="/kvm-hub/vms/${qemu_kvm_hostname}/${qemu_kvm_hostname}.qcow2"
 
     if [ ! -f "$vm_qcow2_disk_path" ]; then
-        echo -e "\n❌ Disk image not found at $vm_qcow2_disk_path\n"
-        return
+        print_error "[ERROR] Disk image not found at $vm_qcow2_disk_path"
+        exit 1
     fi
 
     current_disk_gib=$(sudo qemu-img info "${vm_qcow2_disk_path}" | grep "virtual size" | grep -o '[0-9]\+ GiB' | cut -d' ' -f1)
 
-    echo -e "\n📏 Current disk size of VM '${qemu_kvm_hostname}' : ${current_disk_gib} GiB\n"
-    echo -e "📌 Allowed sizes for increase: Steps of 5 GiB — e.g., 5, 10, 15... upto 50 GiB\n"
-
-    while true; do
-        read -rp "Enter increase size (GiB): " grow_size_gib
-
-        if ! [[ "$grow_size_gib" =~ ^[0-9]+$ ]]; then
-            echo -e "\n❌ Invalid input for increase size of disk. Must be numeric.\n"
-            continue
+    # Get disk increase size from argument or prompt
+    if [[ -n "$disk_increase_arg" ]]; then
+        # Validate provided disk increase size
+        if ! [[ "$disk_increase_arg" =~ ^[0-9]+$ ]]; then
+            print_error "[ERROR] Invalid disk increase size: $disk_increase_arg. Must be numeric."
+            exit 1
         fi
-
-        if (( grow_size_gib % 5 != 0 )); then
-            echo -e "\n❌ Increase in disk size must be a multiple of 5 GiB.\n"
-            continue
+        if (( disk_increase_arg % 5 != 0 )); then
+            print_error "[ERROR] Disk increase size must be a multiple of 5 GiB."
+            exit 1
         fi
-
-        if (( grow_size_gib < 5 || grow_size_gib > 50 )); then
-            echo -e "\n❌ Increase in disk size must be between 5 and 50 GiB.\n"
-            continue
+        if (( disk_increase_arg < 5 || disk_increase_arg > 50 )); then
+            print_error "[ERROR] Disk increase size must be between 5 and 50 GiB."
+            exit 1
         fi
+        grow_size_gib="$disk_increase_arg"
+        print_success "[SUCCESS] Using disk increase size: ${grow_size_gib} GiB"
+    else
+        # Prompt for disk increase size
+        print_info "[INFO] Current disk size of VM '${qemu_kvm_hostname}': ${current_disk_gib} GiB"
+        print_info "[INFO] Allowed sizes for increase: Steps of 5 GiB — e.g., 5, 10, 15... up to 50 GiB\n"
 
-        echo "📂 Growing disk by ${grow_size_gib} GiB . . ."
-        if sudo qemu-img resize "$vm_qcow2_disk_path" +${grow_size_gib}G; then
-	        total_vm_disk_size=$(( current_disk_gib + grow_size_gib ))
-            echo -e "\n✅ Disk of VM '${qemu_kvm_hostname}' resized to ${total_vm_disk_size} GiB, Proceeding to power on the VM."
+        while true; do
+            read -rp "Enter increase size (GiB): " grow_size_gib
 
-	        sudo virsh start "${qemu_kvm_hostname}" 2>/dev/null
-	        echo -e "✅ VM '$qemu_kvm_hostname' is started successfully after disk resize."
+            if ! [[ "$grow_size_gib" =~ ^[0-9]+$ ]]; then
+                print_error "[ERROR] Invalid input for increase size of disk. Must be numeric.\n"
+                continue
+            fi
 
-            echo -e "\n🛠️ Attempting to re-size root file system of VM '$qemu_kvm_hostname' . . ."
-	        SSH_TARGET_HOST="${qemu_kvm_hostname}"
-	        MAX_SSH_WAIT_SECONDS=120
-            SSH_RETRY_INTERVAL_SECONDS=5
-            SSH_OPTS="-o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
-            echo -n -e "\n⏳ Waiting up to $MAX_SSH_WAIT_SECONDS seconds for SSH connection on $SSH_TARGET_HOST . . . "
-            ssh_start_time=$(date +%s)
-            while true; do
-                sleep "$SSH_RETRY_INTERVAL_SECONDS"
-                if ssh $SSH_OPTS ${lab_infra_admin_username}@${SSH_TARGET_HOST} "true" &>/dev/null; then
-                    echo "[SSH-Active]"
-                    break
-                fi
-                ssh_current_time=$(date +%s)
-                ssh_elapsed_time=$((ssh_current_time - ssh_start_time))
-                if [ "$ssh_elapsed_time" -ge "$MAX_SSH_WAIT_SECONDS" ]; then
-                    echo -e "\n❌ Timed out waiting for SSH after $MAX_SSH_WAIT_SECONDS seconds."
-            	    echo -e "📌 Execute lab-rootfs-extender utility manually from $SSH_TARGET_HOST once booted.\n"
-                    exit 1
-                fi
-            done
-            /server-hub/common-utils/lab-rootfs-extender $SSH_TARGET_HOST
-	    echo -e "\n✅ Successfully extended the size of OS disk and the root filesystem of ${SSH_TARGET_HOST} to ${total_vm_disk_size} GiB.\n"
-        else
-            echo -e "\n❌ Disk resize of VM '${qemu_kvm_hostname}' failed ! \n"
-	        exit 1
-        fi
-        break
-    done
+            if (( grow_size_gib % 5 != 0 )); then
+                print_error "[ERROR] Increase in disk size must be a multiple of 5 GiB.\n"
+                continue
+            fi
+
+            if (( grow_size_gib < 5 || grow_size_gib > 50 )); then
+                print_error "[ERROR] Increase in disk size must be between 5 and 50 GiB.\n"
+                continue
+            fi
+            break
+        done
+    fi
+
+    print_info "[INFO] Growing disk by ${grow_size_gib} GiB..."
+    if sudo qemu-img resize "$vm_qcow2_disk_path" +${grow_size_gib}G; then
+        total_vm_disk_size=$(( current_disk_gib + grow_size_gib ))
+        print_success "[SUCCESS] Disk of VM '${qemu_kvm_hostname}' resized to ${total_vm_disk_size} GiB. Proceeding to power on the VM."
+
+        sudo virsh start "${qemu_kvm_hostname}" 2>/dev/null
+        print_success "[SUCCESS] VM '$qemu_kvm_hostname' started successfully after disk resize."
+
+        print_info "[INFO] Attempting to resize root file system of VM '$qemu_kvm_hostname'..."
+        SSH_TARGET_HOST="${qemu_kvm_hostname}"
+        MAX_SSH_WAIT_SECONDS=120
+        SSH_RETRY_INTERVAL_SECONDS=5
+        SSH_OPTS="-o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
+        print_info "[INFO] Waiting up to $MAX_SSH_WAIT_SECONDS seconds for SSH connection on $SSH_TARGET_HOST..." nskip
+        ssh_start_time=$(date +%s)
+        while true; do
+            sleep "$SSH_RETRY_INTERVAL_SECONDS"
+            if ssh $SSH_OPTS ${lab_infra_admin_username}@${SSH_TARGET_HOST} "true" &>/dev/null; then
+                echo " [SSH-Active]"
+                break
+            fi
+            ssh_current_time=$(date +%s)
+            ssh_elapsed_time=$((ssh_current_time - ssh_start_time))
+            if [ "$ssh_elapsed_time" -ge "$MAX_SSH_WAIT_SECONDS" ]; then
+                print_warning "[WARNING] Timed out waiting for SSH after $MAX_SSH_WAIT_SECONDS seconds."
+                print_info "[INFO] Execute lab-rootfs-extender utility manually from $SSH_TARGET_HOST once booted."
+                exit 1
+            fi
+        done
+        /server-hub/common-utils/lab-rootfs-extender $SSH_TARGET_HOST
+        print_success "[SUCCESS] Successfully extended the size of OS disk and root filesystem of ${SSH_TARGET_HOST} to ${total_vm_disk_size} GiB."
+    else
+        print_error "[ERROR] Disk resize of VM '${qemu_kvm_hostname}' failed!"
+        exit 1
+    fi
 }
 
+# Check if VM is running and shutdown if needed
+fn_check_vm_power_state() {
+    if ! sudo virsh list | awk '{print $2}' | grep -Fxq "$qemu_kvm_hostname"; then
+        print_success "[SUCCESS] VM '$qemu_kvm_hostname' is not running. Proceeding further."
+    else
+        fn_shutdown_or_poweroff
+    fi
+}
+
+# Determine resize type (from argument or prompt)
+if [[ -n "$resize_type_arg" ]]; then
+    # Validate resize type
+    case "$resize_type_arg" in
+        memory|cpu|disk)
+            resize_type="$resize_type_arg"
+            ;;
+        *)
+            print_error "[ERROR] Invalid resize type: $resize_type_arg. Must be 'memory', 'cpu', or 'disk'."
+            exit 1
+            ;;
+    esac
+    
+    # Automated mode - check VM state and perform resize
+    fn_check_vm_power_state
+    
+    case "$resize_type" in
+        memory)
+            resize_vm_memory
+            ;;
+        cpu)
+            resize_vm_cpu
+            ;;
+        disk)
+            resize_vm_disk
+            ;;
+    esac
+    exit 0
+fi
+
+# Interactive mode - show menu
 while true; do
-    echo -e "\n🛠️  Resize Resource of VM '$qemu_kvm_hostname' "
-    echo -e "    Select an option.\n"
-    echo "	1) Resize Memory"
-    echo "	2) Resize CPU"
-    echo "	3) Resize Disk"
-    echo -e "	q) Quit\n"
+    print_info "[INFO] Resize Resource of VM '$qemu_kvm_hostname'"
+    print_info "[INFO] Select an option:\n"
+    echo "\t1) Resize Memory"
+    echo "\t2) Resize CPU"
+    echo "\t3) Resize Disk"
+    echo -e "\tq) Quit\n"
 
-    read -rp "Enter your choice : " resize_choice
-
-    # Check if VM is running in 'virsh list'
-    fn_check_vm_power_state() {
-    	if ! sudo virsh list  | awk '{print $2}' | grep -Fxq "$qemu_kvm_hostname"; then
-        	echo -e "✅ VM '$qemu_kvm_hostname' is not Running, Proceeding further. \n"
-    	else
-        	fn_shutdown_or_poweroff
-    	fi
-    }
+    read -rp "Enter your choice: " resize_choice
 
     case "$resize_choice" in
-        1) fn_check_vm_power_state;resize_vm_memory;exit;;
-        2) fn_check_vm_power_state;resize_vm_cpu;exit;;
-        3) fn_check_vm_power_state;resize_vm_disk;exit;;
-        q) echo -e "\n👋 Quitting without any action.\n";exit;;
-        *) echo -e "\n❌ Invalid option ! \n" ;;
+        1)
+            fn_check_vm_power_state
+            resize_vm_memory
+            exit 0
+            ;;
+        2)
+            fn_check_vm_power_state
+            resize_vm_cpu
+            exit 0
+            ;;
+        3)
+            fn_check_vm_power_state
+            resize_vm_disk
+            exit 0
+            ;;
+        q)
+            print_info "[INFO] Quitting without any action."
+            exit 0
+            ;;
+        *)
+            print_error "[ERROR] Invalid option!\n"
+            ;;
     esac
 done
-
-exit
