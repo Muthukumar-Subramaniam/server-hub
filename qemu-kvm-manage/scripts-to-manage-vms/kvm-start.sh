@@ -99,39 +99,13 @@ if [[ -n "$hosts_list" ]]; then
         exit 1
     fi
     
-    # Validate and normalize all hostnames using input-hostname.sh
-    validated_hosts=()
-    for vm_name in "${hosts_array[@]}"; do
-        vm_name=$(echo "$vm_name" | xargs) # Trim whitespace
-        [[ -z "$vm_name" ]] && continue  # Skip empty entries
-        # Use input-hostname.sh to validate and normalize
-        source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/input-hostname.sh "$vm_name"
-        validated_hosts+=("$qemu_kvm_hostname")
-    done
-    
-    # Check if any valid hosts remain after validation
-    if [[ ${#validated_hosts[@]} -eq 0 ]]; then
-        print_error "[ERROR] No valid hostnames provided in --hosts list."
+    # Validate and normalize hostnames
+    source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/validate-and-process-hostnames.sh
+    if ! validate_and_process_hostnames hosts_array; then
         exit 1
     fi
     
-    # Remove duplicates while preserving order
-    declare -A seen_hosts
-    unique_hosts=()
-    for vm_name in "${validated_hosts[@]}"; do
-        if [[ -z "${seen_hosts[$vm_name]}" ]]; then
-            seen_hosts[$vm_name]=1
-            unique_hosts+=("$vm_name")
-        fi
-    done
-    
-    # Check if duplicates were found
-    if [[ ${#unique_hosts[@]} -lt ${#validated_hosts[@]} ]]; then
-        duplicate_count=$((${#validated_hosts[@]} - ${#unique_hosts[@]}))
-        print_warning "[WARNING] Removed $duplicate_count duplicate hostname(s) from the list."
-    fi
-    
-    validated_hosts=("${unique_hosts[@]}")
+    validated_hosts=("${VALIDATED_HOSTS[@]}")
     
     # Start each VM
     failed_vms=()
