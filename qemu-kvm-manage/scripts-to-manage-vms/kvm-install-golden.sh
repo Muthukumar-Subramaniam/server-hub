@@ -83,23 +83,14 @@ for qemu_kvm_hostname in "${HOSTNAMES[@]}"; do
         continue
     fi
 
-    if [ ! -f /kvm-hub/golden-images-disk-store/${OS_DISTRO}-golden-image.${lab_infra_domain_name}.qcow2 ]; then
-        print_error "[ERROR] Golden image disk not found for \"$qemu_kvm_hostname\"!"
-        print_info "[INFO] Expected at: /kvm-hub/golden-images-disk-store/${OS_DISTRO}-golden-image.${lab_infra_domain_name}.qcow2"
-        print_info "[INFO] To build the golden image disk, run: qlabvmctl build-golden-image"
+    source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/validate-golden-image-exists.sh
+    if ! validate_golden_image_exists "$qemu_kvm_hostname" "${OS_DISTRO}"; then
         FAILED_VMS+=("$qemu_kvm_hostname")
         continue
     fi
 
-    print_info "[INFO] Cloning golden image disk to /kvm-hub/vms/${qemu_kvm_hostname}/${qemu_kvm_hostname}.qcow2..." nskip
-
-    if error_msg=$(sudo qemu-img convert -O qcow2 \
-      /kvm-hub/golden-images-disk-store/${OS_DISTRO}-golden-image.${lab_infra_domain_name}.qcow2 \
-      /kvm-hub/vms/${qemu_kvm_hostname}/${qemu_kvm_hostname}.qcow2 2>&1); then
-        # Verify the cloned disk exists and has size
-        if [[ -f "/kvm-hub/vms/${qemu_kvm_hostname}/${qemu_kvm_hostname}.qcow2" ]] && \
-           [[ $(stat -c%s "/kvm-hub/vms/${qemu_kvm_hostname}/${qemu_kvm_hostname}.qcow2" 2>/dev/null || echo 0) -gt 0 ]]; then
-            print_success "[ SUCCESS ]"
+    source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/clone-golden-image-disk.sh
+    if ! clone_golden_image_disk "$qemu_kvm_hostname" "${OS_DISTRO}"; then
         else
             print_error "[ FAILED ]"
             print_error "Disk file was not created properly for \"$qemu_kvm_hostname\"."

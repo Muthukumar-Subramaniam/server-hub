@@ -128,13 +128,10 @@ for qemu_kvm_hostname in "${HOSTNAMES[@]}"; do
         print_info "[INFO] Reimaging VM \"$qemu_kvm_hostname\" by replacing its qcow2 disk with a new one..."
         
         vm_qcow2_disk_path="/kvm-hub/vms/${qemu_kvm_hostname}/${qemu_kvm_hostname}.qcow2"
-        current_disk_gib=$(sudo qemu-img info "${vm_qcow2_disk_path}" 2>/dev/null | grep "virtual size" | grep -o '[0-9]\+ GiB' | cut -d' ' -f1)
         
-        # Use default if disk doesn't exist or size extraction failed
-        default_qcow2_disk_gib=20
-        if [[ -z "$current_disk_gib" ]]; then
-            current_disk_gib="$default_qcow2_disk_gib"
-        fi
+        source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/get-current-disk-size.sh
+        get_current_disk_size "$qemu_kvm_hostname"
+        current_disk_gib="${CURRENT_DISK_SIZE:-20}"
         
         # Delete existing qcow2 disk and recreate with appropriate size
         sudo rm -f "${vm_qcow2_disk_path}"

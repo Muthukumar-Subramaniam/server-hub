@@ -1,0 +1,43 @@
+# clone-golden-image-disk.sh
+# 
+# Clones golden image disk to VM directory with verification
+#
+# Usage:
+#   source /path/to/clone-golden-image-disk.sh
+#   clone_golden_image_disk "vm-hostname" "os-distro"
+#
+# Returns:
+#   0 - Disk cloned successfully
+#   1 - Failed to clone disk
+
+clone_golden_image_disk() {
+    local vm_hostname="$1"
+    local os_distro="$2"
+    
+    if [[ -z "$vm_hostname" || -z "$os_distro" ]]; then
+        print_error "[ERROR] clone_golden_image_disk: Missing required parameters."
+        return 1
+    fi
+    
+    local golden_image_path="/kvm-hub/golden-images-disk-store/${os_distro}-golden-image.${lab_infra_domain_name}.qcow2"
+    local vm_disk_path="/kvm-hub/vms/${vm_hostname}/${vm_hostname}.qcow2"
+    
+    print_info "[INFO] Cloning golden image disk to ${vm_disk_path}..." nskip
+    
+    if error_msg=$(sudo qemu-img convert -O qcow2 "${golden_image_path}" "${vm_disk_path}" 2>&1); then
+        # Verify the cloned disk exists and has size
+        if [[ -f "${vm_disk_path}" ]] && \
+           [[ $(stat -c%s "${vm_disk_path}" 2>/dev/null || echo 0) -gt 0 ]]; then
+            print_success "[ SUCCESS ]"
+            return 0
+        else
+            print_error "[ FAILED ]"
+            print_error "Disk file was not created properly for \"$vm_hostname\"."
+            return 1
+        fi
+    else
+        print_error "[ FAILED ]"
+        print_error "$error_msg"
+        return 1
+    fi
+}

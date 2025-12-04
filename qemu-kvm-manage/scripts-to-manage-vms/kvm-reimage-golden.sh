@@ -91,15 +91,13 @@ for qemu_kvm_hostname in "${HOSTNAMES[@]}"; do
         continue
     fi
 
-    # Validate golden image disk exists
-    golden_qcow2_disk_path="/kvm-hub/golden-images-disk-store/${OS_DISTRO}-golden-image.${lab_infra_domain_name}.qcow2"
-    if [ ! -f "${golden_qcow2_disk_path}" ]; then
-        print_error "[ERROR] Golden image disk not found for \"$qemu_kvm_hostname\"!"
-        print_info "[INFO] Expected at: ${golden_qcow2_disk_path}"
-        print_info "[INFO] To build the golden image disk, run: qlabvmctl build-golden-image"
+    source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/validate-golden-image-exists.sh
+    if ! validate_golden_image_exists "$qemu_kvm_hostname" "${OS_DISTRO}"; then
         FAILED_VMS+=("$qemu_kvm_hostname")
         continue
     fi
+
+    golden_qcow2_disk_path="/kvm-hub/golden-images-disk-store/${OS_DISTRO}-golden-image.${lab_infra_domain_name}.qcow2"
 
     # Shut down VM if running
     source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/shutdown-vm.sh
@@ -124,12 +122,8 @@ for qemu_kvm_hostname in "${HOSTNAMES[@]}"; do
         fi
         
         # Clone golden image disk
-        print_info "[INFO] Cloning golden image disk to /kvm-hub/vms/${qemu_kvm_hostname}/${qemu_kvm_hostname}.qcow2..." nskip
-        if error_msg=$(sudo qemu-img convert -O qcow2 "${golden_qcow2_disk_path}" /kvm-hub/vms/${qemu_kvm_hostname}/${qemu_kvm_hostname}.qcow2 2>&1); then
-            print_success "[ SUCCESS ]"
-        else
-            print_error "[ FAILED ]"
-            print_error "$error_msg"
+        source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/clone-golden-image-disk.sh
+        if ! clone_golden_image_disk "$qemu_kvm_hostname" "${OS_DISTRO}"; then
             FAILED_VMS+=("$qemu_kvm_hostname")
             continue
         fi
@@ -147,17 +141,13 @@ for qemu_kvm_hostname in "${HOSTNAMES[@]}"; do
         print_info "[INFO] Reimaging VM \"$qemu_kvm_hostname\" by replacing its qcow2 disk with the golden image disk..."
         
         vm_qcow2_disk_path="/kvm-hub/vms/${qemu_kvm_hostname}/${qemu_kvm_hostname}.qcow2"
-        current_disk_gib=$(sudo qemu-img info "${vm_qcow2_disk_path}" 2>/dev/null | grep "virtual size" | grep -o '[0-9]\+ GiB' | cut -d' ' -f1)
-        golden_disk_gib=$(sudo qemu-img info "${golden_qcow2_disk_path}" 2>/dev/null | grep "virtual size" | grep -o '[0-9]\+ GiB' | cut -d' ' -f1)
         
-        # Use default if disk doesn't exist or size extraction failed
-        default_qcow2_disk_gib=20
-        if [[ -z "$current_disk_gib" ]]; then
-            current_disk_gib="$default_qcow2_disk_gib"
-        fi
-        if [[ -z "$golden_disk_gib" ]]; then
-            golden_disk_gib="$default_qcow2_disk_gib"
-        fi
+        source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/get-current-disk-size.sh
+        get_current_disk_size "$qemu_kvm_hostname"
+        current_disk_gib="${CURRENT_DISK_SIZE:-20}"
+        
+        golden_disk_gib=$(sudo qemu-img info "${golden_qcow2_disk_path}" 2>/dev/null | grep "virtual size" | grep -o '[0-9]\+ GiB' | cut -d' ' -f1)
+        golden_disk_gib="${golden_disk_gib:-20}"
         
         # Delete existing qcow2 disk and recreate with appropriate size
         sudo rm -f "${vm_qcow2_disk_path}"
