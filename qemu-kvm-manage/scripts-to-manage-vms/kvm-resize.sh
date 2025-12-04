@@ -177,7 +177,7 @@ fn_shutdown_or_poweroff() {
     esac
 }
 
-resize_vm_memory() {
+validate_memory_args() {
     host_mem_kib=$(grep MemTotal /proc/meminfo | awk '{print $2}')
     host_mem_gib=$(( host_mem_kib / 1024 / 1024 ))
     (( host_mem_gib % 2 != 0 )) && host_mem_gib=$(( host_mem_gib + 1 ))
@@ -185,9 +185,7 @@ resize_vm_memory() {
     current_mem_kib=$(sudo virsh dominfo "$qemu_kvm_hostname" | awk '/^Max memory/ {print $3}')
     current_vm_mem_gib=$(( current_mem_kib / 1024 / 1024 ))
 
-    # Get memory size from argument or prompt
     if [[ -n "$gib_arg" ]]; then
-        # Validate provided memory size
         if ! [[ "$gib_arg" =~ ^[0-9]+$ ]]; then
             print_error "[ERROR] Invalid memory size: $gib_arg. Must be numeric."
             exit 1
@@ -204,6 +202,64 @@ resize_vm_memory() {
             print_error "[ERROR] New memory size (${gib_arg} GiB) is same as current memory size."
             exit 1
         fi
+    fi
+}
+
+validate_cpu_args() {
+    current_vcpus_of_vm=$(sudo virsh dominfo "$qemu_kvm_hostname" | awk '/^CPU\(s\)/ {print $2}')
+    host_cpu_count=$(nproc)
+
+    if [[ -n "$count_arg" ]]; then
+        if ! [[ "$count_arg" =~ ^[0-9]+$ ]]; then
+            print_error "[ERROR] Invalid vCPU count: $count_arg. Must be numeric."
+            exit 1
+        fi
+        if (( count_arg < 2 )); then
+            print_error "[ERROR] vCPU count must be at least 2."
+            exit 1
+        fi
+        if ! (( (count_arg & (count_arg - 1)) == 0 )); then
+            print_error "[ERROR] vCPU count must be a power of 2 (2, 4, 8...)."
+            exit 1
+        fi
+        if (( count_arg > host_cpu_count )); then
+            print_error "[ERROR] Cannot exceed host CPU count ${host_cpu_count}."
+            exit 1
+        fi
+        if (( count_arg == current_vcpus_of_vm )); then
+            print_error "[ERROR] New vCPU count (${count_arg}) is same as current vCPU count."
+            exit 1
+        fi
+    fi
+}
+
+validate_disk_args() {
+    if [[ -n "$gib_arg" ]]; then
+        if ! [[ "$gib_arg" =~ ^[0-9]+$ ]]; then
+            print_error "[ERROR] Invalid disk increase size: $gib_arg. Must be numeric."
+            exit 1
+        fi
+        if (( gib_arg % 5 != 0 )); then
+            print_error "[ERROR] Disk increase size must be a multiple of 5 GiB."
+            exit 1
+        fi
+        if (( gib_arg < 5 || gib_arg > 50 )); then
+            print_error "[ERROR] Disk increase size must be between 5 and 50 GiB."
+            exit 1
+        fi
+    fi
+}
+
+resize_vm_memory() {
+    host_mem_kib=$(grep MemTotal /proc/meminfo | awk '{print $2}')
+    host_mem_gib=$(( host_mem_kib / 1024 / 1024 ))
+    (( host_mem_gib % 2 != 0 )) && host_mem_gib=$(( host_mem_gib + 1 ))
+
+    current_mem_kib=$(sudo virsh dominfo "$qemu_kvm_hostname" | awk '/^Max memory/ {print $3}')
+    current_vm_mem_gib=$(( current_mem_kib / 1024 / 1024 ))
+
+    # Get memory size from argument or prompt
+    if [[ -n "$gib_arg" ]]; then
         vm_mem_gib="$gib_arg"
         print_success "[SUCCESS] Using memory size: ${vm_mem_gib} GiB"
     else
@@ -257,27 +313,6 @@ resize_vm_cpu() {
 
     # Get CPU count from argument or prompt
     if [[ -n "$count_arg" ]]; then
-        # Validate provided CPU count
-        if ! [[ "$count_arg" =~ ^[0-9]+$ ]]; then
-            print_error "[ERROR] Invalid vCPU count: $count_arg. Must be numeric."
-            exit 1
-        fi
-        if (( count_arg < 2 )); then
-            print_error "[ERROR] vCPU count must be at least 2."
-            exit 1
-        fi
-        if ! (( (count_arg & (count_arg - 1)) == 0 )); then
-            print_error "[ERROR] vCPU count must be a power of 2 (2, 4, 8...)."
-            exit 1
-        fi
-        if (( count_arg > host_cpu_count )); then
-            print_error "[ERROR] Cannot exceed host CPU count ${host_cpu_count}."
-            exit 1
-        fi
-        if (( count_arg == current_vcpus_of_vm )); then
-            print_error "[ERROR] New vCPU count (${count_arg}) is same as current vCPU count."
-            exit 1
-        fi
         new_vcpus_of_vm="$count_arg"
         print_success "[SUCCESS] Using vCPU count: ${new_vcpus_of_vm}"
     else
@@ -341,19 +376,6 @@ resize_vm_disk() {
 
     # Get disk increase size from argument or prompt
     if [[ -n "$gib_arg" ]]; then
-        # Validate provided disk increase size
-        if ! [[ "$gib_arg" =~ ^[0-9]+$ ]]; then
-            print_error "[ERROR] Invalid disk increase size: $gib_arg. Must be numeric."
-            exit 1
-        fi
-        if (( gib_arg % 5 != 0 )); then
-            print_error "[ERROR] Disk increase size must be a multiple of 5 GiB."
-            exit 1
-        fi
-        if (( gib_arg < 5 || gib_arg > 50 )); then
-            print_error "[ERROR] Disk increase size must be between 5 and 50 GiB."
-            exit 1
-        fi
         grow_size_gib="$gib_arg"
         print_success "[SUCCESS] Using disk increase size: ${grow_size_gib} GiB"
     else
@@ -442,6 +464,18 @@ if [[ -n "$resize_type_arg" ]]; then
     esac
     
     # Automated mode - check VM state and perform resize
+    case "$resize_type" in
+        memory)
+            validate_memory_args
+            ;;
+        cpu)
+            validate_cpu_args
+            ;;
+        disk)
+            validate_disk_args
+            ;;
+    esac
+
     fn_check_vm_power_state
     
     case "$resize_type" in
