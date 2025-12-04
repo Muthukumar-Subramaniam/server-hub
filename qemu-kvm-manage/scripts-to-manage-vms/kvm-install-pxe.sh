@@ -41,11 +41,8 @@ FAILED_VMS=()
 SUCCESSFUL_VMS=()
 
 for qemu_kvm_hostname in "${HOSTNAMES[@]}"; do
-    ((CURRENT_VM++))
-    
-    if [[ $TOTAL_VMS -gt 1 ]]; then
-        print_info "[INFO] Processing VM ${CURRENT_VM}/${TOTAL_VMS}: ${qemu_kvm_hostname}"
-    fi
+    source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/show-multi-vm-progress.sh
+    show_multi_vm_progress "$qemu_kvm_hostname"
 
     # Check if VM exists
     source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/check-vm-exists.sh
@@ -64,8 +61,8 @@ for qemu_kvm_hostname in "${HOSTNAMES[@]}"; do
     fi
 
     # Create VM directory
-    if ! mkdir -p /kvm-hub/vms/"${qemu_kvm_hostname}"; then
-        print_error "[ERROR] Failed to create VM directory: /kvm-hub/vms/${qemu_kvm_hostname}"
+    source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/create-vm-directory.sh
+    if ! create_vm_directory "${qemu_kvm_hostname}"; then
         FAILED_VMS+=("$qemu_kvm_hostname")
         continue
     fi

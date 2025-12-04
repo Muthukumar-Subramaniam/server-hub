@@ -45,11 +45,8 @@ FAILED_VMS=()
 SUCCESSFUL_VMS=()
 
 for qemu_kvm_hostname in "${HOSTNAMES[@]}"; do
-    ((CURRENT_VM++))
-    
-    if [[ $TOTAL_VMS -gt 1 ]]; then
-        print_info "[INFO] Processing VM ${CURRENT_VM}/${TOTAL_VMS}: ${qemu_kvm_hostname}"
-    fi
+    source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/show-multi-vm-progress.sh
+    show_multi_vm_progress "$qemu_kvm_hostname"
 
     # Check if VM exists
     source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/check-vm-exists.sh
@@ -112,30 +109,16 @@ for qemu_kvm_hostname in "${HOSTNAMES[@]}"; do
     if [[ "$CLEAN_INSTALL" == "yes" ]]; then
         print_info "[INFO] Using --clean-install: VM will be destroyed and reinstalled with default specs (2 vCPUs, 2 GiB RAM, 20 GiB disk)."
         
-        # Undefine the VM
-        print_info "[INFO] Undefining VM \"$qemu_kvm_hostname\"..."
-        if error_msg=$(sudo virsh undefine "$qemu_kvm_hostname" --nvram 2>&1); then
-            print_success "[SUCCESS] VM undefined successfully."
-        else
-            print_error "[FAILED] Could not undefine VM \"$qemu_kvm_hostname\"."
-            print_error "$error_msg"
-            FAILED_VMS+=("$qemu_kvm_hostname")
-            continue
-        fi
-        
-        # Delete VM folder and contents
-        print_info "[INFO] Deleting VM folder /kvm-hub/vms/${qemu_kvm_hostname}..."
-        if sudo rm -rf "/kvm-hub/vms/${qemu_kvm_hostname}"; then
-            print_success "[SUCCESS] VM folder deleted successfully."
-        else
-            print_error "[FAILED] Could not delete VM folder."
+        # Destroy VM and delete directory
+        source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/destroy-vm-for-clean-install.sh
+        if ! destroy_vm_for_clean_install "$qemu_kvm_hostname"; then
             FAILED_VMS+=("$qemu_kvm_hostname")
             continue
         fi
         
         # Create fresh VM directory
-        if ! mkdir -p /kvm-hub/vms/"${qemu_kvm_hostname}"; then
-            print_error "[ERROR] Failed to create VM directory: /kvm-hub/vms/${qemu_kvm_hostname}"
+        source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/create-vm-directory.sh
+        if ! create_vm_directory "${qemu_kvm_hostname}"; then
             FAILED_VMS+=("$qemu_kvm_hostname")
             continue
         fi
