@@ -168,6 +168,196 @@ for input_arguement in "$@"; do
     fi
 done
 
+# Check for --remove-host flag
+remove_host_requested=false
+for input_arguement in "$@"; do
+    if [[ "$input_arguement" == "--remove-host" ]]; then
+        remove_host_requested=true
+        break
+    fi
+done
+
+# If --remove-host is requested, handle cleanup and exit
+if $remove_host_requested; then
+    if [ -z "${1}" ] || [[ "${1}" == "--remove-host" ]]; then
+        print_error "[ERROR] Hostname is required with --remove-host flag."
+        print_info "[INFO] Usage: sudo ksmanager hostname --remove-host"
+        exit 1
+    fi
+    
+    # Extract hostname from arguments (skip --remove-host)
+    for arg in "$@"; do
+        if [[ "$arg" != "--remove-host" ]]; then
+            cleanup_hostname="$arg"
+            break
+        fi
+    done
+    
+    # Validate and normalize hostname to FQDN
+    if [[ "${cleanup_hostname}" == *.${ipv4_domain} ]]; then
+        stripped_hostname="${cleanup_hostname%.${ipv4_domain}}"
+        if [[ "${stripped_hostname}" == *.* ]]; then
+            print_error "[ERROR] Invalid hostname. Expected format: hostname.${ipv4_domain}"
+            exit 1
+        fi
+        if [[ ! "${stripped_hostname}" =~ ^[a-z0-9-]+$ || "${stripped_hostname}" =~ ^- || "${stripped_hostname}" =~ -$ ]]; then
+            print_error "[ERROR] Invalid hostname. Use only lowercase letters, numbers, and hyphens."
+            exit 1
+        fi
+    elif [[ "${cleanup_hostname}" == *.* ]]; then
+        print_error "[ERROR] Invalid domain. Expected domain: ${ipv4_domain}"
+        exit 1
+    else
+        if [[ ! "${cleanup_hostname}" =~ ^[a-z0-9-]+$ || "${cleanup_hostname}" =~ ^- || "${cleanup_hostname}" =~ -$ ]]; then
+            print_error "[ERROR] Invalid hostname. Use only lowercase letters, numbers, and hyphens."
+            exit 1
+        fi
+        cleanup_hostname="${cleanup_hostname}.${ipv4_domain}"
+    fi
+    
+    print_info "[INFO] Removing host records and configurations for '${cleanup_hostname}'..."
+    
+    # Get MAC address and IP before removal
+    if [ -f "${ksmanager_hub_dir}/mac-address-cache" ]; then
+        cached_mac=$(grep "^${cleanup_hostname} " "${ksmanager_hub_dir}/mac-address-cache" 2>/dev/null | cut -d " " -f 2)
+        cached_ip=$(grep "^${cleanup_hostname} " "${ksmanager_hub_dir}/mac-address-cache" 2>/dev/null | cut -d " " -f 3)
+        
+        if [[ -n "$cached_mac" ]]; then
+            ipxe_cfg_mac=$(echo "${cached_mac}" | tr ':' '-' | tr 'A-F' 'a-f')
+        fi
+    fi
+    
+    # 1. Remove from MAC address cache
+    if [ -f "${ksmanager_hub_dir}/mac-address-cache" ] && grep -q "^${cleanup_hostname} " "${ksmanager_hub_dir}/mac-address-cache" 2>/dev/null; then
+        sed -i "/^${cleanup_hostname} /d" "${ksmanager_hub_dir}/mac-address-cache"
+        print_info "[INFO] Removed from MAC address cache"
+    else
+        print_info "[INFO] No MAC address cache entry found (already removed)"
+    fi
+    
+    # 2. Remove kickstart directory
+    if [ -d "${ksmanager_hub_dir}/kickstarts/${cleanup_hostname}" ]; then
+        rm -rf "${ksmanager_hub_dir}/kickstarts/${cleanup_hostname}"
+        print_info "[INFO] Removed kickstart files"
+    else
+        print_info "[INFO] No kickstart files found (already removed)"
+    fi
+    
+    # 3. Remove iPXE config file
+    if [[ -n "$ipxe_cfg_mac" ]]; then
+        if [ -f "${ipxe_web_dir}/${ipxe_cfg_mac}.ipxe" ]; then
+            rm -f "${ipxe_web_dir}/${ipxe_cfg_mac}.ipxe"
+            print_info "[INFO] Removed iPXE config file (${ipxe_cfg_mac}.ipxe)"
+        else
+            print_info "[INFO] No iPXE config file found (already removed)"
+        fi
+    else
+        print_info "[INFO] No iPXE config (no MAC address found)"
+    fi
+    
+    # 4. Remove golden boot network config
+    if [[ -n "$ipxe_cfg_mac" ]]; then
+        if [ -f "${ksmanager_hub_dir}/golden-boot-mac-configs/network-config-${ipxe_cfg_mac}" ]; then
+            rm -f "${ksmanager_hub_dir}/golden-boot-mac-configs/network-config-${ipxe_cfg_mac}"
+            print_info "[INFO] Removed golden boot network config"
+        else
+            print_info "[INFO] No golden boot network config found (already removed)"
+        fi
+    else
+        print_info "[INFO] No golden boot config (no MAC address found)"
+    fi
+    
+    # 5. Remove KEA DHCP reservation
+    if systemctl is-active --quiet kea-ctrl-agent && [[ -n "$cached_mac" ]]; then
+        kea_api_url="http://127.0.0.1:8000/"
+        kea_api_auth="kea-api:kea-api-password"
+        
+        # Delete lease by MAC address
+        curl -s -X POST -H "Content-Type: application/json" \
+            -u "$kea_api_auth" \
+            -d "{
+                  \"command\": \"lease4-del\",
+                  \"service\": [ \"dhcp4\" ],
+                  \"arguments\": {
+                    \"hw-address\": \"${cached_mac}\"
+                  }
+                }" \
+            "$kea_api_url" &>/dev/null
+        
+        # Delete lease by IP address
+        if [[ -n "$cached_ip" ]]; then
+            curl -s -X POST -H "Content-Type: application/json" \
+                -u "$kea_api_auth" \
+                -d "{
+                      \"command\": \"lease4-del\",
+                      \"service\": [ \"dhcp4\" ],
+                      \"arguments\": {
+                        \"ip-address\": \"${cached_ip}\"
+                      }
+                    }" \
+                "$kea_api_url" &>/dev/null
+        fi
+        
+        # Rebuild KEA config without this host
+        kea_cache_file="${ksmanager_hub_dir}/mac-address-cache"
+        kea_config_file="/etc/kea/kea-dhcp4.conf"
+        kea_temp_config_timestamp=$(date +"%Y%m%d_%H%M%S_%Z")
+        kea_config_temp_dir="${ksmanager_hub_dir}/kea_dhcp_temp_configs_with_reservation"
+        kea_tmp_config="${kea_config_temp_dir}/kea-dhcp4.conf_${kea_temp_config_timestamp}"
+        
+        mkdir -p "$kea_config_temp_dir"
+        
+        kea_existing_config=$(cat "$kea_config_file")
+        
+        kea_reservations_json=""
+        while read -r kea_hostname kea_hw_address kea_ip_address; do
+            kea_reservations_json+="{
+              \"hostname\": \"$kea_hostname\",
+              \"hw-address\": \"$kea_hw_address\",
+              \"ip-address\": \"$kea_ip_address\"
+            },"
+        done < "$kea_cache_file"
+        
+        kea_reservations_json="[${kea_reservations_json%,}]"
+        
+        kea_new_config=$(echo "$kea_existing_config" | \
+            jq --argjson reservations "$kea_reservations_json" \
+              '.Dhcp4.subnet4[0].reservations = $reservations')
+        
+        cat > "$kea_tmp_config" <<EOF
+{
+  "command": "config-set",
+  "service": [ "dhcp4" ],
+  "arguments": $kea_new_config
+}
+EOF
+        
+        chown ${mgmt_super_user}:${mgmt_super_user} "${kea_tmp_config}"
+        
+        curl -s -X POST -H "Content-Type: application/json" \
+            -u "$kea_api_auth" \
+            -d @"$kea_tmp_config" \
+            "$kea_api_url" &>/dev/null
+        
+        print_info "[INFO] Removed KEA DHCP reservations"
+    fi
+    
+    # 6. Remove DNS record
+    if host "${cleanup_hostname}" "${dnsbinder_server_ipv4_address}" &>/dev/null; then
+        "${dnsbinder_script}" -d "${cleanup_hostname}" -y
+        if ! host "${cleanup_hostname}" "${dnsbinder_server_ipv4_address}" &>/dev/null; then
+            print_info "[INFO] Removed DNS record"
+        else
+            print_warning "[WARNING] DNS record may not have been removed properly"
+        fi
+    else
+        print_info "[INFO] No DNS record found (already removed)"
+    fi
+    
+    print_success "[SUCCESS] Host '${cleanup_hostname}' has been removed from all ksmanager databases."
+    exit 0
+fi
+
 if $golden_image_creation_not_requested; then
 	fn_check_and_create_host_record "${1}"
 	ipv4_address=$(host "${kickstart_hostname}" "${dnsbinder_server_ipv4_address}" | grep 'has address' | cut -d " " -f 4 | tr -d '[[:space:]]')
