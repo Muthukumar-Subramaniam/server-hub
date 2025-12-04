@@ -231,10 +231,10 @@ resize_vm_memory() {
 
     vm_mem_kib=$(( vm_mem_gib * 1024 * 1024 ))
     print_info "[INFO] Updating memory size of VM to ${vm_mem_gib} GiB..."
-    if sudo virsh setmaxmem "$qemu_kvm_hostname" "$vm_mem_kib" --config && \
-       sudo virsh setmem "$qemu_kvm_hostname" "$vm_mem_kib" --config; then
+    if sudo virsh setmaxmem "$qemu_kvm_hostname" "$vm_mem_kib" --config &>/dev/null && \
+       sudo virsh setmem "$qemu_kvm_hostname" "$vm_mem_kib" --config &>/dev/null; then
         print_success "[SUCCESS] VM memory updated to ${vm_mem_gib} GiB. Proceeding to power on the VM."
-        sudo virsh start "${qemu_kvm_hostname}" 2>/dev/null
+        sudo virsh start "${qemu_kvm_hostname}" &>/dev/null
         print_success "[SUCCESS] VM '${qemu_kvm_hostname}' started successfully after memory resize."
     else
         print_error "[ERROR] Failed to update VM memory."
@@ -300,10 +300,10 @@ resize_vm_cpu() {
     fi
 
     print_info "[INFO] Updating vCPUs of VM '${qemu_kvm_hostname}' to ${new_vcpus_of_vm}..."
-    if sudo virsh setvcpus "$qemu_kvm_hostname" "$new_vcpus_of_vm" --maximum --config && \
-       sudo virsh setvcpus "$qemu_kvm_hostname" "$new_vcpus_of_vm" --config; then
+    if sudo virsh setvcpus "$qemu_kvm_hostname" "$new_vcpus_of_vm" --maximum --config &>/dev/null && \
+       sudo virsh setvcpus "$qemu_kvm_hostname" "$new_vcpus_of_vm" --config &>/dev/null; then
         print_success "[SUCCESS] vCPU count updated to $new_vcpus_of_vm. Proceeding to power on the VM."
-        sudo virsh start "${qemu_kvm_hostname}" 2>/dev/null
+        sudo virsh start "${qemu_kvm_hostname}" &>/dev/null
         print_success "[SUCCESS] VM '$qemu_kvm_hostname' started successfully after vCPU resize."
     else
         print_error "[ERROR] Failed to update vCPU count."
@@ -365,11 +365,11 @@ resize_vm_disk() {
     fi
 
     print_info "[INFO] Growing disk by ${grow_size_gib} GiB..."
-    if sudo qemu-img resize "$vm_qcow2_disk_path" +${grow_size_gib}G; then
+    if sudo qemu-img resize "$vm_qcow2_disk_path" +${grow_size_gib}G &>/dev/null; then
         total_vm_disk_size=$(( current_disk_gib + grow_size_gib ))
         print_success "[SUCCESS] Disk of VM '${qemu_kvm_hostname}' resized to ${total_vm_disk_size} GiB. Proceeding to power on the VM."
 
-        sudo virsh start "${qemu_kvm_hostname}" 2>/dev/null
+        sudo virsh start "${qemu_kvm_hostname}" &>/dev/null
         print_success "[SUCCESS] VM '$qemu_kvm_hostname' started successfully after disk resize."
 
         print_info "[INFO] Attempting to resize root file system of VM '$qemu_kvm_hostname'..."
