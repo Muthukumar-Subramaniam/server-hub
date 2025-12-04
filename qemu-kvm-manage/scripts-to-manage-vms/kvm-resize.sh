@@ -200,6 +200,10 @@ resize_vm_memory() {
             print_error "[ERROR] Memory size must be less than host memory ${host_mem_gib} GiB."
             exit 1
         fi
+        if (( gib_arg == current_vm_mem_gib )); then
+            print_error "[ERROR] New memory size (${gib_arg} GiB) is same as current memory size."
+            exit 1
+        fi
         vm_mem_gib="$gib_arg"
         print_success "[SUCCESS] Using memory size: ${vm_mem_gib} GiB"
     else
@@ -223,6 +227,11 @@ resize_vm_memory() {
 
             if (( vm_mem_gib >= host_mem_gib )); then
                 print_error "[ERROR] VM memory size must be less than host memory ${host_mem_gib} GiB"
+                continue
+            fi
+
+            if (( vm_mem_gib == current_vm_mem_gib )); then
+                print_error "[ERROR] New memory size is same as current memory size (${current_vm_mem_gib} GiB)"
                 continue
             fi
             break
@@ -265,6 +274,10 @@ resize_vm_cpu() {
             print_error "[ERROR] Cannot exceed host CPU count ${host_cpu_count}."
             exit 1
         fi
+        if (( count_arg == current_vcpus_of_vm )); then
+            print_error "[ERROR] New vCPU count (${count_arg}) is same as current vCPU count."
+            exit 1
+        fi
         new_vcpus_of_vm="$count_arg"
         print_success "[SUCCESS] Using vCPU count: ${new_vcpus_of_vm}"
     else
@@ -293,6 +306,11 @@ resize_vm_cpu() {
 
             if (( new_vcpus_of_vm > host_cpu_count )); then
                 print_error "[ERROR] Cannot exceed host CPU count ${host_cpu_count}"
+                continue
+            fi
+
+            if (( new_vcpus_of_vm == current_vcpus_of_vm )); then
+                print_error "[ERROR] New vCPU count is same as current vCPU count (${current_vcpus_of_vm})"
                 continue
             fi
             break
