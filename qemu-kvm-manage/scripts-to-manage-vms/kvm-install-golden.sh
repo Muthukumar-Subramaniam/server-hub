@@ -217,42 +217,13 @@ for qemu_kvm_hostname in "${HOSTNAMES[@]}"; do
 
     SUCCESSFUL_VMS+=("$qemu_kvm_hostname")
 
-    if [[ "$ATTACH_CONSOLE" == "yes" ]]; then
-        print_info "[INFO] Attaching to VM console. Press Ctrl+] to exit console."
-        sudo virsh console "${qemu_kvm_hostname}"
-    elif [[ $TOTAL_VMS -eq 1 ]]; then
-        print_info "[INFO] The VM will reboot once or twice during the installation process (~1 minute)."
-        print_info "[INFO] To monitor installation progress, use: qlabvmctl console $qemu_kvm_hostname"
-        print_info "[INFO] To check VM status, use: qlabvmctl list"
-        print_success "[SUCCESS] VM \"$qemu_kvm_hostname\" installation initiated successfully via golden image disk."
-    fi
-
-    # Clean up log file for this VM
-    if [[ -n "$LOG_FILE" && -f "$LOG_FILE" ]]; then
-        rm -f "$LOG_FILE"
-    fi
+    # Show completion message for single VM
+    source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/show-vm-completion-message.sh
+    show_vm_completion_message "${qemu_kvm_hostname}" "${ATTACH_CONSOLE}" "${TOTAL_VMS}" "installation via golden image disk" "The VM will reboot once or twice during installation (~1 minute)."
 done
 
 # Summary for multiple VMs
-if [[ $TOTAL_VMS -gt 1 ]]; then
-    echo ""
-    print_info "[INFO] Installation Summary:"
-    if [[ ${#SUCCESSFUL_VMS[@]} -gt 0 ]]; then
-        print_success "[SUCCESS] Successfully initiated installation via golden image disk: ${#SUCCESSFUL_VMS[@]} VM(s)"
-        for vm in "${SUCCESSFUL_VMS[@]}"; do
-            print_success "  ✓ $vm"
-        done
-    fi
-    
-    if [[ ${#FAILED_VMS[@]} -gt 0 ]]; then
-        print_error "[FAILED] Failed to initiate installation: ${#FAILED_VMS[@]} VM(s)"
-        for vm in "${FAILED_VMS[@]}"; do
-            print_error "  ✗ $vm"
-        done
-        exit 1
-    fi
-    
-    print_info "[INFO] All VMs will reboot once or twice during installation (~1 minute each)."
-    print_info "[INFO] To monitor installation progress, use: qlabvmctl console <hostname>"
-    print_info "[INFO] To check VM status, use: qlabvmctl list"
+source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/show-vm-operation-summary.sh
+if ! show_vm_operation_summary "${TOTAL_VMS}" "SUCCESSFUL_VMS" "FAILED_VMS" "installation via golden image disk" "All VMs will reboot once or twice during installation (~1 minute each)."; then
+    exit 1
 fi

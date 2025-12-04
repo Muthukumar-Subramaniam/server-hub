@@ -320,41 +320,15 @@ for qemu_kvm_hostname in "${HOSTNAMES[@]}"; do
 
     SUCCESSFUL_VMS+=("$qemu_kvm_hostname")
 
-    # Console attachment logic
-    if [[ "$ATTACH_CONSOLE" == "yes" ]]; then
-        print_info "[INFO] Attaching to VM console. Press Ctrl+] to exit console."
-        sudo virsh console "${qemu_kvm_hostname}"
-    elif [[ $TOTAL_VMS -eq 1 ]]; then
-        print_info "[INFO] Reimaging via golden image disk takes ~1 minute."
-        print_info "[INFO] To monitor reimaging progress, use: qlabvmctl console $qemu_kvm_hostname"
-        print_info "[INFO] To check VM status, use: qlabvmctl list"
-        print_success "[SUCCESS] VM \"$qemu_kvm_hostname\" reimaging initiated successfully via golden image disk."
-    fi
-
+    # Show completion message for single VM
+    source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/show-vm-completion-message.sh
+    show_vm_completion_message "${qemu_kvm_hostname}" "${ATTACH_CONSOLE}" "${TOTAL_VMS}" "reimaging via golden image disk" "Reimaging via golden image disk takes ~1 minute."
 done
 
 # Summary for multiple VMs
-if [[ $TOTAL_VMS -gt 1 ]]; then
-    echo ""
-    print_info "[INFO] Reimage Summary:"
-    if [[ ${#SUCCESSFUL_VMS[@]} -gt 0 ]]; then
-        print_success "[SUCCESS] Successfully initiated reimaging via golden image disk: ${#SUCCESSFUL_VMS[@]} VM(s)"
-        for vm in "${SUCCESSFUL_VMS[@]}"; do
-            print_success "  ✓ $vm"
-        done
-    fi
-    
-    if [[ ${#FAILED_VMS[@]} -gt 0 ]]; then
-        print_error "[FAILED] Failed to initiate reimaging: ${#FAILED_VMS[@]} VM(s)"
-        for vm in "${FAILED_VMS[@]}"; do
-            print_error "  ✗ $vm"
-        done
-        exit 1
-    fi
-    
-    print_info "[INFO] Reimaging via golden image disk takes ~1 minute per VM."
-    print_info "[INFO] To monitor reimaging progress, use: qlabvmctl console <hostname>"
-    print_info "[INFO] To check VM status, use: qlabvmctl list"
+source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/show-vm-operation-summary.sh
+if ! show_vm_operation_summary "${TOTAL_VMS}" "SUCCESSFUL_VMS" "FAILED_VMS" "reimaging via golden image disk" "Reimaging via golden image disk takes ~1 minute per VM."; then
+    exit 1
 fi
 
 
