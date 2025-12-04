@@ -150,7 +150,9 @@ for qemu_kvm_hostname in "${HOSTNAMES[@]}"; do
         golden_disk_gib="${golden_disk_gib:-20}"
         
         # Delete existing qcow2 disk and recreate with appropriate size
-        sudo rm -f "${vm_qcow2_disk_path}"
+        source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/delete-vm-disk.sh
+        delete_vm_disk "$qemu_kvm_hostname"
+        
         if ! sudo qemu-img convert -O qcow2 "${golden_qcow2_disk_path}" "${vm_qcow2_disk_path}" >/dev/null 2>&1; then
             print_error "[ERROR] Failed to convert golden image disk for \"$qemu_kvm_hostname\"."
             FAILED_VMS+=("$qemu_kvm_hostname")

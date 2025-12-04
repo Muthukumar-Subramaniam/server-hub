@@ -134,7 +134,9 @@ for qemu_kvm_hostname in "${HOSTNAMES[@]}"; do
         current_disk_gib="${CURRENT_DISK_SIZE:-20}"
         
         # Delete existing qcow2 disk and recreate with appropriate size
-        sudo rm -f "${vm_qcow2_disk_path}"
+        source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/delete-vm-disk.sh
+        delete_vm_disk "$qemu_kvm_hostname"
+        
         if ! sudo qemu-img create -f qcow2 "${vm_qcow2_disk_path}" "${default_qcow2_disk_gib}G" >/dev/null 2>&1; then
             print_error "[ERROR] Failed to create qcow2 disk for \"$qemu_kvm_hostname\"."
             FAILED_VMS+=("$qemu_kvm_hostname")
