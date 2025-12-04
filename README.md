@@ -133,43 +133,45 @@ ssh lab-infra-server.lab.local
 
 ## 🛠️ Your New Superpowers: VM Management Tools
 
-Your workstation is now equipped with `kvmlabctl` - a unified command-line interface for all KVM lab operations:
+Your workstation is now equipped with powerful lab management tools:
 
 ### 📦 VM Deployment & Management
 ```bash
-kvmlabctl build-golden-image        # 🎨 Create reusable golden base images
-kvmlabctl install-golden            # 🚀 Deploy VMs instantly from golden images
-kvmlabctl install-pxe               # 🌐 Deploy VMs via network PXE boot
-kvmlabctl reimage-golden            # 🔄 Reinstall VMs from golden images
-kvmlabctl reimage-pxe               # 🔄 Reinstall VMs via PXE boot
+labvmctl build-golden-image         # 🎨 Create reusable golden base images
+labvmctl install-golden             # 🚀 Deploy VMs instantly from golden images
+labvmctl install-pxe                # 🌐 Deploy VMs via network PXE boot
+labvmctl reimage-golden             # 🔄 Reinstall VMs from golden images
+labvmctl reimage-pxe                # 🔄 Reinstall VMs via PXE boot
 ```
 
 ### 🎮 VM Operations
 ```bash
-kvmlabctl list                      # 📊 View all VMs and their status
-kvmlabctl console                   # 🖥️ Connect to VM serial console
-kvmlabctl start                     # ▶️ Power on VMs
-kvmlabctl stop                      # ⏹️ Force power-off VMs
-kvmlabctl shutdown                  # 🔽 Graceful VM shutdown
-kvmlabctl restart                   # 🔄 Hard restart VMs
-kvmlabctl reboot                    # 🔃 Graceful VM reboot
+labvmctl list                       # 📊 View all VMs and their status
+labvmctl console                    # 🖥️ Connect to VM serial console
+labvmctl start                      # ▶️ Power on VMs
+labvmctl stop                       # ⏹️ Force power-off VMs
+labvmctl shutdown                   # 🔽 Graceful VM shutdown
+labvmctl restart                    # 🔄 Hard restart VMs
+labvmctl reboot                     # 🔃 Graceful VM reboot
 ```
 
 ### 🔧 VM Configuration
 ```bash
-kvmlabctl resize                    # 📏 Resize memory, CPU, or disk
-kvmlabctl add-disk                  # 💾 Add additional storage disks
-kvmlabctl remove                    # 🗑️ Delete VMs completely
+labvmctl resize                     # 📏 Resize memory, CPU, or disk
+labvmctl add-disk                   # 💾 Add additional storage disks
+labvmctl remove                     # 🗑️ Delete VMs completely
 ```
 
 ### 🌍 Infrastructure Management
 ```bash
-kvmlabctl dnsbinder                 # 🌐 Manage local DNS records
-kvmlabctl lab-start                 # 🏁 Start the entire lab infrastructure
-kvmlabctl lab-health                # 🏥 Check lab infrastructure health
+labvmctl dnsbinder                  # 🌐 Manage local DNS records
+labstart                            # 🏁 Start the entire lab infrastructure
+labhealth                           # 🏥 Check lab infrastructure health
 ```
 
-**Pro tip:** Use `kvmlabctl --help` or `kvmlabctl <subcommand> --help` for detailed usage information.
+**Pro tips:** 
+- Use `labvmctl --help` or `labvmctl <subcommand> --help` for VM management help
+- Use `labstart --help` and `labhealth --help` for infrastructure tools help
 
 ---
 
