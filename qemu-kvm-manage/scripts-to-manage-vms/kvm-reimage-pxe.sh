@@ -83,8 +83,8 @@ for qemu_kvm_hostname in "${HOSTNAMES[@]}"; do
     fi
 
     # Shut down VM if running
-    source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/shutdown-vm.sh
-    shutdown_vm "$qemu_kvm_hostname"
+    source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/poweroff-vm.sh
+    POWEROFF_VM_CONTEXT="Powering off before reimaging" poweroff_vm "$qemu_kvm_hostname"
 
     # If --clean-install is specified, destroy and reinstall VM with default specs
     if [[ "$CLEAN_INSTALL" == "yes" ]]; then

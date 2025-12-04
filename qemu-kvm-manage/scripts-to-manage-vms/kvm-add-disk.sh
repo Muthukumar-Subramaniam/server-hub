@@ -83,11 +83,8 @@ fn_shutdown_or_poweroff() {
             ;;
         2)
             print_info "[INFO] Forcing power off..."
-            if error_msg=$(sudo virsh destroy "$qemu_kvm_hostname" 2>&1); then
-                print_success "[SUCCESS] VM \"$qemu_kvm_hostname\" stopped successfully."
-            else
-                print_error "[FAILED] Could not stop VM \"$qemu_kvm_hostname\"."
-                print_error "$error_msg"
+            source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/poweroff-vm.sh
+            if ! POWEROFF_VM_CONTEXT="Forcing power off" POWEROFF_VM_STRICT=true poweroff_vm "$qemu_kvm_hostname"; then
                 exit 1
             fi
             ;;

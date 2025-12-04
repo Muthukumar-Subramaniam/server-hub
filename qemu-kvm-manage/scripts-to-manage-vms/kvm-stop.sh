@@ -53,14 +53,8 @@ stop_vm() {
     fi
     
     # Proceed with Stop
-    if error_msg=$(sudo virsh destroy "$vm_name" 2>&1); then
-        print_success "[SUCCESS] VM \"$vm_name\" stopped successfully."
-        return 0
-    else
-        print_error "[FAILED] Could not stop VM \"$vm_name\"."
-        print_error "$error_msg"
-        return 1
-    fi
+    source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/poweroff-vm.sh
+    POWEROFF_VM_CONTEXT="Stopping" POWEROFF_VM_STRICT=true poweroff_vm "$vm_name"
 }
 
 # Handle multiple hosts

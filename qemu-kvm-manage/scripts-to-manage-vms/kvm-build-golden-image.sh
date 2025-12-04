@@ -95,13 +95,8 @@ print_info "[INFO] VM installation completed."
 print_info "[INFO] Cleaning up temporary VM..."
 
 # Destroy VM if running
-if sudo virsh list | awk '{print $2}' | grep -Fxq "$qemu_kvm_hostname"; then
-    if error_msg=$(sudo virsh destroy "$qemu_kvm_hostname" 2>&1); then
-        print_info "[INFO] Temporary VM stopped."
-    else
-        print_warning "[WARNING] Could not stop temporary VM: $error_msg"
-    fi
-fi
+source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/poweroff-vm.sh
+POWEROFF_VM_CONTEXT="Stopping temporary VM" poweroff_vm "$qemu_kvm_hostname"
 
 # Undefine VM
 if error_msg=$(sudo virsh undefine "$qemu_kvm_hostname" --nvram 2>&1); then
