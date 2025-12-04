@@ -69,11 +69,13 @@ for qemu_kvm_hostname in "${HOSTNAMES[@]}"; do
         fi
         NORMALIZED_DISTRO="$NORMALIZED_OS_DISTRO"
         
-        if [[ ! -f "/server-hub/qemu-kvm-manage/golden-images/${NORMALIZED_DISTRO}-golden.qcow2" ]]; then
+        # Golden images follow pattern: {distro}-golden-image.lab.local.qcow2
+        golden_image_pattern="${NORMALIZED_DISTRO}-golden-image.*.qcow2"
+        if ! ls /kvm-hub/golden-images-disk-store/${golden_image_pattern} &>/dev/null; then
             print_error "[ERROR] Golden image not found for '${OS_DISTRO}'"
             print_info "[INFO] Available golden images:"
-            if ls /server-hub/qemu-kvm-manage/golden-images/*.qcow2 &>/dev/null; then
-                ls -1 /server-hub/qemu-kvm-manage/golden-images/*.qcow2 | xargs -n1 basename | sed 's/-golden.qcow2//' | sed 's/^/  - /'
+            if ls /kvm-hub/golden-images-disk-store/*.qcow2 &>/dev/null; then
+                ls -1 /kvm-hub/golden-images-disk-store/*.qcow2 | xargs -n1 basename | sed 's/-golden-image.*//' | sort -u | sed 's/^/  - /'
             else
                 echo "  (none)"
             fi
