@@ -51,40 +51,23 @@ for qemu_kvm_hostname in "${HOSTNAMES[@]}"; do
         print_info "[INFO] Processing VM ${CURRENT_VM}/${TOTAL_VMS}: ${qemu_kvm_hostname}"
     fi
 
-    # Check if VM exists in 'virsh list --all'
-    if ! sudo virsh list --all | awk '{print $2}' | grep -Fxq "$qemu_kvm_hostname"; then
-        print_error "[ERROR] VM \"$qemu_kvm_hostname\" does not exist."
-        if [[ $TOTAL_VMS -eq 1 ]]; then
-            exit 1
-        else
-            FAILED_VMS+=("$qemu_kvm_hostname")
-            continue
-        fi
+    # Check if VM exists
+    source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/check-vm-exists.sh
+    if ! check_vm_exists "$qemu_kvm_hostname" "reimage"; then
+        FAILED_VMS+=("$qemu_kvm_hostname")
+        continue
     fi
 
-    # Prevent re-imaging of lab infra server VM
-    if [[ "$qemu_kvm_hostname" == "$lab_infra_server_hostname" ]]; then
-        print_error "[ERROR] Cannot reimage Lab Infra Server!"
-        print_warning "[WARNING] You are attempting to reimage the lab infrastructure server VM: $lab_infra_server_hostname"
-        print_info "[INFO] This VM hosts critical services and must not be destroyed."
-        if [[ $TOTAL_VMS -eq 1 ]]; then
-            exit 1
-        else
-            FAILED_VMS+=("$qemu_kvm_hostname")
-            continue
-        fi
+    # Prevent reimaging of lab infra server
+    source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/check-lab-infra-protection.sh
+    if ! check_lab_infra_protection "$qemu_kvm_hostname"; then
+        FAILED_VMS+=("$qemu_kvm_hostname")
+        continue
     fi
     
-    # Confirmation prompt for single VM (unless --hosts with multiple VMs)
-    if [[ $TOTAL_VMS -eq 1 ]]; then
-        print_warning "[WARNING] This will reimage VM \"$qemu_kvm_hostname\" using PXE boot!"
-        print_warning "[WARNING] All existing data on this VM will be permanently lost."
-        read -rp "Are you sure you want to proceed? (yes/no): " confirmation
-        if [[ "$confirmation" != "yes" ]]; then
-            print_info "[INFO] Operation cancelled by user."
-            exit 0
-        fi
-    fi
+    # Confirm reimage operation
+    source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/confirm-reimage-operation.sh
+    confirm_reimage_operation "$qemu_kvm_hostname" "PXE boot"
 
     print_info "[INFO] Creating PXE environment for '${qemu_kvm_hostname}' using ksmanager..."
 
@@ -103,15 +86,8 @@ for qemu_kvm_hostname in "${HOSTNAMES[@]}"; do
     fi
 
     # Shut down VM if running
-    if sudo virsh list | awk '{print $2}' | grep -Fxq "$qemu_kvm_hostname"; then
-        print_info "[INFO] VM \"$qemu_kvm_hostname\" is currently running. Shutting down before reimaging..."
-        if error_msg=$(sudo virsh destroy "$qemu_kvm_hostname" 2>&1); then
-            print_success "[SUCCESS] VM \"$qemu_kvm_hostname\" has been shut down successfully."
-        else
-            print_warning "[WARNING] Could not shut down VM \"$qemu_kvm_hostname\"."
-            print_warning "$error_msg"
-        fi
-    fi
+    source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/shutdown-vm.sh
+    shutdown_vm "$qemu_kvm_hostname"
 
     # If --clean-install is specified, destroy and reinstall VM with default specs
     if [[ "$CLEAN_INSTALL" == "yes" ]]; then

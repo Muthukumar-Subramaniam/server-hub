@@ -47,18 +47,11 @@ for qemu_kvm_hostname in "${HOSTNAMES[@]}"; do
         print_info "[INFO] Processing VM ${CURRENT_VM}/${TOTAL_VMS}: ${qemu_kvm_hostname}"
     fi
 
-    # Check if VM exists in 'virsh list --all'
-    if sudo virsh list --all | awk '{print $2}' | grep -Fxq "$qemu_kvm_hostname"; then
-        print_error "[ERROR] VM \"$qemu_kvm_hostname\" exists already."
-        if [[ $TOTAL_VMS -eq 1 ]]; then
-            print_warning "[WARNING] Either do one of the following:"
-            print_info "[INFO] Remove the VM using 'qlabvmctl remove', then try again."
-            print_info "[INFO] Re-image the VM using 'qlabvmctl reimage-golden' or 'qlabvmctl reimage-pxe'."
-            exit 1
-        else
-            FAILED_VMS+=("$qemu_kvm_hostname")
-            continue
-        fi
+    # Check if VM exists
+    source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/check-vm-exists.sh
+    if ! check_vm_exists "$qemu_kvm_hostname" "install"; then
+        FAILED_VMS+=("$qemu_kvm_hostname")
+        continue
     fi
 
     print_info "[INFO] Creating PXE environment for '${qemu_kvm_hostname}' using ksmanager..."
