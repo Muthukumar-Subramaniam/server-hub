@@ -14,7 +14,7 @@ vm_hostname_arg=""
 
 # Function to show help
 fn_show_help() {
-    print_info "Usage: kvmlabctl shutdown [OPTIONS] [hostname]
+    print_info "Usage: labvmctl shutdown [OPTIONS] [hostname]
 
 Options:
   -f, --force          Skip confirmation prompt and force graceful shutdown
@@ -25,10 +25,10 @@ Arguments:
   hostname             Name of the VM to gracefully shutdown (optional, will prompt if not given)
 
 Examples:
-  kvmlabctl shutdown vm1                    # Shutdown single VM with confirmation
-  kvmlabctl shutdown -f vm1                 # Shutdown single VM without confirmation
-  kvmlabctl shutdown --hosts vm1,vm2,vm3    # Shutdown multiple VMs with confirmation
-  kvmlabctl shutdown -f --hosts vm1,vm2     # Shutdown multiple VMs without confirmation
+  labvmctl shutdown vm1                    # Shutdown single VM with confirmation
+  labvmctl shutdown -f vm1                 # Shutdown single VM without confirmation
+  labvmctl shutdown --hosts vm1,vm2,vm3    # Shutdown multiple VMs with confirmation
+  labvmctl shutdown -f --hosts vm1,vm2     # Shutdown multiple VMs without confirmation
 "
 }
 

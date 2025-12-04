@@ -14,7 +14,7 @@ vm_hostname_arg=""
 
 # Function to show help
 fn_show_help() {
-    print_info "Usage: kvmlabctl reboot [OPTIONS] [hostname]
+    print_info "Usage: labvmctl reboot [OPTIONS] [hostname]
 
 Options:
   -f, --force          Skip confirmation prompt and force graceful reboot
@@ -25,10 +25,10 @@ Arguments:
   hostname             Name of the VM to do graceful reboot (optional, will prompt if not given)
 
 Examples:
-  kvmlabctl reboot vm1                    # Reboot single VM with confirmation
-  kvmlabctl reboot -f vm1                 # Reboot single VM without confirmation
-  kvmlabctl reboot --hosts vm1,vm2,vm3    # Reboot multiple VMs with confirmation
-  kvmlabctl reboot -f --hosts vm1,vm2     # Reboot multiple VMs without confirmation
+  labvmctl reboot vm1                    # Reboot single VM with confirmation
+  labvmctl reboot -f vm1                 # Reboot single VM without confirmation
+  labvmctl reboot --hosts vm1,vm2,vm3    # Reboot multiple VMs with confirmation
+  labvmctl reboot -f --hosts vm1,vm2     # Reboot multiple VMs without confirmation
 "
 }
 

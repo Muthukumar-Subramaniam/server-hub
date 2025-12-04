@@ -9,7 +9,7 @@ source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/defaults.sh
 
 # Function to show help
 fn_show_help() {
-    print_info "Usage: kvmlabctl add-disk [OPTIONS] [hostname]
+    print_info "Usage: labvmctl add-disk [OPTIONS] [hostname]
 
 Options:
   -h, --help           Show this help message
@@ -18,7 +18,7 @@ Arguments:
   hostname             Name of the VM to add disks to (optional, will prompt if not given)
 
 Examples:
-  kvmlabctl add-disk vm1                  # Add disks to VM with interactive prompts
+  labvmctl add-disk vm1                  # Add disks to VM with interactive prompts
 "
 }
 

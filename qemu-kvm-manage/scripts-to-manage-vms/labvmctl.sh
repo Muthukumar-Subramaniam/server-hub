@@ -3,9 +3,9 @@
 # If you encounter any issues with this script, or have suggestions or feature requests, #
 # please open an issue at: https://github.com/Muthukumar-Subramaniam/server-hub/issues   #
 #----------------------------------------------------------------------------------------#
-# Script Name : kvmlabctl
+# Script Name : labvmctl
 # Description : Unified command-line interface for managing KVM lab VMs
-# Usage       : kvmlabctl <subcommand> [options] [args]
+# Usage       : labvmctl <subcommand> [options] [args]
 
 set -euo pipefail
 
@@ -20,14 +20,12 @@ VERSION="1.0.0"
 
 # Display usage information
 show_usage() {
-    print_info "kvmlabctl - KVM Lab Control Interface
+    print_info "labvmctl - KVM Lab VM Control Interface
 
 USAGE:
-    kvmlabctl <subcommand> [options] [arguments]
+    labvmctl <subcommand> [options] [arguments]
 
-LAB INFRASTRUCTURE:
-    lab-start               Start the entire lab infrastructure
-    lab-health              Check lab infrastructure health
+DNS MANAGEMENT:
     dnsbinder               Manage lab DNS records
 
 VM DEPLOYMENT:
@@ -55,12 +53,15 @@ OPTIONS:
     -h, --help              Show this help message
     -v, --version           Show version information
 
-To get help for a specific subcommand, use: kvmlabctl <subcommand> --help"
+NOTES:
+    - Use 'labstart' to start the lab infrastructure
+    - Use 'labhealth' to check lab infrastructure health
+    - For subcommand help: labvmctl <subcommand> --help"
 }
 
 # Show version
 show_version() {
-    print_info "kvmlabctl version $VERSION"
+    print_info "labvmctl version $VERSION"
     print_info "KVM Lab VM Management Tool"
 }
 
@@ -99,16 +100,10 @@ main() {
         dnsbinder)
             script_name="kvm-dnsbinder.sh"
             ;;
-        lab-health)
-            script_name="kvm-lab-health.sh"
-            ;;
-        lab-start)
-            script_name="kvm-lab-start.sh"
-            ;;
         *)
             print_error "[ERROR] Unknown subcommand: $subcommand"
             echo
-            echo "Run 'kvmlabctl help' to see available subcommands"
+            echo "Run 'labvmctl --help' to see available subcommands"
             exit 1
             ;;
     esac

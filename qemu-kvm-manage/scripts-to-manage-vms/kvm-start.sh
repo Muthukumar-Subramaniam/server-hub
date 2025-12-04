@@ -13,7 +13,7 @@ vm_hostname_arg=""
 
 # Function to show help
 fn_show_help() {
-    print_info "Usage: kvmlabctl start [OPTIONS] [hostname]
+    print_info "Usage: labvmctl start [OPTIONS] [hostname]
 
 Options:
   -H, --hosts <list>   Comma-separated list of VM hostnames to start
@@ -23,8 +23,8 @@ Arguments:
   hostname             Name of the VM to Power-ON (optional, will prompt if not given)
 
 Examples:
-  kvmlabctl start vm1                    # Start single VM
-  kvmlabctl start --hosts vm1,vm2,vm3    # Start multiple VMs
+  labvmctl start vm1                    # Start single VM
+  labvmctl start --hosts vm1,vm2,vm3    # Start multiple VMs
 "
 }
 

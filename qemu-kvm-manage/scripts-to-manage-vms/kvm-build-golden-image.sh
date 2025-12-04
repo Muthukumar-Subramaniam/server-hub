@@ -10,7 +10,7 @@ source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/select-ovmf.s
 
 # Function to show help
 fn_show_help() {
-    print_info "Usage: kvmlabctl build-golden-image
+    print_info "Usage: labvmctl build-golden-image
 
 Description:
   Creates a golden image disk by installing a VM via PXE boot.
