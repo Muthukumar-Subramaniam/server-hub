@@ -111,7 +111,7 @@ fn_check_and_create_host_record() {
 
 	if ! host "${kickstart_hostname}" "${dnsbinder_server_ipv4_address}" &>/dev/null
 	then
-		print_error "[ERROR] No DNS record found for \"${kickstart_hostname}\"."
+		print_info "[INFO] No DNS record found for \"${kickstart_hostname}\"."
 		
 		if $invoked_with_qemu_kvm; then
 			print_info "[INFO] Creating DNS record for \"${kickstart_hostname}\" using dnsbinder..."
