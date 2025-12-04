@@ -14,18 +14,20 @@ fn_show_help() {
     print_info "Usage: qlabvmctl remove [OPTIONS] [hostname]
 
 Options:
-  -f, --force          Skip confirmation prompt (except for lab infra server)
-  -H, --hosts <list>   Comma-separated list of VM hostnames to remove
-  -h, --help           Show this help message
+  -f, --force                      Skip confirmation prompt (except for lab infra server)
+  --ignore-ksmanager-cleanup       Skip cleanup of ksmanager databases (DNS, MAC, kickstart, iPXE, DHCP)
+  -H, --hosts <list>               Comma-separated list of VM hostnames to remove
+  -h, --help                       Show this help message
 
 Arguments:
-  hostname             Name of the VM to be deleted permanently (optional, will prompt if not given)
+  hostname                         Name of the VM to be deleted permanently (optional, will prompt if not given)
 
 Examples:
-  qlabvmctl remove vm1                    # Remove single VM with confirmation
-  qlabvmctl remove -f vm1                 # Remove single VM without confirmation
-  qlabvmctl remove --hosts vm1,vm2,vm3    # Remove multiple VMs with confirmation
-  qlabvmctl remove -f --hosts vm1,vm2     # Remove multiple VMs without confirmation
+  qlabvmctl remove vm1                             # Remove single VM with confirmation
+  qlabvmctl remove -f vm1                          # Remove single VM without confirmation
+  qlabvmctl remove --ignore-ksmanager-cleanup vm1  # Remove VM but keep ksmanager data
+  qlabvmctl remove --hosts vm1,vm2,vm3             # Remove multiple VMs with confirmation
+  qlabvmctl remove -f --hosts vm1,vm2              # Remove multiple VMs without confirmation
 
 Note: Lab infra server always requires special confirmation regardless of -f flag.
 "
@@ -33,10 +35,12 @@ Note: Lab infra server always requires special confirmation regardless of -f fla
 
 # Parse arguments
 SUPPORTS_FORCE="yes"
+SUPPORTS_IGNORE_KSMANAGER="yes"
 source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/parse-vm-control-args.sh
 parse_vm_control_args "$@"
 
 force_remove="$FORCE_FLAG"
+ignore_ksmanager_cleanup="$IGNORE_KSMANAGER_CLEANUP"
 hosts_list="$HOSTS_LIST"
 vm_hostname_arg="$VM_HOSTNAME_ARG"
 
@@ -93,6 +97,19 @@ remove_vm() {
             print_info "[INFO] Removed $vm_name from $ETC_HOSTS_FILE"
         else
             print_warning "[WARNING] Could not remove $vm_name from $ETC_HOSTS_FILE"
+        fi
+    fi
+    
+    # Clean up ksmanager databases (DNS, MAC cache, kickstart, iPXE, DHCP)
+    if [[ "$ignore_ksmanager_cleanup" == true ]]; then
+        print_info "[INFO] Skipping ksmanager database cleanup (--ignore-ksmanager-cleanup flag set)"
+    else
+        print_info "[INFO] Cleaning up ksmanager databases for $vm_name..."
+        source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/run-ksmanager.sh
+        if run_ksmanager "$vm_name" "--remove-host" &>/dev/null; then
+            print_info "[INFO] Removed $vm_name from ksmanager databases"
+        else
+            print_warning "[WARNING] Could not clean up ksmanager databases for $vm_name"
         fi
     fi
     

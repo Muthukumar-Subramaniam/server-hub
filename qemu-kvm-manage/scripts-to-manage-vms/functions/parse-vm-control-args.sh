@@ -4,11 +4,13 @@
 #
 # Usage:
 #   SUPPORTS_FORCE="yes"  # Set to "yes" if script supports -f/--force flag
+#   SUPPORTS_IGNORE_KSMANAGER="yes"  # Set to "yes" if script supports --ignore-ksmanager-cleanup flag
 #   source /path/to/parse-vm-control-args.sh
 #   parse_vm_control_args "$@"
 #
 # Sets global variables:
 #   FORCE_FLAG - true/false (only if SUPPORTS_FORCE="yes")
+#   IGNORE_KSMANAGER_CLEANUP - true/false (only if SUPPORTS_IGNORE_KSMANAGER="yes")
 #   HOSTS_LIST - comma-separated list of hostnames (if --hosts provided)
 #   VM_HOSTNAME_ARG - single hostname argument (if provided)
 #
@@ -18,6 +20,9 @@ parse_vm_control_args() {
     # Initialize variables based on script support
     if [[ "${SUPPORTS_FORCE:-no}" == "yes" ]]; then
         FORCE_FLAG=false
+    fi
+    if [[ "${SUPPORTS_IGNORE_KSMANAGER:-no}" == "yes" ]]; then
+        IGNORE_KSMANAGER_CLEANUP=false
     fi
     HOSTS_LIST=""
     VM_HOSTNAME_ARG=""
@@ -32,6 +37,16 @@ parse_vm_control_args() {
             -f|--force)
                 if [[ "${SUPPORTS_FORCE:-no}" == "yes" ]]; then
                     FORCE_FLAG=true
+                    shift
+                else
+                    print_error "[ERROR] No such option: $1"
+                    fn_show_help
+                    exit 1
+                fi
+                ;;
+            --ignore-ksmanager-cleanup)
+                if [[ "${SUPPORTS_IGNORE_KSMANAGER:-no}" == "yes" ]]; then
+                    IGNORE_KSMANAGER_CLEANUP=true
                     shift
                 else
                     print_error "[ERROR] No such option: $1"
