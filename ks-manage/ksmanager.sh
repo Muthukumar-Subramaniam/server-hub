@@ -232,13 +232,12 @@ done
 
 # Parse --distro flag
 distro_from_flag=""
-for i in "${!@}"; do
-    arg="${!i}"
-    if [[ "$arg" == "--distro" ]]; then
-        next_i=$((i + 1))
-        distro_from_flag="${!next_i}"
+for arg in "$@"; do
+    if [[ "$prev_arg" == "--distro" ]]; then
+        distro_from_flag="$arg"
         break
     fi
+    prev_arg="$arg"
 done
 
 fn_check_and_create_mac_if_required() {

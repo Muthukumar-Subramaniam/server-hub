@@ -60,7 +60,7 @@ for qemu_kvm_hostname in "${HOSTNAMES[@]}"; do
 
     # Run ksmanager and extract VM details
     source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/run-ksmanager.sh
-    local ksmanager_opts="--qemu-kvm --golden-image"
+    ksmanager_opts="--qemu-kvm --golden-image"
     [[ -n "$OS_DISTRO" ]] && ksmanager_opts="$ksmanager_opts --distro $OS_DISTRO"
     if ! run_ksmanager "${qemu_kvm_hostname}" "$ksmanager_opts"; then
         FAILED_VMS+=("$qemu_kvm_hostname")

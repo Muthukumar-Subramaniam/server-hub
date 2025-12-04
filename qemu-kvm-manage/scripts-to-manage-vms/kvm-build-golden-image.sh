@@ -63,7 +63,7 @@ print_info "[INFO] Invoking ksmanager to create PXE environment for golden image
 
 # Run ksmanager for golden image creation
 source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/run-ksmanager.sh
-local ksmanager_opts="--qemu-kvm --create-golden-image"
+ksmanager_opts="--qemu-kvm --create-golden-image"
 [[ -n "$OS_DISTRO" ]] && ksmanager_opts="$ksmanager_opts --distro $OS_DISTRO"
 if ! run_ksmanager "" "$ksmanager_opts"; then
     print_error "[FAILED] Something went wrong while executing ksmanager!"
