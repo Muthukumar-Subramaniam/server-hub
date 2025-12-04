@@ -25,9 +25,6 @@ show_usage() {
 USAGE:
     qlabvmctl <subcommand> [options] [arguments]
 
-DNS MANAGEMENT:
-    dnsbinder               Manage lab DNS records
-
 VM DEPLOYMENT:
     build-golden-image      Build a golden image for an OS
     install-golden          Deploy VM(s) from golden image
@@ -35,19 +32,22 @@ VM DEPLOYMENT:
     reimage-golden          Reinstall VM(s) from golden image
     reimage-pxe             Reinstall VM(s) using PXE boot
 
-VM LIFECYCLE MANAGEMENT:
+VM OPERATIONS:
+    list                    List all VMs and their status
+    console                 Connect to VM serial console
     start                   Start VM(s)
     stop                    Force stop (power off) VM(s)
     shutdown                Gracefully shutdown VM(s)
     restart                 Hard restart (reset) VM(s)
     reboot                  Gracefully reboot VM(s)
-    remove                  Delete VM(s) and its data
 
-VM OPERATIONS:
-    list                    List all VMs and their status
-    console                 Connect to VM serial console
+VM CONFIGURATION:
     resize                  Resize VM resources (CPU, memory, disk)
     add-disk                Add additional disk to VM
+    remove                  Delete VM(s) and its data
+
+DNS MANAGEMENT:
+    dnsbinder               Manage lab DNS records
 
 OPTIONS:
     -h, --help              Show this help message
