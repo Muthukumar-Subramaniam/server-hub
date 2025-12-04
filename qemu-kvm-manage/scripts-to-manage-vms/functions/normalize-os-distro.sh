@@ -16,27 +16,38 @@ normalize_os_distro() {
         return 1
     fi
 
-    # Normalize OS distro names
-    if echo "$os_distro" | grep -qi "almalinux"; then
-        NORMALIZED_OS_DISTRO="almalinux"
-    elif echo "$os_distro" | grep -qi "centos"; then
-        NORMALIZED_OS_DISTRO="centos-stream"
-    elif echo "$os_distro" | grep -qi "rocky"; then
-        NORMALIZED_OS_DISTRO="rocky"
-    elif echo "$os_distro" | grep -qi "oracle"; then
-        NORMALIZED_OS_DISTRO="oraclelinux"
-    elif echo "$os_distro" | grep -qi "redhat"; then
-        NORMALIZED_OS_DISTRO="rhel"
-    elif echo "$os_distro" | grep -qi "fedora"; then
-        NORMALIZED_OS_DISTRO="fedora"
-    elif echo "$os_distro" | grep -qi "ubuntu"; then
-        NORMALIZED_OS_DISTRO="ubuntu-lts"
-    elif echo "$os_distro" | grep -qi "suse"; then
-        NORMALIZED_OS_DISTRO="opensuse-leap"
-    else
-        print_error "[ERROR] Unrecognized OS distro: $os_distro"
-        return 1
-    fi
+    # Normalize OS distro names (case-insensitive exact match or known aliases)
+    case "${os_distro,,}" in
+        almalinux|alma)
+            NORMALIZED_OS_DISTRO="almalinux"
+            ;;
+        centos-stream|centos)
+            NORMALIZED_OS_DISTRO="centos-stream"
+            ;;
+        rocky)
+            NORMALIZED_OS_DISTRO="rocky"
+            ;;
+        oraclelinux|oracle)
+            NORMALIZED_OS_DISTRO="oraclelinux"
+            ;;
+        rhel|redhat)
+            NORMALIZED_OS_DISTRO="rhel"
+            ;;
+        fedora)
+            NORMALIZED_OS_DISTRO="fedora"
+            ;;
+        ubuntu-lts|ubuntu)
+            NORMALIZED_OS_DISTRO="ubuntu-lts"
+            ;;
+        opensuse-leap|opensuse|suse)
+            NORMALIZED_OS_DISTRO="opensuse-leap"
+            ;;
+        *)
+            print_error "[ERROR] Unrecognized OS distro: $os_distro"
+            print_info "[INFO] Supported distros: almalinux, rocky, oraclelinux, centos-stream, rhel, fedora, ubuntu-lts, opensuse-leap"
+            return 1
+            ;;
+    esac
 
     return 0
 }
