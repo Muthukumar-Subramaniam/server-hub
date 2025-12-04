@@ -1,5 +1,3 @@
-#!/bin/bash
-#
 # parse-vm-command-args.sh
 # 
 # Reusable argument parsing function for VM management commands
@@ -13,6 +11,7 @@
 #   ATTACH_CONSOLE  - "yes" or "no"
 #   CLEAN_INSTALL   - "yes" or "no" (if supported)
 #   FORCE_REIMAGE   - "true" or "false" (if supported)
+#   OS_DISTRO       - OS distribution name (if specified)
 #   HOSTNAMES       - Array of validated hostnames
 #   TOTAL_VMS       - Number of VMs to process
 #
@@ -21,6 +20,7 @@
 parse_vm_command_args() {
     local supports_clean_install="${SUPPORTS_CLEAN_INSTALL:-no}"
     local supports_force="${SUPPORTS_FORCE:-no}"
+    local supports_distro="${SUPPORTS_DISTRO:-no}"
     
     # Parse arguments
     while [[ $# -gt 0 ]]; do
@@ -65,6 +65,25 @@ parse_vm_command_args() {
                 fi
                 CLEAN_INSTALL="yes"
                 shift
+                ;;
+            -d|--distro)
+                if [[ "$supports_distro" != "yes" ]]; then
+                    print_error "[ERROR] No such option: $1"
+                    fn_show_help
+                    exit 1
+                fi
+                if [[ -z "$2" || "$2" == -* ]]; then
+                    print_error "[ERROR] --distro/-d requires a distribution name."
+                    fn_show_help
+                    exit 1
+                fi
+                if [[ -n "$OS_DISTRO" ]]; then
+                    print_error "[ERROR] Duplicate --distro/-d option."
+                    fn_show_help
+                    exit 1
+                fi
+                OS_DISTRO="$2"
+                shift 2
                 ;;
             -H|--hosts)
                 if [[ -z "$2" || "$2" == -* ]]; then

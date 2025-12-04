@@ -11,9 +11,11 @@ DIR_PATH_SCRIPTS_TO_MANAGE_VMS='/server-hub/qemu-kvm-manage/scripts-to-manage-vm
 ATTACH_CONSOLE="no"
 CLEAN_INSTALL="no"
 FORCE_REIMAGE="false"
+OS_DISTRO=""
 HOSTNAMES=()
 SUPPORTS_CLEAN_INSTALL="yes"
 SUPPORTS_FORCE="yes"
+SUPPORTS_DISTRO="yes"
 
 # Function to show help
 fn_show_help() {
@@ -22,6 +24,8 @@ fn_show_help() {
 Options:
   -c, --console        Attach console during reimage (single VM only)
   -C, --clean-install  Destroy VM and reinstall with default specs (2 vCPUs, 2 GiB RAM, 20 GiB disk)
+  -d, --distro         Specify OS distribution
+                       (almalinux, rocky, oraclelinux, centos-stream, rhel, fedora, ubuntu-lts, opensuse-leap)
   -f, --force          Skip confirmation prompt
   -H, --hosts          Specify multiple hostnames (comma-separated)
   -h, --help           Show this help message
@@ -30,12 +34,13 @@ Arguments:
   hostname             Name of the VM to reimage via golden image disk (optional, will prompt if not given)
 
 Examples:
-  qlabvmctl reimage-golden vm1                               # Reimage single VM
-  qlabvmctl reimage-golden vm1 --console                     # Reimage and attach console
-  qlabvmctl reimage-golden vm1 --clean-install               # Reimage with default specs
-  qlabvmctl reimage-golden -f vm1                            # Reimage without confirmation
-  qlabvmctl reimage-golden --hosts vm1,vm2,vm3               # Reimage multiple VMs
-  qlabvmctl reimage-golden -H vm1,vm2,vm3 --clean-install   # Reimage multiple with defaults
+  qlabvmctl reimage-golden vm1                                   # Reimage single VM
+  qlabvmctl reimage-golden vm1 --console                         # Reimage and attach console
+  qlabvmctl reimage-golden vm1 --clean-install                   # Reimage with default specs
+  qlabvmctl reimage-golden vm1 --distro almalinux                # Reimage with AlmaLinux
+  qlabvmctl reimage-golden -f vm1                                # Reimage without confirmation
+  qlabvmctl reimage-golden --hosts vm1,vm2,vm3 -d ubuntu-lts     # Reimage multiple with Ubuntu LTS
+  qlabvmctl reimage-golden -H vm1,vm2,vm3 --clean-install       # Reimage multiple with defaults
 "
 }
 
@@ -74,7 +79,9 @@ for qemu_kvm_hostname in "${HOSTNAMES[@]}"; do
 
     # Run ksmanager and extract VM details
     source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/run-ksmanager.sh
-    if ! run_ksmanager "${qemu_kvm_hostname}" "--qemu-kvm --golden-image"; then
+    local ksmanager_opts="--qemu-kvm --golden-image"
+    [[ -n "$OS_DISTRO" ]] && ksmanager_opts="$ksmanager_opts --distro $OS_DISTRO"
+    if ! run_ksmanager "${qemu_kvm_hostname}" "$ksmanager_opts"; then
         FAILED_VMS+=("$qemu_kvm_hostname")
         continue
     fi

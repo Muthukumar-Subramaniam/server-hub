@@ -9,7 +9,9 @@ source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/defaults.sh
 source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/select-ovmf.sh
 
 ATTACH_CONSOLE="no"
+OS_DISTRO=""
 HOSTNAMES=()
+SUPPORTS_DISTRO="yes"
 
 # Function to show help
 fn_show_help() {
@@ -17,6 +19,8 @@ fn_show_help() {
 
 Options:
   -c, --console        Attach console during installation (single VM only)
+  -d, --distro         Specify OS distribution
+                       (almalinux, rocky, oraclelinux, centos-stream, rhel, fedora, ubuntu-lts, opensuse-leap)
   -H, --hosts          Specify multiple hostnames (comma-separated)
   -h, --help           Show this help message
 
@@ -24,10 +28,11 @@ Arguments:
   hostname             Name of the VM to install via PXE boot (optional, will prompt if not given)
 
 Examples:
-  qlabvmctl install-pxe vm1                           # Install single VM
-  qlabvmctl install-pxe vm1 --console                 # Install and attach console
-  qlabvmctl install-pxe --hosts vm1,vm2,vm3           # Install multiple VMs
-  qlabvmctl install-pxe -H vm1,vm2,vm3                # Same as above
+  qlabvmctl install-pxe vm1                              # Install single VM
+  qlabvmctl install-pxe vm1 --console                    # Install and attach console
+  qlabvmctl install-pxe vm1 --distro almalinux           # Install with AlmaLinux
+  qlabvmctl install-pxe --hosts vm1,vm2,vm3              # Install multiple VMs
+  qlabvmctl install-pxe -H vm1,vm2,vm3 -d ubuntu-lts     # Install multiple with Ubuntu LTS
 "
 }
 
@@ -55,7 +60,9 @@ for qemu_kvm_hostname in "${HOSTNAMES[@]}"; do
 
     # Run ksmanager and extract VM details
     source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/run-ksmanager.sh
-    if ! run_ksmanager "${qemu_kvm_hostname}" "--qemu-kvm"; then
+    local ksmanager_opts="--qemu-kvm"
+    [[ -n "$OS_DISTRO" ]] && ksmanager_opts="$ksmanager_opts --distro $OS_DISTRO"
+    if ! run_ksmanager "${qemu_kvm_hostname}" "$ksmanager_opts"; then
         FAILED_VMS+=("$qemu_kvm_hostname")
         continue
     fi

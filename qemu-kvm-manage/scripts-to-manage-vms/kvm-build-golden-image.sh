@@ -8,39 +8,64 @@ source /server-hub/common-utils/color-functions.sh
 source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/defaults.sh
 source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/select-ovmf.sh
 
+OS_DISTRO=""
+
 # Function to show help
 fn_show_help() {
-    print_info "Usage: qlabvmctl build-golden-image
+    print_info "Usage: qlabvmctl build-golden-image [OPTIONS]
 
 Description:
   Creates a golden image disk by installing a VM via PXE boot.
   The VM will be automatically removed after the disk is created.
 
 Options:
+  -d, --distro         Specify OS distribution
+                       (almalinux, rocky, oraclelinux, centos-stream, rhel, fedora, ubuntu-lts, opensuse-leap)
   -h, --help           Show this help message
 
-Note: This script does not take any arguments.
+Examples:
+  qlabvmctl build-golden-image                       # Build golden image (will prompt for distro)
+  qlabvmctl build-golden-image -d almalinux          # Build AlmaLinux golden image
+  qlabvmctl build-golden-image --distro ubuntu-lts   # Build Ubuntu LTS golden image
 "
 }
 
-# Check if help is requested
-if [[ "$1" == "-h" || "$1" == "--help" ]]; then
-    fn_show_help
-    exit 0
-fi
-
-# Check if any arguments are passed
-if [ "$#" -ne 0 ]; then
-    print_error "[ERROR] $(basename $0) does not take any arguments."
-    fn_show_help
-    exit 1
-fi
+# Parse arguments
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        -h|--help)
+            fn_show_help
+            exit 0
+            ;;
+        -d|--distro)
+            if [[ -z "$2" || "$2" == -* ]]; then
+                print_error "[ERROR] --distro/-d requires a distribution name."
+                fn_show_help
+                exit 1
+            fi
+            OS_DISTRO="$2"
+            shift 2
+            ;;
+        -*)
+            print_error "[ERROR] No such option: $1"
+            fn_show_help
+            exit 1
+            ;;
+        *)
+            print_error "[ERROR] $(basename $0) does not accept positional arguments."
+            fn_show_help
+            exit 1
+            ;;
+    esac
+done
 
 print_info "[INFO] Invoking ksmanager to create PXE environment for golden image..."
 
 # Run ksmanager for golden image creation
 source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/run-ksmanager.sh
-if ! run_ksmanager "" "--qemu-kvm --create-golden-image"; then
+local ksmanager_opts="--qemu-kvm --create-golden-image"
+[[ -n "$OS_DISTRO" ]] && ksmanager_opts="$ksmanager_opts --distro $OS_DISTRO"
+if ! run_ksmanager "" "$ksmanager_opts"; then
     print_error "[FAILED] Something went wrong while executing ksmanager!"
     print_info "[INFO] Please check your Lab Infra Server for the root cause."
     exit 1
