@@ -215,7 +215,7 @@ if $remove_host_requested; then
         cleanup_hostname="${cleanup_hostname}.${ipv4_domain}"
     fi
     
-    print_info "[INFO] Removing host records and configurations for '${cleanup_hostname}'..."
+    print_info "[INFO] Removing host '${cleanup_hostname}' from all ksmanager databases..."
     
     # Get MAC address and IP before removal
     if [ -f "${ksmanager_hub_dir}/mac-address-cache" ]; then
@@ -344,7 +344,7 @@ EOF
     
     # 6. Remove DNS record
     if host "${cleanup_hostname}" "${dnsbinder_server_ipv4_address}" &>/dev/null; then
-        "${dnsbinder_script}" -d "${cleanup_hostname}" -y
+        "${dnsbinder_script}" -dy "${cleanup_hostname}"
         if ! host "${cleanup_hostname}" "${dnsbinder_server_ipv4_address}" &>/dev/null; then
             print_info "[INFO] Removed DNS record"
         else
