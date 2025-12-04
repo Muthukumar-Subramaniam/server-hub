@@ -667,6 +667,10 @@ fi
 while [ ! -f "${ipxe_web_dir}/images/${os_distribution}-latest/${kernel_file_name}" ]; do
 	print_warning "[WARNING] ${os_distribution} is not yet prepared for PXE-boot environment."
 	print_info "[INFO] Please use 'prepare-distro-for-ksmanager' tool to prepare ${os_distribution} for PXE-boot."
+	if $invoked_with_qemu_kvm; then
+		print_error "[ERROR] Cannot proceed with unprepared OS distribution in automation mode."
+		exit 1
+	fi
 	fn_select_os_distro
 done
 
