@@ -9,7 +9,7 @@ source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/defaults.sh
 DIR_PATH_SCRIPTS_TO_MANAGE_VMS='/server-hub/qemu-kvm-manage/scripts-to-manage-vms'
 
 ATTACH_CONSOLE="no"
-FORCE_DEFAULT="no"
+CLEAN_INSTALL="no"
 HOSTNAMES=()
 LOG_FILE=""
 
@@ -19,7 +19,7 @@ fn_show_help() {
 
 Options:
   -c, --console        Attach console during reimage (single VM only)
-  -f, --force-default  Destroy VM and reinstall with default specs (2 vCPUs, 2 GiB RAM, 20 GiB disk)
+  -C, --clean-install  Destroy VM and reinstall with default specs (2 vCPUs, 2 GiB RAM, 20 GiB disk)
   -H, --hosts          Specify multiple hostnames (comma-separated)
   -h, --help           Show this help message
 
@@ -27,11 +27,11 @@ Arguments:
   hostname             Name of the VM to reimage via PXE boot (optional, will prompt if not given)
 
 Examples:
-  qlabvmctl reimage-pxe vm1                                # Reimage single VM
-  qlabvmctl reimage-pxe vm1 --console                      # Reimage and attach console
-  qlabvmctl reimage-pxe vm1 --force-default                # Reimage with default specs
-  qlabvmctl reimage-pxe --hosts vm1,vm2,vm3                # Reimage multiple VMs
-  qlabvmctl reimage-pxe -H vm1,vm2,vm3 --force-default     # Reimage multiple with defaults
+  qlabvmctl reimage-pxe vm1                               # Reimage single VM
+  qlabvmctl reimage-pxe vm1 --console                     # Reimage and attach console
+  qlabvmctl reimage-pxe vm1 --clean-install               # Reimage with default specs
+  qlabvmctl reimage-pxe --hosts vm1,vm2,vm3               # Reimage multiple VMs
+  qlabvmctl reimage-pxe -H vm1,vm2,vm3 --clean-install   # Reimage multiple with defaults
 "
 }
 
@@ -60,13 +60,13 @@ while [[ $# -gt 0 ]]; do
             ATTACH_CONSOLE="yes"
             shift
             ;;
-        -f|--force-default)
-            if [[ "$FORCE_DEFAULT" == "yes" ]]; then
-                print_error "[ERROR] Duplicate --force-default option."
+        -C|--clean-install)
+            if [[ "$CLEAN_INSTALL" == "yes" ]]; then
+                print_error "[ERROR] Duplicate --clean-install option."
                 fn_show_help
                 exit 1
             fi
-            FORCE_DEFAULT="yes"
+            CLEAN_INSTALL="yes"
             shift
             ;;
         -H|--hosts)
@@ -233,9 +233,9 @@ for qemu_kvm_hostname in "${HOSTNAMES[@]}"; do
         fi
     fi
 
-    # If --force-default is specified, destroy and reinstall VM with default specs
-    if [[ "$FORCE_DEFAULT" == "yes" ]]; then
-        print_info "[INFO] Using --force-default: VM will be destroyed and reinstalled with default specs (2 vCPUs, 2 GiB RAM, 20 GiB disk)."
+    # If --clean-install is specified, destroy and reinstall VM with default specs
+    if [[ "$CLEAN_INSTALL" == "yes" ]]; then
+        print_info "[INFO] Using --clean-install: VM will be destroyed and reinstalled with default specs (2 vCPUs, 2 GiB RAM, 20 GiB disk)."
         
         # Undefine the VM
         print_info "[INFO] Undefining VM \"$qemu_kvm_hostname\"..."
