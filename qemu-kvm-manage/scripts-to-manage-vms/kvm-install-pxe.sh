@@ -10,7 +10,6 @@ source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/select-ovmf.s
 
 ATTACH_CONSOLE="no"
 HOSTNAMES=()
-LOG_FILE=""
 
 # Function to show help
 fn_show_help() {
@@ -31,15 +30,6 @@ Examples:
   qlabvmctl install-pxe -H vm1,vm2,vm3                # Same as above
 "
 }
-
-# Cleanup function
-cleanup() {
-    if [[ -n "$LOG_FILE" && -f "$LOG_FILE" ]]; then
-        rm -f "$LOG_FILE"
-    fi
-}
-
-trap cleanup EXIT
 
 # Parse arguments
 while [[ $# -gt 0 ]]; do
@@ -154,37 +144,9 @@ for qemu_kvm_hostname in "${HOSTNAMES[@]}"; do
 
     print_info "[INFO] Creating PXE environment for '${qemu_kvm_hostname}' using ksmanager..."
 
-    LOG_FILE="/tmp/install-vm-logs-${qemu_kvm_hostname}"
-    >"$LOG_FILE"
-
-    if $lab_infra_server_mode_is_host; then
-        if ! sudo ksmanager "${qemu_kvm_hostname}" --qemu-kvm | tee -a "$LOG_FILE"; then
-            print_error "[FAILED] ksmanager execution failed for \"$qemu_kvm_hostname\"."
-            FAILED_VMS+=("$qemu_kvm_hostname")
-            continue
-        fi
-    else
-        if ! ssh -o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -t "${lab_infra_admin_username}@${lab_infra_server_ipv4_address}" "sudo ksmanager ${qemu_kvm_hostname} --qemu-kvm" | tee -a "$LOG_FILE"; then
-            print_error "[FAILED] ksmanager execution failed for \"$qemu_kvm_hostname\"."
-            FAILED_VMS+=("$qemu_kvm_hostname")
-            continue
-        fi
-    fi
-
-    MAC_ADDRESS=$( grep "MAC Address  :" "$LOG_FILE" | awk -F': ' '{print $2}' | tr -d '[:space:]' )
-    IPV4_ADDRESS=$( grep "IPv4 Address :" "$LOG_FILE" | awk -F': ' '{print $2}' | tr -d '[:space:]' )
-
-    # Validate extracted values
-    if [[ -z "${MAC_ADDRESS}" ]]; then
-        print_error "[ERROR] Failed to extract MAC address from ksmanager output for \"$qemu_kvm_hostname\"."
-        print_info "[INFO] Please check the lab infrastructure server VM at ${lab_infra_server_ipv4_address} for details."
-        FAILED_VMS+=("$qemu_kvm_hostname")
-        continue
-    fi
-
-    if [[ -z "${IPV4_ADDRESS}" ]]; then
-        print_error "[ERROR] Failed to extract IPv4 address from ksmanager output for \"$qemu_kvm_hostname\"."
-        print_info "[INFO] Please check the lab infrastructure server VM at ${lab_infra_server_ipv4_address} for details."
+    # Run ksmanager and extract VM details
+    source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/run-ksmanager.sh
+    if ! run_ksmanager "${qemu_kvm_hostname}" "--qemu-kvm"; then
         FAILED_VMS+=("$qemu_kvm_hostname")
         continue
     fi

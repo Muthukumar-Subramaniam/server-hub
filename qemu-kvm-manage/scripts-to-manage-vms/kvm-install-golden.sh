@@ -10,7 +10,6 @@ source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/select-ovmf.s
 
 ATTACH_CONSOLE="no"
 HOSTNAMES=()
-LOG_FILE=""
 
 # Function to show help
 fn_show_help() {
@@ -31,15 +30,6 @@ Examples:
   qlabvmctl install-golden -H vm1,vm2,vm3                # Same as above
 "
 }
-
-# Cleanup function
-cleanup() {
-    if [[ -n "$LOG_FILE" && -f "$LOG_FILE" ]]; then
-        rm -f "$LOG_FILE"
-    fi
-}
-
-trap cleanup EXIT
 
 # Parse arguments
 while [[ $# -gt 0 ]]; do
@@ -154,71 +144,21 @@ for qemu_kvm_hostname in "${HOSTNAMES[@]}"; do
 
     print_info "[INFO] Creating first boot environment for '${qemu_kvm_hostname}' using ksmanager..."
 
-    LOG_FILE="/tmp/install-vm-logs-${qemu_kvm_hostname}"
-    >"$LOG_FILE"
-
-    if $lab_infra_server_mode_is_host; then
-        if ! sudo ksmanager "${qemu_kvm_hostname}" --qemu-kvm --golden-image | tee -a "$LOG_FILE"; then
-            print_error "[FAILED] ksmanager execution failed for \"$qemu_kvm_hostname\"."
-            FAILED_VMS+=("$qemu_kvm_hostname")
-            continue
-        fi
-    else
-        if ! ssh -o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -t "${lab_infra_admin_username}@${lab_infra_server_ipv4_address}" "sudo ksmanager ${qemu_kvm_hostname} --qemu-kvm --golden-image" | tee -a "$LOG_FILE"; then
-            print_error "[FAILED] ksmanager execution failed for \"$qemu_kvm_hostname\"."
-            FAILED_VMS+=("$qemu_kvm_hostname")
-            continue
-        fi
-    fi
-
-    MAC_ADDRESS=$( grep "MAC Address  :" "$LOG_FILE" | awk -F': ' '{print $2}' | tr -d '[:space:]' )
-    IPV4_ADDRESS=$( grep "IPv4 Address :" "$LOG_FILE" | awk -F': ' '{print $2}' | tr -d '[:space:]' )
-    OS_DISTRO=$( grep "Requested OS :" "$LOG_FILE" | awk -F': ' '{print $2}' | tr -d '[:space:]' )
-
-    # Validate extracted values
-    if [[ -z "${MAC_ADDRESS}" ]]; then
-        print_error "[ERROR] Failed to extract MAC address from ksmanager output for \"$qemu_kvm_hostname\"."
-        print_info "[INFO] Please check the lab infrastructure server VM at ${lab_infra_server_ipv4_address} for details."
+    # Run ksmanager and extract VM details
+    source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/run-ksmanager.sh
+    if ! run_ksmanager "${qemu_kvm_hostname}" "--qemu-kvm --golden-image"; then
         FAILED_VMS+=("$qemu_kvm_hostname")
         continue
     fi
 
-    if [[ -z "${IPV4_ADDRESS}" ]]; then
-        print_error "[ERROR] Failed to extract IPv4 address from ksmanager output for \"$qemu_kvm_hostname\"."
-        print_info "[INFO] Please check the lab infrastructure server VM at ${lab_infra_server_ipv4_address} for details."
+    # Normalize OS distro name
+    source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/normalize-os-distro.sh
+    if ! normalize_os_distro "${OS_DISTRO}"; then
+        print_error "[ERROR] Failed to normalize OS distro for \"$qemu_kvm_hostname\"."
         FAILED_VMS+=("$qemu_kvm_hostname")
         continue
     fi
-
-    if [[ -z "${OS_DISTRO}" ]]; then
-        print_error "[ERROR] Failed to extract OS distro from ksmanager output for \"$qemu_kvm_hostname\"."
-        print_info "[INFO] Please check the lab infrastructure server VM at ${lab_infra_server_ipv4_address} for details."
-        FAILED_VMS+=("$qemu_kvm_hostname")
-        continue
-    fi
-
-    # Normalize OS distro names
-    if echo "$OS_DISTRO" | grep -qi "almalinux"; then
-        OS_DISTRO="almalinux"
-    elif echo "$OS_DISTRO" | grep -qi "centos"; then
-        OS_DISTRO="centos-stream"
-    elif echo "$OS_DISTRO" | grep -qi "rocky"; then
-        OS_DISTRO="rocky"
-    elif echo "$OS_DISTRO" | grep -qi "oracle"; then
-        OS_DISTRO="oraclelinux"
-    elif echo "$OS_DISTRO" | grep -qi "redhat"; then
-        OS_DISTRO="rhel"
-    elif echo "$OS_DISTRO" | grep -qi "fedora"; then
-        OS_DISTRO="fedora"
-    elif echo "$OS_DISTRO" | grep -qi "ubuntu"; then
-        OS_DISTRO="ubuntu-lts"
-    elif echo "$OS_DISTRO" | grep -qi "suse"; then
-        OS_DISTRO="opensuse-leap"
-    else
-        print_error "[ERROR] Unrecognized OS distro: $OS_DISTRO for \"$qemu_kvm_hostname\"."
-        FAILED_VMS+=("$qemu_kvm_hostname")
-        continue
-    fi
+    OS_DISTRO="$NORMALIZED_OS_DISTRO"
 
     # Create VM directory
     if ! mkdir -p /kvm-hub/vms/"${qemu_kvm_hostname}"; then
