@@ -61,25 +61,25 @@ fn_shutdown_or_poweroff() {
     case "$selected_choice" in
         1)
             print_info "[INFO] Initiating graceful shutdown..."
-            print_info "[INFO] Checking SSH connectivity to ${qemu_kvm_hostname}..."
-            if nc -zw5 "${qemu_kvm_hostname}" 22; then
-                print_success "[SUCCESS] SSH connectivity confirmed. Initiating graceful shutdown..."
-                ssh -o LogLevel=QUIET \
-                    -o StrictHostKeyChecking=no \
-                    -o UserKnownHostsFile=/dev/null \
-                    "${lab_infra_admin_username}@${qemu_kvm_hostname}" \
-                    "sudo shutdown -h now"
-
-                print_info "[INFO] Waiting for VM \"${qemu_kvm_hostname}\" to shut down..."
-                while sudo virsh list | awk '{print $2}' | grep -Fxq "$qemu_kvm_hostname"; do
-                    sleep 1
-                done
-                print_success "[SUCCESS] VM has been shut down successfully. Proceeding further."
-            else
-                print_error "[ERROR] SSH connection issue with ${qemu_kvm_hostname}."
-                print_error "[ERROR] Cannot perform graceful shutdown."
+            source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/shutdown-vm.sh
+            if ! SHUTDOWN_VM_CONTEXT="Initiating graceful shutdown" shutdown_vm "$qemu_kvm_hostname"; then
                 exit 1
             fi
+            
+            # Wait for VM to shut down with timeout
+            print_info "[INFO] Waiting for VM \"${qemu_kvm_hostname}\" to shut down (timeout: 60s)..."
+            TIMEOUT=60
+            ELAPSED=0
+            while sudo virsh list | awk '{print $2}' | grep -Fxq "$qemu_kvm_hostname"; do
+                if (( ELAPSED >= TIMEOUT )); then
+                    print_warning "[WARNING] VM did not shut down within ${TIMEOUT}s."
+                    print_info "[INFO] You may want to force power off instead."
+                    exit 1
+                fi
+                sleep 2
+                ((ELAPSED+=2))
+            done
+            print_success "[SUCCESS] VM has been shut down successfully. Proceeding further."
             ;;
         2)
             print_info "[INFO] Forcing power off..."
@@ -136,32 +136,32 @@ if [[ ! -d "$VM_DIR" ]]; then
     exit 1
 fi
 
-# Determine existing disks
-EXISTING_FILES=($(ls "$VM_DIR"/*.qcow2 2>/dev/null))
+# Determine existing disks using associative array for O(1) lookup
+declare -A EXISTING_DISKS
+for disk_file in "$VM_DIR"/*.qcow2; do
+    [[ -e "$disk_file" ]] || continue
+    BASENAME=$(basename "$disk_file")
+    EXISTING_DISKS["$BASENAME"]=1
+done
 
-NEXT_DISK_LETTER="b"
-
-for ((i=1; i<=DISK_COUNT; i++)); do
-    # Find the next available letter
-    while true; do
-        FOUND=0
-        for f in "${EXISTING_FILES[@]}"; do
-            BASENAME=$(basename "$f")
-            if [[ "$BASENAME" == "${qemu_kvm_hostname}_vd${NEXT_DISK_LETTER}.qcow2" ]]; then
-                FOUND=1
-                break
-            fi
-        done
-        if [[ $FOUND -eq 0 ]]; then
-            break
-        fi
-        # Increment letter properly (b->c->d...->z)
-        NEXT_DISK_LETTER=$(echo "$NEXT_DISK_LETTER" | tr 'b-y' 'c-z')
-        if [[ "$NEXT_DISK_LETTER" == "z" ]]; then
-            print_error "[ERROR] Maximum disk letters reached (vdb-vdz)."
-            exit 1
+# Function to get next available disk letter
+get_next_disk_letter() {
+    local letter
+    for letter in {b..z}; do
+        if [[ -z "${EXISTING_DISKS[${qemu_kvm_hostname}_vd${letter}.qcow2]}" ]]; then
+            echo "$letter"
+            return 0
         fi
     done
+    return 1
+}
+
+for ((i=1; i<=DISK_COUNT; i++)); do
+    # Get next available letter
+    if ! NEXT_DISK_LETTER=$(get_next_disk_letter); then
+        print_error "[ERROR] Maximum disk letters reached (vdb-vdz)."
+        exit 1
+    fi
 
     DISK_NAME="${qemu_kvm_hostname}_vd${NEXT_DISK_LETTER}.qcow2"
     DISK_PATH="$VM_DIR/$DISK_NAME"
@@ -186,8 +186,8 @@ for ((i=1; i<=DISK_COUNT; i++)); do
         exit 1
     fi
 
-    # Update EXISTING_FILES
-    EXISTING_FILES+=("$DISK_PATH")
+    # Mark disk as used
+    EXISTING_DISKS["$DISK_NAME"]=1
 done
 
 print_success "[SUCCESS] Added $DISK_COUNT ${DISK_SIZE_GB}GB disk(s) to VM \"$qemu_kvm_hostname\"."
