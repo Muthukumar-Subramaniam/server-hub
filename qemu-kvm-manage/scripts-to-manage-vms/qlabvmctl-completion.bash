@@ -3,12 +3,12 @@
 # If you encounter any issues with this script, or have suggestions or feature requests, #
 # please open an issue at: https://github.com/Muthukumar-Subramaniam/server-hub/issues   #
 #----------------------------------------------------------------------------------------#
-# Script Name : labvmctl-completion.bash
-# Description : Bash completion script for labvmctl.sh
+# Script Name : qlabvmctl-completion.bash
+# Description : Bash completion script for qlabvmctl.sh
 # Installation: Source this file in your ~/.bashrc or copy to /etc/bash_completion.d/
-# Usage       : source labvmctl-completion.bash
+# Usage       : source qlabvmctl-completion.bash
 
-_labvmctl_completions() {
+_qlabvmctl_completions() {
     local cur prev subcommands
     COMPREPLY=()
     cur="${COMP_WORDS[COMP_CWORD]}"
@@ -41,6 +41,6 @@ _labvmctl_completions() {
     return 0
 }
 
-# Register completion function for both labvmctl.sh and labvmctl (in case symlink exists)
-complete -F _labvmctl_completions labvmctl.sh
-complete -F _labvmctl_completions labvmctl
+# Register completion function for both qlabvmctl.sh and qlabvmctl (in case symlink exists)
+complete -F _qlabvmctl_completions qlabvmctl.sh
+complete -F _qlabvmctl_completions qlabvmctl

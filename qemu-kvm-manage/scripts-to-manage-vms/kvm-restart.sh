@@ -14,7 +14,7 @@ vm_hostname_arg=""
 
 # Function to show help
 fn_show_help() {
-    print_info "Usage: labvmctl restart [OPTIONS] [hostname]
+    print_info "Usage: qlabvmctl restart [OPTIONS] [hostname]
 
 Options:
   -f, --force          Skip confirmation prompt and force cold restart
@@ -25,10 +25,10 @@ Arguments:
   hostname             Name of the VM to do cold restart (optional, will prompt if not given)
 
 Examples:
-  labvmctl restart vm1                    # Restart single VM with confirmation
-  labvmctl restart -f vm1                 # Restart single VM without confirmation
-  labvmctl restart --hosts vm1,vm2,vm3    # Restart multiple VMs with confirmation
-  labvmctl restart -f --hosts vm1,vm2     # Restart multiple VMs without confirmation
+  qlabvmctl restart vm1                    # Restart single VM with confirmation
+  qlabvmctl restart -f vm1                 # Restart single VM without confirmation
+  qlabvmctl restart --hosts vm1,vm2,vm3    # Restart multiple VMs with confirmation
+  qlabvmctl restart -f --hosts vm1,vm2     # Restart multiple VMs without confirmation
 "
 }
 
@@ -83,7 +83,7 @@ restart_vm() {
     # Check if VM exists in 'virsh list'
     if ! sudo virsh list | awk '{print $2}' | grep -Fxq "$vm_name"; then
         print_error "[ERROR] VM \"$vm_name\" is not running."
-        print_info "[INFO] If you want to start the VM, use: labvmctl start $vm_name"
+        print_info "[INFO] If you want to start the VM, use: qlabvmctl start $vm_name"
         return 1
     fi
     

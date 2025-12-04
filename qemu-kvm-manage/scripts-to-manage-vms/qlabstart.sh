@@ -3,9 +3,9 @@
 # If you encounter any issues with this script, or have suggestions or feature requests, #
 # please open an issue at: https://github.com/Muthukumar-Subramaniam/server-hub/issues   #
 #----------------------------------------------------------------------------------------#
-# Script Name : labstart
+# Script Name : qlabstart
 # Description : Start the entire KVM lab infrastructure
-# Usage       : labstart [options]
+# Usage       : qlabstart [options]
 
 set -euo pipefail
 

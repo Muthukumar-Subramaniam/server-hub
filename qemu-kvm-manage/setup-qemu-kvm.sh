@@ -82,13 +82,13 @@ fi
 
 print_info "[INFO] Creating custom tools to manage QEMU/KVM..." nskip
 scripts_directory="/server-hub/qemu-kvm-manage/scripts-to-manage-vms"
-sudo ln -sf "$scripts_directory/labvmctl.sh" /usr/bin/labvmctl
-sudo ln -sf "$scripts_directory/labstart.sh" /usr/bin/labstart
-sudo ln -sf "$scripts_directory/labhealth.sh" /usr/bin/labhealth
+sudo ln -sf "$scripts_directory/qlabvmctl.sh" /usr/bin/qlabvmctl
+sudo ln -sf "$scripts_directory/qlabstart.sh" /usr/bin/qlabstart
+sudo ln -sf "$scripts_directory/qlabhealth.sh" /usr/bin/qlabhealth
 print_success "[SUCCESS]"
 
-print_info "[INFO] Installing bash completion for labvmctl..." nskip
-sudo ln -sf "$scripts_directory/labvmctl-completion.bash" /etc/bash_completion.d/labvmctl-completion.bash
+print_info "[INFO] Installing bash completion for qlabvmctl..." nskip
+sudo ln -sf "$scripts_directory/qlabvmctl-completion.bash" /etc/bash_completion.d/qlabvmctl-completion.bash
 print_success "[SUCCESS]"
 
 print_success "[SUCCESS] QEMU/KVM setup completed successfully!"

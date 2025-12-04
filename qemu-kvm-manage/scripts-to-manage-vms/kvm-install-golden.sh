@@ -14,7 +14,7 @@ LOG_FILE=""
 
 # Function to show help
 fn_show_help() {
-    print_info "Usage: labvmctl install-golden [OPTIONS] [hostname]
+    print_info "Usage: qlabvmctl install-golden [OPTIONS] [hostname]
 
 Options:
   -c, --console        Attach console during installation (single VM only)
@@ -25,10 +25,10 @@ Arguments:
   hostname             Name of the VM to install via golden image disk (optional, will prompt if not given)
 
 Examples:
-  labvmctl install-golden vm1                           # Install single VM
-  labvmctl install-golden vm1 --console                 # Install and attach console
-  labvmctl install-golden --hosts vm1,vm2,vm3           # Install multiple VMs
-  labvmctl install-golden -H vm1,vm2,vm3                # Same as above
+  qlabvmctl install-golden vm1                           # Install single VM
+  qlabvmctl install-golden vm1 --console                 # Install and attach console
+  qlabvmctl install-golden --hosts vm1,vm2,vm3           # Install multiple VMs
+  qlabvmctl install-golden -H vm1,vm2,vm3                # Same as above
 "
 }
 
@@ -143,8 +143,8 @@ for qemu_kvm_hostname in "${HOSTNAMES[@]}"; do
         print_error "[ERROR] VM \"$qemu_kvm_hostname\" exists already."
         if [[ $TOTAL_VMS -eq 1 ]]; then
             print_warning "[WARNING] Either do one of the following:"
-            print_info "[INFO] Remove the VM using 'labvmctl remove', then try again."
-            print_info "[INFO] Re-image the VM using 'labvmctl reimage-golden' or 'labvmctl reimage-pxe'."
+            print_info "[INFO] Remove the VM using 'qlabvmctl remove', then try again."
+            print_info "[INFO] Re-image the VM using 'qlabvmctl reimage-golden' or 'qlabvmctl reimage-pxe'."
             exit 1
         else
             FAILED_VMS+=("$qemu_kvm_hostname")
@@ -257,7 +257,7 @@ for qemu_kvm_hostname in "${HOSTNAMES[@]}"; do
     if [ ! -f /kvm-hub/golden-images-disk-store/${OS_DISTRO}-golden-image.${lab_infra_domain_name}.qcow2 ]; then
         print_error "[ERROR] Golden image disk not found for \"$qemu_kvm_hostname\"!"
         print_info "[INFO] Expected at: /kvm-hub/golden-images-disk-store/${OS_DISTRO}-golden-image.${lab_infra_domain_name}.qcow2"
-        print_info "[INFO] To build the golden image disk, run: labvmctl build-golden-image"
+        print_info "[INFO] To build the golden image disk, run: qlabvmctl build-golden-image"
         FAILED_VMS+=("$qemu_kvm_hostname")
         continue
     fi
@@ -302,8 +302,8 @@ for qemu_kvm_hostname in "${HOSTNAMES[@]}"; do
         sudo virsh console "${qemu_kvm_hostname}"
     elif [[ $TOTAL_VMS -eq 1 ]]; then
         print_info "[INFO] The VM will reboot once or twice during the installation process (~1 minute)."
-        print_info "[INFO] To monitor installation progress, use: labvmctl console $qemu_kvm_hostname"
-        print_info "[INFO] To check VM status, use: labvmctl list"
+        print_info "[INFO] To monitor installation progress, use: qlabvmctl console $qemu_kvm_hostname"
+        print_info "[INFO] To check VM status, use: qlabvmctl list"
         print_success "[SUCCESS] VM \"$qemu_kvm_hostname\" installation initiated successfully via golden image disk."
     fi
 
@@ -333,6 +333,6 @@ if [[ $TOTAL_VMS -gt 1 ]]; then
     fi
     
     print_info "[INFO] All VMs will reboot once or twice during installation (~1 minute each)."
-    print_info "[INFO] To monitor installation progress, use: labvmctl console <hostname>"
-    print_info "[INFO] To check VM status, use: labvmctl list"
+    print_info "[INFO] To monitor installation progress, use: qlabvmctl console <hostname>"
+    print_info "[INFO] To check VM status, use: qlabvmctl list"
 fi

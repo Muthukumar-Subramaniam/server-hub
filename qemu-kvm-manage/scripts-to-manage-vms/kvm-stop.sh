@@ -14,7 +14,7 @@ vm_hostname_arg=""
 
 # Function to show help
 fn_show_help() {
-    print_info "Usage: labvmctl stop [OPTIONS] [hostname]
+    print_info "Usage: qlabvmctl stop [OPTIONS] [hostname]
 
 Options:
   -f, --force          Skip confirmation prompt and force power-off
@@ -25,10 +25,10 @@ Arguments:
   hostname             Name of the VM to Power-OFF (optional, will prompt if not given)
 
 Examples:
-  labvmctl stop vm1                    # Stop single VM with confirmation
-  labvmctl stop -f vm1                 # Stop single VM without confirmation
-  labvmctl stop --hosts vm1,vm2,vm3    # Stop multiple VMs with confirmation
-  labvmctl stop -f --hosts vm1,vm2     # Stop multiple VMs without confirmation
+  qlabvmctl stop vm1                    # Stop single VM with confirmation
+  qlabvmctl stop -f vm1                 # Stop single VM without confirmation
+  qlabvmctl stop --hosts vm1,vm2,vm3    # Stop multiple VMs with confirmation
+  qlabvmctl stop -f --hosts vm1,vm2     # Stop multiple VMs without confirmation
 "
 }
 

@@ -16,7 +16,7 @@ vm_hostname_arg=""
 
 # Function to show help
 fn_show_help() {
-    print_info "Usage: labvmctl remove [OPTIONS] [hostname]
+    print_info "Usage: qlabvmctl remove [OPTIONS] [hostname]
 
 Options:
   -f, --force          Skip confirmation prompt (except for lab infra server)
@@ -27,10 +27,10 @@ Arguments:
   hostname             Name of the VM to be deleted permanently (optional, will prompt if not given)
 
 Examples:
-  labvmctl remove vm1                    # Remove single VM with confirmation
-  labvmctl remove -f vm1                 # Remove single VM without confirmation
-  labvmctl remove --hosts vm1,vm2,vm3    # Remove multiple VMs with confirmation
-  labvmctl remove -f --hosts vm1,vm2     # Remove multiple VMs without confirmation
+  qlabvmctl remove vm1                    # Remove single VM with confirmation
+  qlabvmctl remove -f vm1                 # Remove single VM without confirmation
+  qlabvmctl remove --hosts vm1,vm2,vm3    # Remove multiple VMs with confirmation
+  qlabvmctl remove -f --hosts vm1,vm2     # Remove multiple VMs without confirmation
 
 Note: Lab infra server always requires special confirmation regardless of -f flag.
 "

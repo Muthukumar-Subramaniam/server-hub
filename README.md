@@ -137,41 +137,41 @@ Your workstation is now equipped with powerful lab management tools:
 
 ### 📦 VM Deployment & Management
 ```bash
-labvmctl build-golden-image         # 🎨 Create reusable golden base images
-labvmctl install-golden             # 🚀 Deploy VMs instantly from golden images
-labvmctl install-pxe                # 🌐 Deploy VMs via network PXE boot
-labvmctl reimage-golden             # 🔄 Reinstall VMs from golden images
-labvmctl reimage-pxe                # 🔄 Reinstall VMs via PXE boot
+qlabvmctl build-golden-image        # 🎨 Create reusable golden base images
+qlabvmctl install-golden            # 🚀 Deploy VMs instantly from golden images
+qlabvmctl install-pxe               # 🌐 Deploy VMs via network PXE boot
+qlabvmctl reimage-golden            # 🔄 Reinstall VMs from golden images
+qlabvmctl reimage-pxe               # 🔄 Reinstall VMs via PXE boot
 ```
 
 ### 🎮 VM Operations
 ```bash
-labvmctl list                       # 📊 View all VMs and their status
-labvmctl console                    # 🖥️ Connect to VM serial console
-labvmctl start                      # ▶️ Power on VMs
-labvmctl stop                       # ⏹️ Force power-off VMs
-labvmctl shutdown                   # 🔽 Graceful VM shutdown
-labvmctl restart                    # 🔄 Hard restart VMs
-labvmctl reboot                     # 🔃 Graceful VM reboot
+qlabvmctl list                      # 📊 View all VMs and their status
+qlabvmctl console                   # 🖥️ Connect to VM serial console
+qlabvmctl start                     # ▶️ Power on VMs
+qlabvmctl stop                      # ⏹️ Force power-off VMs
+qlabvmctl shutdown                  # 🔽 Graceful VM shutdown
+qlabvmctl restart                   # 🔄 Hard restart VMs
+qlabvmctl reboot                    # 🔃 Graceful VM reboot
 ```
 
 ### 🔧 VM Configuration
 ```bash
-labvmctl resize                     # 📏 Resize memory, CPU, or disk
-labvmctl add-disk                   # 💾 Add additional storage disks
-labvmctl remove                     # 🗑️ Delete VMs completely
+qlabvmctl resize                    # 📏 Resize memory, CPU, or disk
+qlabvmctl add-disk                  # 💾 Add additional storage disks
+qlabvmctl remove                    # 🗑️ Delete VMs completely
 ```
 
 ### 🌍 Infrastructure Management
 ```bash
-labvmctl dnsbinder                  # 🌐 Manage local DNS records
-labstart                            # 🏁 Start the entire lab infrastructure
-labhealth                           # 🏥 Check lab infrastructure health
+qlabvmctl dnsbinder                 # 🌐 Manage local DNS records
+qlabstart                           # 🏁 Start the entire lab infrastructure
+qlabhealth                          # 🏥 Check lab infrastructure health
 ```
 
 **Pro tips:** 
-- Use `labvmctl --help` or `labvmctl <subcommand> --help` for VM management help
-- Use `labstart --help` and `labhealth --help` for infrastructure tools help
+- Use `qlabvmctl --help` or `qlabvmctl <subcommand> --help` for VM management help
+- Use `qlabstart --help` and `qlabhealth --help` for infrastructure tools help
 
 ---
 

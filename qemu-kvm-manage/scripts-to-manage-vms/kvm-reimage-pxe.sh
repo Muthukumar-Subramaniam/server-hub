@@ -15,7 +15,7 @@ LOG_FILE=""
 
 # Function to show help
 fn_show_help() {
-    print_info "Usage: labvmctl reimage-pxe [OPTIONS] [hostname]
+    print_info "Usage: qlabvmctl reimage-pxe [OPTIONS] [hostname]
 
 Options:
   -c, --console        Attach console during reimage (single VM only)
@@ -27,11 +27,11 @@ Arguments:
   hostname             Name of the VM to reimage via PXE boot (optional, will prompt if not given)
 
 Examples:
-  labvmctl reimage-pxe vm1                                # Reimage single VM
-  labvmctl reimage-pxe vm1 --console                      # Reimage and attach console
-  labvmctl reimage-pxe vm1 --force-default                # Reimage with default specs
-  labvmctl reimage-pxe --hosts vm1,vm2,vm3                # Reimage multiple VMs
-  labvmctl reimage-pxe -H vm1,vm2,vm3 --force-default     # Reimage multiple with defaults
+  qlabvmctl reimage-pxe vm1                                # Reimage single VM
+  qlabvmctl reimage-pxe vm1 --console                      # Reimage and attach console
+  qlabvmctl reimage-pxe vm1 --force-default                # Reimage with default specs
+  qlabvmctl reimage-pxe --hosts vm1,vm2,vm3                # Reimage multiple VMs
+  qlabvmctl reimage-pxe -H vm1,vm2,vm3 --force-default     # Reimage multiple with defaults
 "
 }
 
@@ -353,8 +353,8 @@ for qemu_kvm_hostname in "${HOSTNAMES[@]}"; do
         sudo virsh console "${qemu_kvm_hostname}"
     elif [[ $TOTAL_VMS -eq 1 ]]; then
         print_info "[INFO] Reimaging via PXE boot takes a few minutes."
-        print_info "[INFO] To monitor reimaging progress, use: labvmctl console $qemu_kvm_hostname"
-        print_info "[INFO] To check VM status, use: labvmctl list"
+        print_info "[INFO] To monitor reimaging progress, use: qlabvmctl console $qemu_kvm_hostname"
+        print_info "[INFO] To check VM status, use: qlabvmctl list"
         print_success "[SUCCESS] VM \"$qemu_kvm_hostname\" reimaging initiated successfully via PXE boot."
     fi
 
@@ -384,6 +384,6 @@ if [[ $TOTAL_VMS -gt 1 ]]; then
     fi
     
     print_info "[INFO] Reimaging via PXE boot takes a few minutes per VM."
-    print_info "[INFO] To monitor reimaging progress, use: labvmctl console <hostname>"
-    print_info "[INFO] To check VM status, use: labvmctl list"
+    print_info "[INFO] To monitor reimaging progress, use: qlabvmctl console <hostname>"
+    print_info "[INFO] To check VM status, use: qlabvmctl list"
 fi

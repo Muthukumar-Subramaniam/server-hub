@@ -7,7 +7,7 @@
 source /server-hub/common-utils/color-functions.sh
 source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/defaults.sh
 
-temp_dir_to_create_wrappers="/tmp/labtools-wrappers"
+temp_dir_to_create_wrappers="/tmp/qlabtools-wrappers"
 SSH_OPTS="-o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
 
 print_info "[INFO] Authorizing SSH public key of infra server VM..." nskip
@@ -20,8 +20,8 @@ print_success "[ SUCCESS ]"
 print_info "[INFO] Generating wrapper scripts..." nskip
 mkdir -p "${temp_dir_to_create_wrappers}"
 
-# Create labvmctl wrapper
-cat > "${temp_dir_to_create_wrappers}/labvmctl" << 'EOF'
+# Create qlabvmctl wrapper
+cat > "${temp_dir_to_create_wrappers}/qlabvmctl" << 'EOF'
 #!/bin/bash
 # Who am I?
 SSH_OPTIONS="-o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
@@ -37,26 +37,26 @@ for EACH_ARG in "$@"; do
     fi
 done
 
-# Forward labvmctl command to workstation
-ssh ${SSH_OPTIONS} -t __LAB_INFRA_USERNAME__@__LAB_INFRA_GATEWAY__ "export KVM_TOOL_EXECUTED_FROM='${INFRA_SERVER_NAME}'; labvmctl $@"
+# Forward qlabvmctl command to workstation
+ssh ${SSH_OPTIONS} -t __LAB_INFRA_USERNAME__@__LAB_INFRA_GATEWAY__ "export KVM_TOOL_EXECUTED_FROM='${INFRA_SERVER_NAME}'; qlabvmctl $@"
 exit
 EOF
 
-# Create labstart wrapper
-cat > "${temp_dir_to_create_wrappers}/labstart" << 'EOF'
+# Create qlabstart wrapper
+cat > "${temp_dir_to_create_wrappers}/qlabstart" << 'EOF'
 #!/bin/bash
 SSH_OPTIONS="-o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
-# Forward labstart command to workstation
-ssh ${SSH_OPTIONS} -t __LAB_INFRA_USERNAME__@__LAB_INFRA_GATEWAY__ "labstart $@"
+# Forward qlabstart command to workstation
+ssh ${SSH_OPTIONS} -t __LAB_INFRA_USERNAME__@__LAB_INFRA_GATEWAY__ "qlabstart $@"
 exit
 EOF
 
-# Create labhealth wrapper
-cat > "${temp_dir_to_create_wrappers}/labhealth" << 'EOF'
+# Create qlabhealth wrapper
+cat > "${temp_dir_to_create_wrappers}/qlabhealth" << 'EOF'
 #!/bin/bash
 SSH_OPTIONS="-o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
-# Forward labhealth command to workstation
-ssh ${SSH_OPTIONS} -t __LAB_INFRA_USERNAME__@__LAB_INFRA_GATEWAY__ "labhealth $@"
+# Forward qlabhealth command to workstation
+ssh ${SSH_OPTIONS} -t __LAB_INFRA_USERNAME__@__LAB_INFRA_GATEWAY__ "qlabhealth $@"
 exit
 EOF
 
@@ -68,12 +68,12 @@ print_success "[ SUCCESS ]"
 
 print_info "[INFO] Syncing wrapper scripts to infra server VM..." nskip
 rsync -az -e "ssh $SSH_OPTS" "${temp_dir_to_create_wrappers}/"* ${lab_infra_admin_username}@${lab_infra_server_ipv4_address}:
-ssh ${SSH_OPTS} ${lab_infra_admin_username}@${lab_infra_server_ipv4_address} "chmod +x labvmctl labstart labhealth && sudo mv labvmctl labstart labhealth /usr/bin/"
+ssh ${SSH_OPTS} ${lab_infra_admin_username}@${lab_infra_server_ipv4_address} "chmod +x qlabvmctl qlabstart qlabhealth && sudo mv qlabvmctl qlabstart qlabhealth /usr/bin/"
 rm -rf "$temp_dir_to_create_wrappers"
 print_success "[ SUCCESS ]"
 
 print_success "[SUCCESS] Now you can manage QEMU/KVM environment from your infra server VM!"
 print_info "[INFO] Available commands:"
-print_info "[INFO]   - labvmctl <subcommand> [options]  # VM management"
-print_info "[INFO]   - labstart [options]               # Start lab infrastructure"
-print_info "[INFO]   - labhealth [options]              # Check lab health"
+print_info "[INFO]   - qlabvmctl <subcommand> [options]  # VM management"
+print_info "[INFO]   - qlabstart [options]               # Start lab infrastructure"
+print_info "[INFO]   - qlabhealth [options]              # Check lab health"

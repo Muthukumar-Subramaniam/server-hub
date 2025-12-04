@@ -14,7 +14,7 @@ LOG_FILE=""
 
 # Function to show help
 fn_show_help() {
-    print_info "Usage: labvmctl install-pxe [OPTIONS] [hostname]
+    print_info "Usage: qlabvmctl install-pxe [OPTIONS] [hostname]
 
 Options:
   -c, --console        Attach console during installation (single VM only)
@@ -25,10 +25,10 @@ Arguments:
   hostname             Name of the VM to install via PXE boot (optional, will prompt if not given)
 
 Examples:
-  labvmctl install-pxe vm1                           # Install single VM
-  labvmctl install-pxe vm1 --console                 # Install and attach console
-  labvmctl install-pxe --hosts vm1,vm2,vm3           # Install multiple VMs
-  labvmctl install-pxe -H vm1,vm2,vm3                # Same as above
+  qlabvmctl install-pxe vm1                           # Install single VM
+  qlabvmctl install-pxe vm1 --console                 # Install and attach console
+  qlabvmctl install-pxe --hosts vm1,vm2,vm3           # Install multiple VMs
+  qlabvmctl install-pxe -H vm1,vm2,vm3                # Same as above
 "
 }
 
@@ -143,8 +143,8 @@ for qemu_kvm_hostname in "${HOSTNAMES[@]}"; do
         print_error "[ERROR] VM \"$qemu_kvm_hostname\" exists already."
         if [[ $TOTAL_VMS -eq 1 ]]; then
             print_warning "[WARNING] Either do one of the following:"
-            print_info "[INFO] Remove the VM using 'labvmctl remove', then try again."
-            print_info "[INFO] Re-image the VM using 'labvmctl reimage-golden' or 'labvmctl reimage-pxe'."
+            print_info "[INFO] Remove the VM using 'qlabvmctl remove', then try again."
+            print_info "[INFO] Re-image the VM using 'qlabvmctl reimage-golden' or 'qlabvmctl reimage-pxe'."
             exit 1
         else
             FAILED_VMS+=("$qemu_kvm_hostname")
@@ -241,8 +241,8 @@ for qemu_kvm_hostname in "${HOSTNAMES[@]}"; do
         sudo virsh console "${qemu_kvm_hostname}"
     elif [[ $TOTAL_VMS -eq 1 ]]; then
         print_info "[INFO] The VM will download OS files and install (this may take a few minutes)."
-        print_info "[INFO] To monitor installation progress, use: labvmctl console $qemu_kvm_hostname"
-        print_info "[INFO] To check VM status, use: labvmctl list"
+        print_info "[INFO] To monitor installation progress, use: qlabvmctl console $qemu_kvm_hostname"
+        print_info "[INFO] To check VM status, use: qlabvmctl list"
         print_success "[SUCCESS] VM \"$qemu_kvm_hostname\" installation initiated successfully via PXE boot."
     fi
 
@@ -272,8 +272,8 @@ if [[ $TOTAL_VMS -gt 1 ]]; then
     fi
     
     print_info "[INFO] Installation via PXE boot may take a few minutes per VM."
-    print_info "[INFO] To monitor installation progress, use: labvmctl console <hostname>"
-    print_info "[INFO] To check VM status, use: labvmctl list"
+    print_info "[INFO] To monitor installation progress, use: qlabvmctl console <hostname>"
+    print_info "[INFO] To check VM status, use: qlabvmctl list"
 fi
 
 

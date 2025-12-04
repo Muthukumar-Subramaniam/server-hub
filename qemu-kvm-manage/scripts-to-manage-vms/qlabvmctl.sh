@@ -3,9 +3,9 @@
 # If you encounter any issues with this script, or have suggestions or feature requests, #
 # please open an issue at: https://github.com/Muthukumar-Subramaniam/server-hub/issues   #
 #----------------------------------------------------------------------------------------#
-# Script Name : labvmctl
+# Script Name : qlabvmctl
 # Description : Unified command-line interface for managing KVM lab VMs
-# Usage       : labvmctl <subcommand> [options] [args]
+# Usage       : qlabvmctl <subcommand> [options] [args]
 
 set -euo pipefail
 
@@ -20,10 +20,10 @@ VERSION="1.0.0"
 
 # Display usage information
 show_usage() {
-    print_info "labvmctl - KVM Lab VM Control Interface
+    print_info "qlabvmctl - KVM Lab VM Control Interface
 
 USAGE:
-    labvmctl <subcommand> [options] [arguments]
+    qlabvmctl <subcommand> [options] [arguments]
 
 DNS MANAGEMENT:
     dnsbinder               Manage lab DNS records
@@ -54,14 +54,14 @@ OPTIONS:
     -v, --version           Show version information
 
 NOTES:
-    - Use 'labstart' to start the lab infrastructure
-    - Use 'labhealth' to check lab infrastructure health
-    - For subcommand help: labvmctl <subcommand> --help"
+    - Use 'qlabstart' to start the lab infrastructure
+    - Use 'qlabhealth' to check lab infrastructure health
+    - For subcommand help: qlabvmctl <subcommand> --help"
 }
 
 # Show version
 show_version() {
-    print_info "labvmctl version $VERSION"
+    print_info "qlabvmctl version $VERSION"
     print_info "KVM Lab VM Management Tool"
 }
 
@@ -103,7 +103,7 @@ main() {
         *)
             print_error "[ERROR] Unknown subcommand: $subcommand"
             echo
-            echo "Run 'labvmctl --help' to see available subcommands"
+            echo "Run 'qlabvmctl --help' to see available subcommands"
             exit 1
             ;;
     esac

@@ -3,9 +3,9 @@
 # If you encounter any issues with this script, or have suggestions or feature requests, #
 # please open an issue at: https://github.com/Muthukumar-Subramaniam/server-hub/issues   #
 #----------------------------------------------------------------------------------------#
-# Script Name : labhealth
+# Script Name : qlabhealth
 # Description : Check KVM lab infrastructure health
-# Usage       : labhealth [options]
+# Usage       : qlabhealth [options]
 
 set -euo pipefail
 
