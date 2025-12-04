@@ -46,9 +46,6 @@ VM CONFIGURATION:
     resize                  Resize VM resources (CPU, memory, disk)
     add-disk                Add additional disk to VM
 
-DNS MANAGEMENT:
-    dnsbinder               Manage lab DNS records
-
 OPTIONS:
     -h, --help              Show this help message
     -v, --version           Show version information
@@ -96,9 +93,6 @@ main() {
             ;;
         add-disk)
             script_name="kvm-add-disk.sh"
-            ;;
-        dnsbinder)
-            script_name="kvm-dnsbinder.sh"
             ;;
         *)
             print_error "[ERROR] Unknown subcommand: $subcommand"

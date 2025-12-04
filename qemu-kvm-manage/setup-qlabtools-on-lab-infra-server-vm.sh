@@ -60,6 +60,15 @@ ssh ${SSH_OPTIONS} -t __LAB_INFRA_USERNAME__@__LAB_INFRA_GATEWAY__ "qlabhealth $
 exit
 EOF
 
+# Create qlabdnsbinder wrapper
+cat > "${temp_dir_to_create_wrappers}/qlabdnsbinder" << 'EOF'
+#!/bin/bash
+SSH_OPTIONS="-o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
+# Forward qlabdnsbinder command to workstation
+ssh ${SSH_OPTIONS} -t __LAB_INFRA_USERNAME__@__LAB_INFRA_GATEWAY__ "qlabdnsbinder $@"
+exit
+EOF
+
 # Replace placeholders with actual values
 sed -i "s|__LAB_INFRA_USERNAME__|${lab_infra_admin_username}|g" "${temp_dir_to_create_wrappers}/"*
 sed -i "s|__LAB_INFRA_GATEWAY__|${lab_infra_server_ipv4_gateway}|g" "${temp_dir_to_create_wrappers}/"*
@@ -68,7 +77,7 @@ print_success "[ SUCCESS ]"
 
 print_info "[INFO] Syncing wrapper scripts to infra server VM..." nskip
 rsync -az -e "ssh $SSH_OPTS" "${temp_dir_to_create_wrappers}/"* ${lab_infra_admin_username}@${lab_infra_server_ipv4_address}:
-ssh ${SSH_OPTS} ${lab_infra_admin_username}@${lab_infra_server_ipv4_address} "chmod +x qlabvmctl qlabstart qlabhealth && sudo mv qlabvmctl qlabstart qlabhealth /usr/bin/"
+ssh ${SSH_OPTS} ${lab_infra_admin_username}@${lab_infra_server_ipv4_address} "chmod +x qlabvmctl qlabstart qlabhealth qlabdnsbinder && sudo mv qlabvmctl qlabstart qlabhealth qlabdnsbinder /usr/bin/"
 rm -rf "$temp_dir_to_create_wrappers"
 print_success "[ SUCCESS ]"
 
@@ -77,3 +86,4 @@ print_info "[INFO] Available commands:"
 print_info "[INFO]   - qlabvmctl <subcommand> [options]  # VM management"
 print_info "[INFO]   - qlabstart [options]               # Start lab infrastructure"
 print_info "[INFO]   - qlabhealth [options]              # Check lab health"
+print_info "[INFO]   - qlabdnsbinder [options]           # Manage DNS records"

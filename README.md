@@ -164,14 +164,14 @@ qlabvmctl add-disk                  # 💾 Add additional storage disks
 
 ### 🌍 Infrastructure Management
 ```bash
-qlabvmctl dnsbinder                 # 🌐 Manage local DNS records
 qlabstart                           # 🏁 Start the entire lab infrastructure
 qlabhealth                          # 🏥 Check lab infrastructure health
+qlabdnsbinder                       # 🌐 Manage local DNS records
 ```
 
 **Pro tips:** 
 - Use `qlabvmctl --help` or `qlabvmctl <subcommand> --help` for VM management help
-- Use `qlabstart --help` and `qlabhealth --help` for infrastructure tools help
+- Use `qlabstart --help`, `qlabhealth --help`, and `qlabdnsbinder --help` for infrastructure tools
 
 ---
 
