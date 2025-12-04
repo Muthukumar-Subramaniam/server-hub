@@ -153,13 +153,13 @@ qlabvmctl stop                      # ⏹️ Force power-off VMs
 qlabvmctl shutdown                  # 🔽 Graceful VM shutdown
 qlabvmctl restart                   # 🔄 Hard restart VMs
 qlabvmctl reboot                    # 🔃 Graceful VM reboot
+qlabvmctl remove                    # 🗑️ Delete VMs completely
 ```
 
 ### 🔧 VM Configuration
 ```bash
 qlabvmctl resize                    # 📏 Resize memory, CPU, or disk
 qlabvmctl add-disk                  # 💾 Add additional storage disks
-qlabvmctl remove                    # 🗑️ Delete VMs completely
 ```
 
 ### 🌍 Infrastructure Management

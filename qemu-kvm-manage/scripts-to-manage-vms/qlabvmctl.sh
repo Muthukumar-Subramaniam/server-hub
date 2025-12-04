@@ -40,11 +40,11 @@ VM OPERATIONS:
     shutdown                Gracefully shutdown VM(s)
     restart                 Hard restart (reset) VM(s)
     reboot                  Gracefully reboot VM(s)
+    remove                  Delete VM(s) and its data
 
 VM CONFIGURATION:
     resize                  Resize VM resources (CPU, memory, disk)
     add-disk                Add additional disk to VM
-    remove                  Delete VM(s) and its data
 
 DNS MANAGEMENT:
     dnsbinder               Manage lab DNS records
