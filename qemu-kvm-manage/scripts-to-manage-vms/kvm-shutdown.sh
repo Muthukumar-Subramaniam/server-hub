@@ -36,32 +36,8 @@ force_shutdown="$FORCE_FLAG"
 hosts_list="$HOSTS_LIST"
 vm_hostname_arg="$VM_HOSTNAME_ARG"
 
-# Function to shutdown a single VM
-shutdown_vm() {
-    local vm_name="$1"
-    
-    # Check if VM exists in 'virsh list --all'
-    if ! sudo virsh list --all | awk '{print $2}' | grep -Fxq "$vm_name"; then
-        print_error "[ERROR] VM \"$vm_name\" does not exist."
-        return 1
-    fi
-    
-    # Check if VM exists in 'virsh list'
-    if ! sudo virsh list | awk '{print $2}' | grep -Fxq "$vm_name"; then
-        print_info "[INFO] VM \"$vm_name\" is not running (already stopped)."
-        return 0
-    fi
-    
-    # Proceed with Shutdown
-    if error_msg=$(sudo virsh shutdown "$vm_name" 2>&1); then
-        print_success "[SUCCESS] VM \"$vm_name\" shutdown signal sent successfully."
-        return 0
-    else
-        print_error "[FAILED] Could not shutdown VM \"$vm_name\"."
-        print_error "$error_msg"
-        return 1
-    fi
-}
+# Source the shutdown function
+source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/shutdown-vm.sh
 
 # Handle multiple hosts
 if [[ -n "$hosts_list" ]]; then
