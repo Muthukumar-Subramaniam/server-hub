@@ -126,9 +126,6 @@ for qemu_kvm_hostname in "${HOSTNAMES[@]}"; do
         fi
         OS_DISTRO="$NORMALIZED_OS_DISTRO"
     fi
-        continue
-    fi
-    OS_DISTRO="$NORMALIZED_OS_DISTRO"
 
     # Update /etc/hosts
     source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/update-etc-hosts.sh
