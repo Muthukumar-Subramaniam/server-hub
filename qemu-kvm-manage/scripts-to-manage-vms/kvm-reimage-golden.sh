@@ -113,11 +113,19 @@ for qemu_kvm_hostname in "${HOSTNAMES[@]}"; do
         continue
     fi
 
-    # Normalize OS distro name
-    source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/normalize-os-distro.sh
-    if ! normalize_os_distro "${OS_DISTRO}"; then
-        print_error "[ERROR] Failed to normalize OS distro for \"$qemu_kvm_hostname\"."
-        FAILED_VMS+=("$qemu_kvm_hostname")
+    # Use the normalized distro from earlier validation, not the extracted OS name from ksmanager
+    if [[ -n "$NORMALIZED_DISTRO" ]]; then
+        OS_DISTRO="$NORMALIZED_DISTRO"
+    else
+        # If no --distro was specified, normalize the extracted OS name from ksmanager output
+        source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/normalize-os-distro.sh
+        if ! normalize_os_distro "${OS_DISTRO}"; then
+            print_error "[ERROR] Failed to normalize OS distro for \"$qemu_kvm_hostname\"."
+            FAILED_VMS+=("$qemu_kvm_hostname")
+            continue
+        fi
+        OS_DISTRO="$NORMALIZED_OS_DISTRO"
+    fi
         continue
     fi
     OS_DISTRO="$NORMALIZED_OS_DISTRO"
