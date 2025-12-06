@@ -457,11 +457,8 @@ resize_vm_disk() {
             fi
         done
         
-        print_task "Extending root filesystem..."
-        if /server-hub/common-utils/lab-rootfs-extender $SSH_TARGET_HOST &>/dev/null; then
-            print_task_done
-        else
-            print_task_fail
+        /server-hub/common-utils/lab-rootfs-extender $SSH_TARGET_HOST
+        if [ $? -ne 0 ]; then
             print_error "Failed to extend root filesystem."
             exit 1
         fi
