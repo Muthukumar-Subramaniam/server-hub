@@ -40,12 +40,18 @@ Examples:
 source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/parse-vm-command-args.sh
 parse_vm_command_args "$@"
 
+# Save command-line distro if specified
+CMDLINE_OS_DISTRO="$OS_DISTRO"
+
 # Main installation loop
 CURRENT_VM=0
 FAILED_VMS=()
 SUCCESSFUL_VMS=()
 
 for qemu_kvm_hostname in "${HOSTNAMES[@]}"; do
+    # Reset OS_DISTRO to command-line value for each VM
+    OS_DISTRO="$CMDLINE_OS_DISTRO"
+    
     source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/show-multi-vm-progress.sh
     show_multi_vm_progress "$qemu_kvm_hostname"
 
