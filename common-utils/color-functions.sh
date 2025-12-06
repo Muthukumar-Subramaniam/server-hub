@@ -44,6 +44,15 @@ print_notify() {
 	fi
 }
 
+print_info() {
+	if [[ -z "${2:-}" ]] || [[ "${2:-}" != "nskip" ]] 
+	then
+		echo -e "${MAKE_IT_CYAN}${1}${RESET_COLOR}"
+	else
+		echo -ne "${MAKE_IT_CYAN}${1}${RESET_COLOR}"
+	fi
+}
+
 # Task-level operations (always use nskip to allow same-line completion)
 print_task() {
 	echo -ne "${MAKE_IT_CYAN}[TASK] ${1}${RESET_COLOR}"
