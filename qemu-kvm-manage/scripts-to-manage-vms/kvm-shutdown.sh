@@ -39,6 +39,37 @@ vm_hostname_arg="$VM_HOSTNAME_ARG"
 # Source the shutdown function
 source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/shutdown-vm.sh
 
+# Wrapper function for consistent output
+shutdown_vm_wrapper() {
+    local vm_name="$1"
+    
+    print_task "Shutting down VM '$vm_name'..."
+    
+    # Check if VM exists in 'virsh list --all'
+    if ! sudo virsh list --all | awk '{print $2}' | grep -Fxq "$vm_name"; then
+        print_task_fail
+        print_error "[ERROR] VM does not exist"
+        return 1
+    fi
+    
+    # Check if VM is running
+    if ! sudo virsh list | awk '{print $2}' | grep -Fxq "$vm_name"; then
+        print_task_skip
+        print_info "VM is not running (already stopped)"
+        return 2
+    fi
+    
+    # Send shutdown signal
+    if error_msg=$(sudo virsh shutdown "$vm_name" 2>&1); then
+        print_task_done
+        return 0
+    else
+        print_task_fail
+        print_error "[ERROR] $error_msg"
+        return 1
+    fi
+}
+
 # Handle multiple hosts
 if [[ -n "$hosts_list" ]]; then
     IFS=',' read -ra hosts_array <<< "$hosts_list"
@@ -67,22 +98,41 @@ if [[ -n "$hosts_list" ]]; then
     
     # Shutdown each VM
     failed_vms=()
+    successful_vms=()
+    skipped_vms=()
     total_vms=${#validated_hosts[@]}
     current=0
+    
     for vm_name in "${validated_hosts[@]}"; do
         ((current++))
-        print_info "[INFO] Shutting down VM $current of $total_vms: $vm_name"
-        if ! shutdown_vm "$vm_name"; then
+        print_info "Progress: $current/$total_vms"
+        shutdown_vm_wrapper "$vm_name"
+        exit_code=$?
+        if [[ $exit_code -eq 0 ]]; then
+            successful_vms+=("$vm_name")
+        elif [[ $exit_code -eq 2 ]]; then
+            skipped_vms+=("$vm_name")
+        else
             failed_vms+=("$vm_name")
         fi
     done
     
-    # Report results
+    # Print summary
+    print_summary "Shutdown VMs Results"
+    if [[ ${#successful_vms[@]} -gt 0 ]]; then
+        print_success "  DONE: ${#successful_vms[@]}/$total_vms (${successful_vms[*]})"
+    fi
+    if [[ ${#skipped_vms[@]} -gt 0 ]]; then
+        print_yellow "  SKIP: ${#skipped_vms[@]}/$total_vms (${skipped_vms[*]})"
+    fi
+    if [[ ${#failed_vms[@]} -gt 0 ]]; then
+        print_error "  FAIL: ${#failed_vms[@]}/$total_vms (${failed_vms[*]})"
+    fi
+    
+    # Exit with appropriate code
     if [[ ${#failed_vms[@]} -eq 0 ]]; then
-        print_success "[SUCCESS] All VMs shutdown signals sent successfully."
         exit 0
     else
-        print_error "[FAILED] Some VMs failed to shutdown: ${failed_vms[*]}"
         exit 1
     fi
 fi
@@ -99,7 +149,7 @@ if [[ "$force_shutdown" == false ]]; then
     fi
 fi
 # Shutdown the VM
-if shutdown_vm "$qemu_kvm_hostname"; then
+if shutdown_vm_wrapper "$qemu_kvm_hostname"; then
     exit 0
 else
     exit 1
