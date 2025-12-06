@@ -88,5 +88,5 @@ print_ready() {
 }
 
 print_summary() {
-	echo -e "${MAKE_IT_CYAN}[SUMMARY] ${1}${RESET_COLOR}"
+	echo -e "${MAKE_IT_WHITE}[SUMMARY] ${1}${RESET_COLOR}"
 }
