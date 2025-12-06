@@ -121,7 +121,7 @@ if [[ -n "$hosts_list" ]]; then
         print_success "  DONE: ${#successful_vms[@]}/$total_vms (${successful_vms[*]})"
     fi
     if [[ ${#skipped_vms[@]} -gt 0 ]]; then
-        print_skip "  SKIP: ${#skipped_vms[@]}/$total_vms (${skipped_vms[*]})"
+        print_warning "  SKIP: ${#skipped_vms[@]}/$total_vms (${skipped_vms[*]})"
     fi
     if [[ ${#failed_vms[@]} -gt 0 ]]; then
         print_error "  FAIL: ${#failed_vms[@]}/$total_vms (${failed_vms[*]})"
