@@ -53,7 +53,8 @@ run_ksmanager() {
     # Extract values from log file
     MAC_ADDRESS=$(grep "MAC Address  :" "$log_file" | awk -F': ' '{print $2}' | tr -d '[:space:]')
     IPV4_ADDRESS=$(grep "IPv4 Address :" "$log_file" | awk -F': ' '{print $2}' | tr -d '[:space:]')
-    OS_DISTRO=$(grep "Requested OS :" "$log_file" | awk -F': ' '{print $2}' | tr -d '[:space:]')
+    # Extract OS distro from auto-detection or selection message, not from "Requested OS" (which includes version)
+    OS_DISTRO=$(grep -E "(Auto-detected OS distribution|OS distribution selected)" "$log_file" | awk -F': ' '{print $2}' | tr -d '[:space:]')
     EXTRACTED_HOSTNAME=$(grep "Hostname     :" "$log_file" | awk -F': ' '{print $2}' | tr -d '[:space:]')
 
     # Clean up log file
