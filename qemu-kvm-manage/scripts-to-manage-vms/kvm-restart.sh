@@ -40,26 +40,30 @@ vm_hostname_arg="$VM_HOSTNAME_ARG"
 restart_vm() {
     local vm_name="$1"
     
+    print_task "Restarting VM '$vm_name'..."
+    
     # Check if VM exists in 'virsh list --all'
     if ! sudo virsh list --all | awk '{print $2}' | grep -Fxq "$vm_name"; then
-        print_error "[ERROR] VM \"$vm_name\" does not exist."
+        print_task_fail
+        print_error "[ERROR] VM does not exist"
         return 1
     fi
     
-    # Check if VM exists in 'virsh list'
+    # Check if VM is running
     if ! sudo virsh list | awk '{print $2}' | grep -Fxq "$vm_name"; then
-        print_error "[ERROR] VM \"$vm_name\" is not running."
-        print_info "[INFO] If you want to start the VM, use: qlabvmctl start $vm_name"
+        print_task_fail
+        print_error "[ERROR] VM is not running"
+        print_info "If you want to start the VM, use: qlabvmctl start $vm_name"
         return 1
     fi
     
-    # Proceed with Restart
+    # Perform cold restart (reset)
     if error_msg=$(sudo virsh reset "$vm_name" 2>&1); then
-        print_success "[SUCCESS] VM \"$vm_name\" restarted successfully."
+        print_task_done
         return 0
     else
-        print_error "[FAILED] Could not restart VM \"$vm_name\"."
-        print_error "$error_msg"
+        print_task_fail
+        print_error "[ERROR] $error_msg"
         return 1
     fi
 }
@@ -92,22 +96,33 @@ if [[ -n "$hosts_list" ]]; then
     
     # Restart each VM
     failed_vms=()
+    successful_vms=()
     total_vms=${#validated_hosts[@]}
     current=0
+    
     for vm_name in "${validated_hosts[@]}"; do
         ((current++))
-        print_info "[INFO] Restarting VM $current of $total_vms: $vm_name"
-        if ! restart_vm "$vm_name"; then
+        print_info "Progress: $current/$total_vms"
+        if restart_vm "$vm_name"; then
+            successful_vms+=("$vm_name")
+        else
             failed_vms+=("$vm_name")
         fi
     done
     
-    # Report results
+    # Print summary
+    print_summary "Restart VMs Results"
+    if [[ ${#successful_vms[@]} -gt 0 ]]; then
+        print_success "  DONE: ${#successful_vms[@]}/$total_vms (${successful_vms[*]})"
+    fi
+    if [[ ${#failed_vms[@]} -gt 0 ]]; then
+        print_error "  FAIL: ${#failed_vms[@]}/$total_vms (${failed_vms[*]})"
+    fi
+    
+    # Exit with appropriate code
     if [[ ${#failed_vms[@]} -eq 0 ]]; then
-        print_success "[SUCCESS] All VMs restarted successfully."
         exit 0
     else
-        print_error "[FAILED] Some VMs failed to restart: ${failed_vms[*]}"
         exit 1
     fi
 fi
