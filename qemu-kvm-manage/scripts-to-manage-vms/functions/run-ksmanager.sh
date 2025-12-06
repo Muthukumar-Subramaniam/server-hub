@@ -50,12 +50,12 @@ run_ksmanager() {
         fi
     fi
 
-    # Extract values from log file
-    MAC_ADDRESS=$(grep "MAC Address  :" "$log_file" | awk -F': ' '{print $2}' | tr -d '[:space:]')
-    IPV4_ADDRESS=$(grep "IPv4 Address :" "$log_file" | awk -F': ' '{print $2}' | tr -d '[:space:]')
+    # Extract values from log file (strip ANSI color codes)
+    MAC_ADDRESS=$(grep "MAC Address  :" "$log_file" | sed 's/\x1b\[[0-9;]*m//g' | awk -F': ' '{print $2}' | tr -d '[:space:]')
+    IPV4_ADDRESS=$(grep "IPv4 Address :" "$log_file" | sed 's/\x1b\[[0-9;]*m//g' | awk -F': ' '{print $2}' | tr -d '[:space:]')
     # Extract OS distro from auto-detection or selection message, not from "Requested OS" (which includes version)
-    OS_DISTRO=$(grep -E "(Auto-detected OS distribution|OS distribution selected)" "$log_file" | awk -F': ' '{print $2}' | tr -d '[:space:]')
-    EXTRACTED_HOSTNAME=$(grep "Hostname     :" "$log_file" | awk -F': ' '{print $2}' | tr -d '[:space:]')
+    OS_DISTRO=$(grep -E "(Auto-detected OS distribution|OS distribution selected)" "$log_file" | sed 's/\x1b\[[0-9;]*m//g' | awk -F': ' '{print $2}' | tr -d '[:space:]')
+    EXTRACTED_HOSTNAME=$(grep "Hostname     :" "$log_file" | sed 's/\x1b\[[0-9;]*m//g' | awk -F': ' '{print $2}' | tr -d '[:space:]')
 
     # Clean up log file
     rm -f "$log_file"
