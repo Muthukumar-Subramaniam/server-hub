@@ -56,14 +56,14 @@ for qemu_kvm_hostname in "${HOSTNAMES[@]}"; do
         continue
     fi
 
-    print_info "[INFO] Creating first boot environment for '${qemu_kvm_hostname}' using ksmanager..."
+    print_info "Creating first boot environment for '${qemu_kvm_hostname}' using ksmanager..."
 
     # Check if golden image exists for specified distro
     if [[ -n "$OS_DISTRO" ]]; then
         # Normalize OS distro name first for golden image check
         source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/normalize-os-distro.sh
         if ! normalize_os_distro "${OS_DISTRO}"; then
-            print_error "[ERROR] Invalid OS distribution: $OS_DISTRO"
+            print_error "Invalid OS distribution: $OS_DISTRO"
             FAILED_VMS+=("$qemu_kvm_hostname")
             continue
         fi
@@ -72,14 +72,14 @@ for qemu_kvm_hostname in "${HOSTNAMES[@]}"; do
         # Golden images follow pattern: {distro}-golden-image.lab.local.qcow2
         golden_image_pattern="${NORMALIZED_DISTRO}-golden-image.*.qcow2"
         if ! ls /kvm-hub/golden-images-disk-store/${golden_image_pattern} &>/dev/null; then
-            print_error "[ERROR] Golden image not found for '${OS_DISTRO}'"
-            print_info "[INFO] Available golden images:"
+            print_error "Golden image not found for '${OS_DISTRO}'"
+            print_info "Available golden images:"
             if ls /kvm-hub/golden-images-disk-store/*.qcow2 &>/dev/null; then
                 ls -1 /kvm-hub/golden-images-disk-store/*.qcow2 | xargs -n1 basename | sed 's/-golden-image.*//' | sort -u | sed 's/^/  - /'
             else
                 echo "  (none)"
             fi
-            print_info "[INFO] Use 'qlabvmctl build-golden-image --distro ${OS_DISTRO}' to create it"
+            print_info "Use 'qlabvmctl build-golden-image --distro ${OS_DISTRO}' to create it"
             FAILED_VMS+=("$qemu_kvm_hostname")
             continue
         fi
@@ -101,7 +101,7 @@ for qemu_kvm_hostname in "${HOSTNAMES[@]}"; do
         # If no --distro was specified, normalize the extracted OS name from ksmanager output
         source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/normalize-os-distro.sh
         if ! normalize_os_distro "${OS_DISTRO}"; then
-            print_error "[ERROR] Failed to normalize OS distro for \"$qemu_kvm_hostname\"."
+            print_error "Failed to normalize OS distro for \"$qemu_kvm_hostname\"."
             FAILED_VMS+=("$qemu_kvm_hostname")
             continue
         fi
