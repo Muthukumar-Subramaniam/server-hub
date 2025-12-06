@@ -93,27 +93,29 @@ done
 source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/input-hostname.sh "$vm_hostname_arg"
 
 # Check if VM exists in 'virsh list --all'
+print_task "Checking if VM exists..."
 if ! sudo virsh list --all | awk '{print $2}' | grep -Fxq "$qemu_kvm_hostname"; then
+    print_task_fail
     print_error "VM \"$qemu_kvm_hostname\" does not exist."
     exit 1
 fi
+print_task_done
 
 fn_shutdown_or_poweroff() {
     # If force flag is set, try graceful shutdown first, then force if needed
     if [[ "$force_poweroff" == true ]]; then
-        print_info "Force flag detected. Attempting graceful shutdown first..."
+        print_task "Shutting down VM (graceful then force if needed)..."
         source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/shutdown-vm.sh
-        SHUTDOWN_VM_CONTEXT="Attempting graceful shutdown" SHUTDOWN_VM_STRICT=false shutdown_vm "$qemu_kvm_hostname"
+        SHUTDOWN_VM_CONTEXT="Attempting graceful shutdown" SHUTDOWN_VM_STRICT=false shutdown_vm "$qemu_kvm_hostname" &>/dev/null
         
         # Wait for VM to shut down with timeout
-        print_info "Waiting for VM \"${qemu_kvm_hostname}\" to shut down (timeout: 30s)..."
         TIMEOUT=30
         ELAPSED=0
         while sudo virsh list | awk '{print $2}' | grep -Fxq "$qemu_kvm_hostname"; do
             if (( ELAPSED >= TIMEOUT )); then
-                print_warning "Graceful shutdown timed out. Forcing power off..."
                 source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/poweroff-vm.sh
-                if ! POWEROFF_VM_CONTEXT="Forcing power off after timeout" POWEROFF_VM_STRICT=true poweroff_vm "$qemu_kvm_hostname"; then
+                if ! POWEROFF_VM_CONTEXT="Forcing power off after timeout" POWEROFF_VM_STRICT=true poweroff_vm "$qemu_kvm_hostname" &>/dev/null; then
+                    print_task_fail
                     exit 1
                 fi
                 break
@@ -123,7 +125,7 @@ fn_shutdown_or_poweroff() {
         done
         
         if ! sudo virsh list | awk '{print $2}' | grep -Fxq "$qemu_kvm_hostname"; then
-            print_success "VM has been shut down successfully. Proceeding further."
+            print_task_done
         fi
         return 0
     fi
@@ -138,18 +140,19 @@ fn_shutdown_or_poweroff() {
 
     case "$selected_choice" in
         1)
-            print_info "Initiating graceful shutdown..."
+            print_task "Shutting down VM gracefully..."
             source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/shutdown-vm.sh
-            if ! SHUTDOWN_VM_CONTEXT="Initiating graceful shutdown" shutdown_vm "$qemu_kvm_hostname"; then
+            if ! SHUTDOWN_VM_CONTEXT="Initiating graceful shutdown" shutdown_vm "$qemu_kvm_hostname" &>/dev/null; then
+                print_task_fail
                 exit 1
             fi
             
             # Wait for VM to shut down with timeout
-            print_info "Waiting for VM \"${qemu_kvm_hostname}\" to shut down (timeout: 60s)..."
             TIMEOUT=60
             ELAPSED=0
             while sudo virsh list | awk '{print $2}' | grep -Fxq "$qemu_kvm_hostname"; do
                 if (( ELAPSED >= TIMEOUT )); then
+                    print_task_fail
                     print_warning "VM did not shut down within ${TIMEOUT}s."
                     print_info "You may want to force power off instead."
                     exit 1
@@ -157,14 +160,16 @@ fn_shutdown_or_poweroff() {
                 sleep 2
                 ((ELAPSED+=2))
             done
-            print_success "VM has been shut down successfully. Proceeding further."
+            print_task_done
             ;;
         2)
-            print_info "Forcing power off..."
+            print_task "Forcing power off VM..."
             source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/poweroff-vm.sh
-            if ! POWEROFF_VM_CONTEXT="Forcing power off" POWEROFF_VM_STRICT=true poweroff_vm "$qemu_kvm_hostname"; then
+            if ! POWEROFF_VM_CONTEXT="Forcing power off" POWEROFF_VM_STRICT=true poweroff_vm "$qemu_kvm_hostname" &>/dev/null; then
+                print_task_fail
                 exit 1
             fi
+            print_task_done
             ;;
         q)
             print_info "Quitting without any action."
@@ -295,13 +300,20 @@ resize_vm_memory() {
     fi
 
     vm_mem_kib=$(( vm_mem_gib * 1024 * 1024 ))
-    print_info "Updating memory size of VM to ${vm_mem_gib} GiB..."
+    print_task "Updating VM memory to ${vm_mem_gib} GiB..."
     if sudo virsh setmaxmem "$qemu_kvm_hostname" "$vm_mem_kib" --config &>/dev/null && \
        sudo virsh setmem "$qemu_kvm_hostname" "$vm_mem_kib" --config &>/dev/null; then
-        print_success "VM memory updated to ${vm_mem_gib} GiB. Proceeding to power on the VM."
-        sudo virsh start "${qemu_kvm_hostname}" &>/dev/null
-        print_success "VM '${qemu_kvm_hostname}' started successfully after memory resize."
+        print_task_done
+        print_task "Starting VM..."
+        if sudo virsh start "${qemu_kvm_hostname}" &>/dev/null; then
+            print_task_done
+        else
+            print_task_fail
+            print_error "Failed to start VM after memory resize."
+            exit 1
+        fi
     else
+        print_task_fail
         print_error "Failed to update VM memory."
         exit 1
     fi
@@ -352,13 +364,20 @@ resize_vm_cpu() {
         done
     fi
 
-    print_info "Updating vCPUs of VM '${qemu_kvm_hostname}' to ${new_vcpus_of_vm}..."
+    print_task "Updating VM vCPUs to ${new_vcpus_of_vm}..."
     if sudo virsh setvcpus "$qemu_kvm_hostname" "$new_vcpus_of_vm" --maximum --config &>/dev/null && \
        sudo virsh setvcpus "$qemu_kvm_hostname" "$new_vcpus_of_vm" --config &>/dev/null; then
-        print_success "vCPU count updated to $new_vcpus_of_vm. Proceeding to power on the VM."
-        sudo virsh start "${qemu_kvm_hostname}" &>/dev/null
-        print_success "VM '$qemu_kvm_hostname' started successfully after vCPU resize."
+        print_task_done
+        print_task "Starting VM..."
+        if sudo virsh start "${qemu_kvm_hostname}" &>/dev/null; then
+            print_task_done
+        else
+            print_task_fail
+            print_error "Failed to start VM after vCPU resize."
+            exit 1
+        fi
     else
+        print_task_fail
         print_error "Failed to update vCPU count."
         exit 1
     fi
@@ -404,39 +423,55 @@ resize_vm_disk() {
         done
     fi
 
-    print_info "Growing disk by ${grow_size_gib} GiB..."
+    print_task "Growing disk by ${grow_size_gib} GiB..."
     if sudo qemu-img resize "$vm_qcow2_disk_path" +${grow_size_gib}G &>/dev/null; then
+        print_task_done
         total_vm_disk_size=$(( current_disk_gib + grow_size_gib ))
-        print_success "Disk of VM '${qemu_kvm_hostname}' resized to ${total_vm_disk_size} GiB. Proceeding to power on the VM."
+        
+        print_task "Starting VM..."
+        if sudo virsh start "${qemu_kvm_hostname}" &>/dev/null; then
+            print_task_done
+        else
+            print_task_fail
+            print_error "Failed to start VM after disk resize."
+            exit 1
+        fi
 
-        sudo virsh start "${qemu_kvm_hostname}" &>/dev/null
-        print_success "VM '$qemu_kvm_hostname' started successfully after disk resize."
-
-        print_info "Attempting to resize root file system of VM '$qemu_kvm_hostname'..."
+        print_task "Waiting for SSH access..."
         SSH_TARGET_HOST="${qemu_kvm_hostname}"
         MAX_SSH_WAIT_SECONDS=120
         SSH_RETRY_INTERVAL_SECONDS=5
         SSH_OPTS="-o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
-        print_info "Waiting up to $MAX_SSH_WAIT_SECONDS seconds for SSH connection on $SSH_TARGET_HOST..." nskip
+        
         ssh_start_time=$(date +%s)
         while true; do
             sleep "$SSH_RETRY_INTERVAL_SECONDS"
             if ssh $SSH_OPTS ${lab_infra_admin_username}@${SSH_TARGET_HOST} "true" &>/dev/null; then
-                echo " [SSH-Active]"
+                print_task_done
                 break
             fi
             ssh_current_time=$(date +%s)
             ssh_elapsed_time=$((ssh_current_time - ssh_start_time))
             if [ "$ssh_elapsed_time" -ge "$MAX_SSH_WAIT_SECONDS" ]; then
+                print_task_fail
                 print_warning "Timed out waiting for SSH after $MAX_SSH_WAIT_SECONDS seconds."
                 print_info "Execute lab-rootfs-extender utility manually from $SSH_TARGET_HOST once booted."
                 exit 1
             fi
         done
-        /server-hub/common-utils/lab-rootfs-extender $SSH_TARGET_HOST
-        print_success "Successfully extended the size of OS disk and root filesystem of ${SSH_TARGET_HOST} to ${total_vm_disk_size} GiB."
+        
+        print_task "Extending root filesystem..."
+        if /server-hub/common-utils/lab-rootfs-extender $SSH_TARGET_HOST &>/dev/null; then
+            print_task_done
+            print_success "Successfully resized OS disk and root filesystem to ${total_vm_disk_size} GiB."
+        else
+            print_task_fail
+            print_error "Failed to extend root filesystem."
+            exit 1
+        fi
     else
-        print_error "Disk resize of VM '${qemu_kvm_hostname}' failed!"
+        print_task_fail
+        print_error "Disk resize failed!"
         exit 1
     fi
 }
@@ -444,7 +479,7 @@ resize_vm_disk() {
 # Check if VM is running and shutdown if needed
 fn_check_vm_power_state() {
     if ! sudo virsh list | awk '{print $2}' | grep -Fxq "$qemu_kvm_hostname"; then
-        print_success "VM '$qemu_kvm_hostname' is not running. Proceeding further."
+        print_info "VM is not running."
     else
         fn_shutdown_or_poweroff
     fi
