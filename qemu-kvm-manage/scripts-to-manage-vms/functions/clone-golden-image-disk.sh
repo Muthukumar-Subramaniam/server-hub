@@ -22,7 +22,7 @@ clone_golden_image_disk() {
     local golden_image_path="/kvm-hub/golden-images-disk-store/${os_distro}-golden-image.${lab_infra_domain_name}.qcow2"
     local vm_disk_path="/kvm-hub/vms/${vm_hostname}/${vm_hostname}.qcow2"
     
-    print_task "Cloning golden image disk to ${vm_disk_path}..."
+    print_task "Cloning golden image disk for '${vm_hostname}'..."
     
     if error_msg=$(sudo qemu-img convert -O qcow2 "${golden_image_path}" "${vm_disk_path}" 2>&1); then
         # Verify the cloned disk exists and has size
