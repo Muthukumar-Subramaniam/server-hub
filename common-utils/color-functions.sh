@@ -74,6 +74,15 @@ print_skip() {
 	echo -e "${MAKE_IT_YELLOW}[SKIP] ${1}${RESET_COLOR}"
 }
 
+print_yellow() {
+	if [[ -z "${2:-}" ]] || [[ "${2:-}" != "nskip" ]] 
+	then
+		echo -e "${MAKE_IT_YELLOW}${1}${RESET_COLOR}"
+	else
+		echo -ne "${MAKE_IT_YELLOW}${1}${RESET_COLOR}"
+	fi
+}
+
 print_ready() {
 	echo -e "${MAKE_IT_GREEN}[READY] ${1}${RESET_COLOR}"
 }
