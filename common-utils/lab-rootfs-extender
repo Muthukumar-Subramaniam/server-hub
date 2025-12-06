@@ -27,17 +27,15 @@ fi
 # Remote execution logic
 # ----------------------
 if [[ "$REMOTE_HOST" != "localhost" ]]; then
-    print_info "[INFO] Checking SSH connectivity to $REMOTE_HOST..." nskip
+    print_task "Checking SSH connectivity to $REMOTE_HOST..."
     if ! ssh $SSH_OPTS "$REMOTE_HOST" "true" >/dev/null 2>&1; then
-        print_error "[ FAILED ]"
-        print_error "[ERROR] SSH connection to $REMOTE_HOST failed. Ensure SSH access works."
+        print_task_fail
+        print_error "SSH connection to $REMOTE_HOST failed. Ensure SSH access works."
         exit 1
     fi
-    print_success "[ SUCCESS ]"
+    print_task_done
 
-    print_info "[INFO] Executing lab-rootfs-extender utility on host $REMOTE_HOST..."
     ssh $SSH_OPTS -t "$REMOTE_HOST" "sudo bash $SCRIPT_LOCATION localhost"
-    print_info "[INFO] Remote execution completed on $REMOTE_HOST."
     exit 0
 fi
 
@@ -45,124 +43,118 @@ fi
 # Local execution logic
 # ----------------------
 FS_BEFORE=$(df -h / | awk 'NR==2{print $2}')
-print_info "[INFO] Root filesystem size before expansion: $FS_BEFORE"
+print_info "Root filesystem size before expansion: $FS_BEFORE"
 
 # Ensure growpart is installed
 fn_get_growpart() {
-    print_info "[INFO] Checking if 'growpart' utility is available..." nskip
+    print_task "Checking for growpart utility..."
     if ! command -v growpart >/dev/null 2>&1; then
-        print_warning "[ NOT FOUND ]"
-        print_info "[INFO] Creating binary link from lab infra server-hub NFS share..." nskip
+        print_task_skip
+        print_task "Creating binary link from lab infra NFS share..."
         if ! sudo ln -s /server-hub/common-utils/growpart /usr/bin/growpart 2>/dev/null; then
-            print_warning "[ FAILED ]"
-            print_info "[INFO] Downloading 'growpart' from official repository..." nskip
+            print_task_fail
+            print_task "Downloading growpart from official repository..."
             if ! sudo curl -fsSL -o /usr/bin/growpart https://raw.githubusercontent.com/canonical/cloud-utils/main/bin/growpart 2>/dev/null; then
-                print_error "[ FAILED ]"
+                print_task_fail
                 return 1
-            else
-                sudo chmod +x /usr/bin/growpart
-                print_success "[ SUCCESS ]"
-                return 0
             fi
-        else
-            print_success "[ SUCCESS ]"
+            sudo chmod +x /usr/bin/growpart
+            print_task_done
             return 0
         fi
-    else
-        print_success "[ SUCCESS ]"
+        print_task_done
         return 0
     fi
+    print_task_done
+    return 0
 }
 
 ROOT_DEV=$(findmnt -n -o SOURCE /)
-print_info "[INFO] Root device: $ROOT_DEV"
+print_info "Root device: $ROOT_DEV"
 
 # Only XFS supported
 FS_TYPE=$(findmnt -n -o FSTYPE /)
 if [[ "$FS_TYPE" != "xfs" ]]; then
-    print_error "[ERROR] Unsupported filesystem type: $FS_TYPE. This script only supports XFS."
+    print_error "Unsupported filesystem type: $FS_TYPE. This script only supports XFS."
     exit 1
 fi
 
 if [[ "$ROOT_DEV" =~ ^/dev/mapper/ ]]; then
-    print_info "[INFO] Detected LVM-based root filesystem."
+    print_info "Detected LVM-based root filesystem."
 
     # Get VG name from LV path
     VG_NAME=$(sudo lvs --noheadings -o vg_name "$ROOT_DEV" | awk '{$1=$1};1')
-    print_info "[INFO] Volume Group: $VG_NAME"
+    print_info "Volume Group: $VG_NAME"
 
     # Get PV (first if multiple)
     PV_PATH=$(sudo pvs --noheadings -o pv_name --select vg_name="$VG_NAME" | awk '{$1=$1};1' | head -n1)
-    print_info "[INFO] Physical Volume: $PV_PATH"
+    print_info "Physical Volume: $PV_PATH"
 
     # Get disk and partition number from lsblk
     DISK="/dev/$(lsblk -no pkname "$PV_PATH" | sort | head -n1 | tr -d '[:space:]')"
     PART_NUM=$(lsblk -no partn "$PV_PATH" | tr -d '[:space:]')
 
     if fn_get_growpart; then
-        print_info "[INFO] Growing partition $PV_PATH..." nskip
+        print_task "Growing partition $PV_PATH..."
         if sudo growpart "$DISK" "$PART_NUM" >/dev/null 2>&1; then
-            print_success "[ SUCCESS ]"
+            print_task_done
         else
-            print_warning "[ SKIPPED ]"
+            print_task_skip
         fi
 
-        print_info "[INFO] Resizing PV $PV_PATH..." nskip
+        print_task "Resizing physical volume..."
         if sudo pvresize "$PV_PATH" >/dev/null 2>&1; then
-            print_success "[ SUCCESS ]"
+            print_task_done
         else
-            print_error "[ FAILED ]"
+            print_task_fail
         fi
 
-        print_info "[INFO] Extending LV $ROOT_DEV..." nskip
+        print_task "Extending logical volume..."
         if sudo lvextend -l +100%FREE "$ROOT_DEV" >/dev/null 2>&1; then
-            print_success "[ SUCCESS ]"
+            print_task_done
         else
-            print_warning "[ SKIPPED ]"
+            print_task_skip
         fi
 
-        print_info "[INFO] Extending XFS filesystem on /..." nskip
+        print_task "Extending XFS filesystem..."
         if sudo xfs_growfs / >/dev/null 2>&1; then
-            print_success "[ SUCCESS ]"
+            print_task_done
         else
-            print_error "[ FAILED ]"
+            print_task_fail
         fi
     else
-        print_warning "[WARNING] Skipping partition growth - 'growpart' utility not available."
+        print_warning "Growpart utility not available - skipping partition growth."
     fi
 else
-    print_info "[INFO] Detected non-LVM root filesystem (plain partition)."
+    print_info "Detected non-LVM root filesystem (plain partition)."
 
     # Get disk and partition number from lsblk
     DISK="/dev/$(lsblk -no pkname "$ROOT_DEV" | sort | head -n1 | tr -d '[:space:]')"
     PART_NUM=$(lsblk -no partn "$ROOT_DEV" | tr -d '[:space:]')
 
-    print_info "[INFO] Disk: $DISK, Partition: $PART_NUM"
+    print_info "Disk: $DISK, Partition: $PART_NUM"
 
     if fn_get_growpart; then
-        print_info "[INFO] Growing partition ${DISK}${PART_NUM}..." nskip
+        print_task "Growing partition ${DISK}${PART_NUM}..."
         if sudo growpart "$DISK" "$PART_NUM" >/dev/null 2>&1; then
-            print_success "[ SUCCESS ]"
+            print_task_done
         else
-            print_warning "[ SKIPPED ]"
+            print_task_skip
         fi
 
-        print_info "[INFO] Extending XFS filesystem on /..." nskip
+        print_task "Extending XFS filesystem..."
         if sudo xfs_growfs / >/dev/null 2>&1; then
-            print_success "[ SUCCESS ]"
+            print_task_done
         else
-            print_error "[ FAILED ]"
+            print_task_fail
         fi
     else
-        print_warning "[WARNING] Skipping partition growth - 'growpart' utility not available."
+        print_warning "Growpart utility not available - skipping partition growth."
     fi
 fi
 
 FS_AFTER=$(df -h / | awk 'NR==2{print $2}')
 
-if [[ "$FS_BEFORE" == "$FS_AFTER" ]]; then
-    print_warning "[WARNING] No change in root filesystem size."
-else
-    print_info "[INFO] Root filesystem size after expansion: $FS_AFTER"
-    print_success "[SUCCESS] Root filesystem successfully expanded!"
+if [[ "$FS_BEFORE" != "$FS_AFTER" ]]; then
+    print_info "Filesystem expanded from $FS_BEFORE to $FS_AFTER"
 fi
