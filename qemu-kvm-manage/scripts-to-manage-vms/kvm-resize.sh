@@ -525,11 +525,11 @@ fi
 
 # Interactive mode - show menu
 while true; do
-    print_info "Resize resource of VM '$qemu_kvm_hostname':"
-    echo "  1) Resize Memory"
-    echo "  2) Resize CPU"
-    echo "  3) Resize Disk"
-    echo "  q) Quit"
+    print_info "Resize resource of VM '$qemu_kvm_hostname':
+  1) Resize Memory
+  2) Resize CPU
+  3) Resize Disk
+  q) Quit"
 
     read -rp "Enter your choice: " resize_choice
 
