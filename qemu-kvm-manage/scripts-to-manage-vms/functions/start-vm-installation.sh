@@ -18,13 +18,13 @@ start_vm_installation() {
     local install_description="${2:-VM installation}"
     
     if [[ -z "$vm_hostname" ]]; then
-        print_error "[ERROR] start_vm_installation: VM hostname not provided."
+        print_error "start_vm_installation: VM hostname not provided."
         return 1
     fi
     
-    print_info "[INFO] Starting VM installation of \"$vm_hostname\" via ${install_description}..."
+    print_info "Starting VM installation of \"$vm_hostname\" via ${install_description}..."
     if ! virt_install_output=$(source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/default-vm-install.sh 2>&1); then
-        print_error "[ERROR] Failed to start VM installation for \"$vm_hostname\"."
+        print_error "Failed to start VM installation for \"$vm_hostname\"."
         if [[ -n "$virt_install_output" ]]; then
             print_error "$virt_install_output"
         fi
