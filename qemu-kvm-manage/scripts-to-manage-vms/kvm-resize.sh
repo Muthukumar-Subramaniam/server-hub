@@ -266,7 +266,6 @@ resize_vm_memory() {
     # Get memory size from argument or prompt
     if [[ -n "$gib_arg" ]]; then
         vm_mem_gib="$gib_arg"
-        print_success "Using memory size: ${vm_mem_gib} GiB"
     else
         # Prompt for memory size
         print_info "Memory of Host Machine: ${host_mem_gib} GiB"
@@ -326,7 +325,6 @@ resize_vm_cpu() {
     # Get CPU count from argument or prompt
     if [[ -n "$count_arg" ]]; then
         new_vcpus_of_vm="$count_arg"
-        print_success "Using vCPU count: ${new_vcpus_of_vm}"
     else
         # Prompt for CPU count
         print_info "Host logical CPUs: $host_cpu_count"
@@ -396,7 +394,6 @@ resize_vm_disk() {
     # Get disk increase size from argument or prompt
     if [[ -n "$gib_arg" ]]; then
         grow_size_gib="$gib_arg"
-        print_success "Using disk increase size: ${grow_size_gib} GiB"
     else
         # Prompt for disk increase size
         print_info "Current disk size of VM '${qemu_kvm_hostname}': ${current_disk_gib} GiB"
@@ -463,7 +460,6 @@ resize_vm_disk() {
         print_task "Extending root filesystem..."
         if /server-hub/common-utils/lab-rootfs-extender $SSH_TARGET_HOST &>/dev/null; then
             print_task_done
-            print_success "Successfully resized OS disk and root filesystem to ${total_vm_disk_size} GiB."
         else
             print_task_fail
             print_error "Failed to extend root filesystem."
@@ -529,11 +525,12 @@ fi
 
 # Interactive mode - show menu
 while true; do
-    print_info "Resize Resource of VM '$qemu_kvm_hostname' - Select an option:
-  1) Resize Memory
-  2) Resize CPU
-  3) Resize Disk
-  q) Quit"
+    echo ""
+    print_info "Resize resource of VM '$qemu_kvm_hostname':"
+    echo "  1) Resize Memory"
+    echo "  2) Resize CPU"
+    echo "  3) Resize Disk"
+    echo "  q) Quit"
 
     read -rp "Enter your choice: " resize_choice
 
