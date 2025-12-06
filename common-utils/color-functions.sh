@@ -29,18 +29,18 @@ print_success() {
 print_warning() {
 	if [[ -z "${2:-}" ]] || [[ "${2:-}" != "nskip" ]] 
 	then
-		echo -e "${MAKE_IT_YELLOW}[WARN] ${1}${RESET_COLOR}"
+		echo -e "${MAKE_IT_MAGENTA}[WARN] ${1}${RESET_COLOR}"
 	else
-		echo -ne "${MAKE_IT_YELLOW}[WARN] ${1}${RESET_COLOR}"
+		echo -ne "${MAKE_IT_MAGENTA}[WARN] ${1}${RESET_COLOR}"
 	fi
 }
 
 print_notify() {
 	if [[ -z "${2:-}" ]] || [[ "${2:-}" != "nskip" ]] 
 	then
-		echo -e "${MAKE_IT_YELLOW}[WARN] ${1}${RESET_COLOR}"
+		echo -e "${MAKE_IT_MAGENTA}[WARN] ${1}${RESET_COLOR}"
 	else
-		echo -ne "${MAKE_IT_YELLOW}[WARN] ${1}${RESET_COLOR}"
+		echo -ne "${MAKE_IT_MAGENTA}[WARN] ${1}${RESET_COLOR}"
 	fi
 }
 
