@@ -131,7 +131,7 @@ fn_shutdown_or_poweroff() {
     fi
     
     print_warning "VM \"$qemu_kvm_hostname\" is still running!"
-    print_notify "[INFO] Select an option to proceed:
+    print_info "Select an option to proceed:
   1) Try Graceful Shutdown
   2) Force Power Off
   q) Quit"
@@ -529,8 +529,9 @@ fi
 
 # Interactive mode - show menu
 while true; do
-    print_info "Resize Resource of VM '$qemu_kvm_hostname'"
-    print_notify "[INFO] Select an option:
+    echo ""
+    print_summary "Resize Resource of VM '$qemu_kvm_hostname'"
+    print_info "Select an option:
   1) Resize Memory
   2) Resize CPU
   3) Resize Disk
