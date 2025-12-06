@@ -50,17 +50,20 @@ remove_vm() {
     local skip_confirmation="${2:-false}"
     
     # Check if VM exists in 'virsh list --all'
+    print_task "Checking if VM exists..."
     if ! sudo virsh list --all | awk '{print $2}' | grep -Fxq "$vm_name"; then
-        print_error "[ERROR] VM \"$vm_name\" does not exist."
+        print_task_fail
+        print_error "VM \"$vm_name\" does not exist."
         return 1
     fi
+    print_task_done
     
     # Special confirmation for lab infra server (always required)
     if [[ "$vm_name" == "$lab_infra_server_hostname" ]]; then
         print_warning "You are about to delete your lab infra server VM: $lab_infra_server_hostname!"
         read -r -p "If you know what you are doing, confirm by typing 'delete-lab-infra-server': " confirmation
         if [[ "$confirmation" != "delete-lab-infra-server" ]]; then
-            print_info "[INFO] Operation cancelled by user."
+            print_info "Operation cancelled by user."
             return 1
         fi
     elif [[ "$skip_confirmation" == false ]]; then
@@ -68,55 +71,75 @@ remove_vm() {
         print_warning "This will permanently delete VM \"$vm_name\" and all associated files!"
         read -rp "Are you sure you want to proceed? (yes/no): " confirmation
         if [[ "$confirmation" != "yes" ]]; then
-            print_info "[INFO] Operation cancelled by user."
+            print_info "Operation cancelled by user."
             return 1
         fi
     fi
     
     # Stop VM if running
-    source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/poweroff-vm.sh
-    POWEROFF_VM_CONTEXT="Stopping VM before removal" poweroff_vm "$vm_name"
+    if sudo virsh list | awk '{print $2}' | grep -Fxq "$vm_name"; then
+        print_task "Stopping VM..."
+        if sudo virsh destroy "$vm_name" &>/dev/null; then
+            print_task_done
+        else
+            print_task_fail
+            print_warning "Could not stop VM (may already be stopped)."
+        fi
+    fi
     
     # Undefine VM
+    print_task "Undefining VM from libvirt..."
     if ! error_msg=$(sudo virsh undefine "$vm_name" --nvram 2>&1); then
-        print_error "[FAILED] Could not undefine VM \"$vm_name\"."
+        print_task_fail
         print_error "$error_msg"
         return 1
     fi
+    print_task_done
     
     # Remove VM directory
     if [ -n "$vm_name" ] && [ -d "/kvm-hub/vms/$vm_name" ]; then
-        if ! sudo rm -rf "/kvm-hub/vms/$vm_name" 2>/dev/null; then
-            print_warning "Could not remove VM directory /kvm-hub/vms/$vm_name"
+        print_task "Removing VM directory..."
+        if sudo rm -rf "/kvm-hub/vms/$vm_name" 2>/dev/null; then
+            print_task_done
+        else
+            print_task_fail
+            print_warning "Could not remove VM directory."
         fi
     fi
     
     # Remove from /etc/hosts
     if grep -q "$vm_name" "$ETC_HOSTS_FILE" 2>/dev/null; then
+        print_task "Removing from /etc/hosts..."
         if sudo sed -i.bak "/$vm_name/d" "$ETC_HOSTS_FILE" 2>/dev/null; then
-            print_info "[INFO] Removed $vm_name from $ETC_HOSTS_FILE"
+            print_task_done
         else
-            print_warning "Could not remove $vm_name from $ETC_HOSTS_FILE"
+            print_task_fail
+            print_warning "Could not update /etc/hosts."
         fi
     fi
     
     # Clean up ksmanager databases (DNS, MAC cache, kickstart, iPXE, DHCP)
     if [[ "$ignore_ksmanager_cleanup" == true ]]; then
-        print_info "[INFO] Skipping ksmanager database cleanup (--ignore-ksmanager-cleanup flag set)"
+        print_info "Skipping ksmanager cleanup (--ignore-ksmanager-cleanup flag)."
     else
-        # Call ksmanager directly for cleanup (run-ksmanager is for VM creation/imaging)
+        print_task "Cleaning up ksmanager databases..."
         if $lab_infra_server_mode_is_host; then
-            if ! sudo ksmanager "$vm_name" --remove-host; then
-                print_warning "Could not clean up ksmanager databases for $vm_name"
+            if sudo ksmanager "$vm_name" --remove-host &>/dev/null; then
+                print_task_done
+            else
+                print_task_fail
+                print_warning "Could not clean up ksmanager databases."
             fi
         else
-            if ! ssh -o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "${lab_infra_admin_username}@${lab_infra_server_ipv4_address}" "sudo ksmanager $vm_name --remove-host"; then
-                print_warning "Could not clean up ksmanager databases for $vm_name"
+            if ssh -o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "${lab_infra_admin_username}@${lab_infra_server_ipv4_address}" "sudo ksmanager $vm_name --remove-host" &>/dev/null; then
+                print_task_done
+            else
+                print_task_fail
+                print_warning "Could not clean up ksmanager databases."
             fi
         fi
     fi
     
-    print_success "[SUCCESS] VM \"$vm_name\" removed successfully."
     return 0
 }
 
@@ -148,25 +171,37 @@ if [[ -n "$hosts_list" ]]; then
     
     # Remove each VM
     failed_vms=()
+    successful_vms=()
     total_vms=${#validated_hosts[@]}
     current=0
     for vm_name in "${validated_hosts[@]}"; do
         ((current++))
-        print_info "[INFO] Removing VM $current of $total_vms: $vm_name"
+        print_info "Progress: $current/$total_vms"
         # Pass true to skip individual confirmation if force flag is set
-        if ! remove_vm "$vm_name" "$force_remove"; then
+        if remove_vm "$vm_name" "$force_remove"; then
+            successful_vms+=("$vm_name")
+        else
             failed_vms+=("$vm_name")
         fi
     done
     
     # Report results
-    if [[ ${#failed_vms[@]} -eq 0 ]]; then
-        print_success "[SUCCESS] Successfully removed all $total_vms VM(s)."
-        exit 0
-    else
-        print_error "[FAILED] Some VMs failed to remove: ${failed_vms[*]}"
+    success_count=${#successful_vms[@]}
+    fail_count=${#failed_vms[@]}
+    
+    print_summary "Removed $success_count of $total_vms VM(s)."
+    if [[ $success_count -gt 0 ]]; then
+        for vm in "${successful_vms[@]}"; do
+            print_success "  $vm"
+        done
+    fi
+    if [[ $fail_count -gt 0 ]]; then
+        for vm in "${failed_vms[@]}"; do
+            print_error "  $vm"
+        done
         exit 1
     fi
+    exit 0
 fi
 
 # Handle single host
@@ -175,6 +210,7 @@ source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/input-hostnam
 
 # Remove the VM
 if remove_vm "$qemu_kvm_hostname" "$force_remove"; then
+    print_summary "VM '$qemu_kvm_hostname' removed successfully."
     exit 0
 else
     exit 1
