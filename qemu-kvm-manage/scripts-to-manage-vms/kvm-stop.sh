@@ -53,7 +53,7 @@ stop_vm() {
     if ! sudo virsh list | awk '{print $2}' | grep -Fxq "$vm_name"; then
         print_task_skip
         print_info "VM is not running (already stopped)"
-        return 0
+        return 2
     fi
     
     # Proceed with Stop
@@ -97,14 +97,19 @@ if [[ -n "$hosts_list" ]]; then
     # Stop each VM
     failed_vms=()
     successful_vms=()
+    skipped_vms=()
     total_vms=${#validated_hosts[@]}
     current=0
     
     for vm_name in "${validated_hosts[@]}"; do
         ((current++))
         print_info "Progress: $current/$total_vms"
-        if stop_vm "$vm_name"; then
+        stop_vm "$vm_name"
+        exit_code=$?
+        if [[ $exit_code -eq 0 ]]; then
             successful_vms+=("$vm_name")
+        elif [[ $exit_code -eq 2 ]]; then
+            skipped_vms+=("$vm_name")
         else
             failed_vms+=("$vm_name")
         fi
@@ -114,6 +119,9 @@ if [[ -n "$hosts_list" ]]; then
     print_summary "Stop VMs Results"
     if [[ ${#successful_vms[@]} -gt 0 ]]; then
         print_success "  DONE: ${#successful_vms[@]}/$total_vms (${successful_vms[*]})"
+    fi
+    if [[ ${#skipped_vms[@]} -gt 0 ]]; then
+        print_skip "  SKIP: ${#skipped_vms[@]}/$total_vms (${skipped_vms[*]})"
     fi
     if [[ ${#failed_vms[@]} -gt 0 ]]; then
         print_error "  FAIL: ${#failed_vms[@]}/$total_vms (${failed_vms[*]})"
