@@ -55,7 +55,7 @@ print_info() {
 
 # Task-level operations (always use nskip to allow same-line completion)
 print_task() {
-	echo -ne "${MAKE_IT_CYAN}[TASK] ${1}${RESET_COLOR}"
+	echo -ne "${MAKE_IT_CYAN}[TASK] ${1}...${RESET_COLOR}"
 }
 
 print_task_done() {
