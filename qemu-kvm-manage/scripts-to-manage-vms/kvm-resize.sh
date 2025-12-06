@@ -306,6 +306,7 @@ resize_vm_memory() {
         print_task "Starting VM..."
         if sudo virsh start "${qemu_kvm_hostname}" &>/dev/null; then
             print_task_done
+            print_info "VM memory successfully resized to ${vm_mem_gib} GiB."
         else
             print_task_fail
             print_error "Failed to start VM after memory resize."
@@ -369,6 +370,7 @@ resize_vm_cpu() {
         print_task "Starting VM..."
         if sudo virsh start "${qemu_kvm_hostname}" &>/dev/null; then
             print_task_done
+            print_info "VM vCPUs successfully resized to ${new_vcpus_of_vm}."
         else
             print_task_fail
             print_error "Failed to start VM after vCPU resize."
@@ -457,11 +459,12 @@ resize_vm_disk() {
             fi
         done
         
-        /server-hub/common-utils/lab-rootfs-extender $SSH_TARGET_HOST
-        if [ $? -ne 0 ]; then
+        if ! /server-hub/common-utils/lab-rootfs-extender $SSH_TARGET_HOST; then
             print_error "Failed to extend root filesystem."
             exit 1
         fi
+        
+        print_info "VM disk successfully resized by ${grow_size_gib} GiB."
     else
         print_task_fail
         print_error "Disk resize failed!"
