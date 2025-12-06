@@ -52,7 +52,7 @@ stop_vm() {
     # Check if VM exists in 'virsh list'
     if ! sudo virsh list | awk '{print $2}' | grep -Fxq "$vm_name"; then
         print_task_done
-        echo -e "  ${DIM}${GRAY}[SKIP] VM is not running (already stopped)${NC}"
+        print_skip "VM is not running (already stopped)"
         return 0
     fi
     
