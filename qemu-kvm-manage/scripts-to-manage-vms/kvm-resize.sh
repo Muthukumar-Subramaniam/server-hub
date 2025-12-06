@@ -525,7 +525,6 @@ fi
 
 # Interactive mode - show menu
 while true; do
-    echo ""
     print_info "Resize resource of VM '$qemu_kvm_hostname':"
     echo "  1) Resize Memory"
     echo "  2) Resize CPU"
