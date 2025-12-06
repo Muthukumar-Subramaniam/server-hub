@@ -47,9 +47,9 @@ print_notify() {
 print_info() {
 	if [[ -z "${2:-}" ]] || [[ "${2:-}" != "nskip" ]] 
 	then
-		echo -e "${MAKE_IT_WHITE}[INFO] ${1}${RESET_COLOR}"
+		echo -e "${MAKE_IT_BLUE}[INFO] ${1}${RESET_COLOR}"
 	else
-		echo -ne "${MAKE_IT_WHITE}[INFO] ${1}${RESET_COLOR}"
+		echo -ne "${MAKE_IT_BLUE}[INFO] ${1}${RESET_COLOR}"
 	fi
 }
 
