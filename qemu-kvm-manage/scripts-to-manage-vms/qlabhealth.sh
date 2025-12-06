@@ -84,6 +84,6 @@ if [[ $active_services -eq 0 ]]; then
 elif [[ $total_services -eq $active_services ]]; then
     print_success "[SUCCESS] KVM Lab Infra health is STABLE."
 else
-    print_warning "[WARNING] KVM Lab Infra health is DEGRADED."
+    print_warning "KVM Lab Infra health is DEGRADED."
 fi
 print_info "-------------------------------------------------------------"

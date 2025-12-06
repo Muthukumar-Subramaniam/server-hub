@@ -25,12 +25,12 @@ confirm_vm_operation() {
     fi
     
     if [[ "$vm_count" -gt 1 ]]; then
-        print_warning "[WARNING] This will $description $vm_count VM(s): $vm_list"
+        print_warning "This will $description $vm_count VM(s): $vm_list"
     else
-        print_warning "[WARNING] This will $description VM \"$vm_list\"."
+        print_warning "This will $description VM \"$vm_list\"."
     fi
     
-    print_notify "[NOTIFY] $notify_message"
+    print_notify "$notify_message"
     read -p "Are you sure you want to continue? (yes/no): " confirmation
     echo -ne "\033[1A\033[2K"  # Move up one line and clear it
     

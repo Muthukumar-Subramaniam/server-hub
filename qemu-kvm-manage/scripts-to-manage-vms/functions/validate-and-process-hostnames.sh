@@ -44,7 +44,7 @@ validate_and_process_hostnames() {
     # Check if duplicates were found
     if [[ ${#unique_hosts[@]} -lt ${#validated_hosts[@]} ]]; then
         local duplicate_count=$((${#validated_hosts[@]} - ${#unique_hosts[@]}))
-        print_warning "[WARNING] Removed $duplicate_count duplicate hostname(s) from the list."
+        print_warning "Removed $duplicate_count duplicate hostname(s) from the list."
     fi
     
     # Export result

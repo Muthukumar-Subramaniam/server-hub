@@ -23,7 +23,7 @@ check_lab_infra_protection() {
     
     if [[ "$vm_hostname" == "$lab_infra_server_hostname" ]]; then
         print_error "[ERROR] Cannot reimage Lab Infra Server!"
-        print_warning "[WARNING] You are attempting to reimage the lab infrastructure server VM: $lab_infra_server_hostname"
+        print_warning "You are attempting to reimage the lab infrastructure server VM: $lab_infra_server_hostname"
         print_info "[INFO] This VM hosts critical services and must not be destroyed."
         if [[ $total_vms -eq 1 ]]; then
             exit 1

@@ -25,7 +25,7 @@ get_current_disk_size() {
     local vm_disk_path="/kvm-hub/vms/${vm_hostname}/${vm_hostname}.qcow2"
     
     if [ ! -f "${vm_disk_path}" ]; then
-        print_warning "[WARNING] VM disk not found at: ${vm_disk_path}"
+        print_warning "VM disk not found at: ${vm_disk_path}"
         CURRENT_DISK_SIZE=""
         return 1
     fi
@@ -37,7 +37,7 @@ get_current_disk_size() {
                         cut -d' ' -f1)
     
     if [[ -z "$CURRENT_DISK_SIZE" ]]; then
-        print_warning "[WARNING] Could not determine current disk size for \"$vm_hostname\"."
+        print_warning "Could not determine current disk size for \"$vm_hostname\"."
         return 1
     fi
     

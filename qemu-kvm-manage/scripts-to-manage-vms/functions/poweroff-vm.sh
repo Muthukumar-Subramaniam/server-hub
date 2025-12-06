@@ -51,7 +51,7 @@ poweroff_vm() {
             print_error "$error_msg"
             return 1
         else
-            print_warning "[WARNING] Could not power off VM \"$vm_hostname\"."
+            print_warning "Could not power off VM \"$vm_hostname\"."
             print_warning "$error_msg"
             return 0
         fi

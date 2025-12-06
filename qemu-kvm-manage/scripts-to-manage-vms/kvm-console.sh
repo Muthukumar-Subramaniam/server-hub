@@ -64,5 +64,5 @@ fi
 
 # Proceed to access console
 print_info "[INFO] Connecting to console of VM \"$qemu_kvm_hostname\"..."
-print_notify "[NOTIFY] Press Ctrl+] to exit the console."
+print_notify "Press Ctrl+] to exit the console."
 sudo virsh console "$qemu_kvm_hostname"

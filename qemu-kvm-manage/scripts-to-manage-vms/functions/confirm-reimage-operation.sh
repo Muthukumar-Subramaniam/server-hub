@@ -30,8 +30,8 @@ confirm_reimage_operation() {
     
     # Only prompt for single VM operations
     if [[ $total_vms -eq 1 ]]; then
-        print_warning "[WARNING] This will reimage VM \"$vm_hostname\" using $reimage_method!"
-        print_warning "[WARNING] All existing data on this VM will be permanently lost."
+        print_warning "This will reimage VM \"$vm_hostname\" using $reimage_method!"
+        print_warning "All existing data on this VM will be permanently lost."
         read -rp "Are you sure you want to proceed? (yes/no): " confirmation
         if [[ "$confirmation" != "yes" ]]; then
             print_info "[INFO] Operation cancelled by user."

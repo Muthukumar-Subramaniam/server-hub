@@ -99,7 +99,7 @@ fn_shutdown_or_poweroff() {
         ELAPSED=0
         while sudo virsh list | awk '{print $2}' | grep -Fxq "$qemu_kvm_hostname"; do
             if (( ELAPSED >= TIMEOUT )); then
-                print_warning "[WARNING] Graceful shutdown timed out. Forcing power off..."
+                print_warning "Graceful shutdown timed out. Forcing power off..."
                 source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/poweroff-vm.sh
                 if ! POWEROFF_VM_CONTEXT="Forcing power off after timeout" POWEROFF_VM_STRICT=true poweroff_vm "$qemu_kvm_hostname"; then
                     exit 1
@@ -116,7 +116,7 @@ fn_shutdown_or_poweroff() {
         return 0
     fi
     
-    print_warning "[WARNING] VM \"$qemu_kvm_hostname\" is still running!"
+    print_warning "VM \"$qemu_kvm_hostname\" is still running!"
     print_info "[INFO] Select an option to proceed:\n"
     echo "	1) Try Graceful Shutdown"
     echo "	2) Force Power Off"
@@ -138,7 +138,7 @@ fn_shutdown_or_poweroff() {
             ELAPSED=0
             while sudo virsh list | awk '{print $2}' | grep -Fxq "$qemu_kvm_hostname"; do
                 if (( ELAPSED >= TIMEOUT )); then
-                    print_warning "[WARNING] VM did not shut down within ${TIMEOUT}s."
+                    print_warning "VM did not shut down within ${TIMEOUT}s."
                     print_info "[INFO] You may want to force power off instead."
                     exit 1
                 fi

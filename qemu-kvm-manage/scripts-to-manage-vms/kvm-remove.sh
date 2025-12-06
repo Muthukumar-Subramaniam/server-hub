@@ -57,7 +57,7 @@ remove_vm() {
     
     # Special confirmation for lab infra server (always required)
     if [[ "$vm_name" == "$lab_infra_server_hostname" ]]; then
-        print_warning "[WARNING] You are about to delete your lab infra server VM: $lab_infra_server_hostname!"
+        print_warning "You are about to delete your lab infra server VM: $lab_infra_server_hostname!"
         read -r -p "If you know what you are doing, confirm by typing 'delete-lab-infra-server': " confirmation
         if [[ "$confirmation" != "delete-lab-infra-server" ]]; then
             print_info "[INFO] Operation cancelled by user."
@@ -65,7 +65,7 @@ remove_vm() {
         fi
     elif [[ "$skip_confirmation" == false ]]; then
         # Regular confirmation for other VMs
-        print_warning "[WARNING] This will permanently delete VM \"$vm_name\" and all associated files!"
+        print_warning "This will permanently delete VM \"$vm_name\" and all associated files!"
         read -rp "Are you sure you want to proceed? (yes/no): " confirmation
         if [[ "$confirmation" != "yes" ]]; then
             print_info "[INFO] Operation cancelled by user."
@@ -87,7 +87,7 @@ remove_vm() {
     # Remove VM directory
     if [ -n "$vm_name" ] && [ -d "/kvm-hub/vms/$vm_name" ]; then
         if ! sudo rm -rf "/kvm-hub/vms/$vm_name" 2>/dev/null; then
-            print_warning "[WARNING] Could not remove VM directory /kvm-hub/vms/$vm_name"
+            print_warning "Could not remove VM directory /kvm-hub/vms/$vm_name"
         fi
     fi
     
@@ -96,7 +96,7 @@ remove_vm() {
         if sudo sed -i.bak "/$vm_name/d" "$ETC_HOSTS_FILE" 2>/dev/null; then
             print_info "[INFO] Removed $vm_name from $ETC_HOSTS_FILE"
         else
-            print_warning "[WARNING] Could not remove $vm_name from $ETC_HOSTS_FILE"
+            print_warning "Could not remove $vm_name from $ETC_HOSTS_FILE"
         fi
     fi
     
@@ -107,11 +107,11 @@ remove_vm() {
         # Call ksmanager directly for cleanup (run-ksmanager is for VM creation/imaging)
         if $lab_infra_server_mode_is_host; then
             if ! sudo ksmanager "$vm_name" --remove-host; then
-                print_warning "[WARNING] Could not clean up ksmanager databases for $vm_name"
+                print_warning "Could not clean up ksmanager databases for $vm_name"
             fi
         else
             if ! ssh -o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "${lab_infra_admin_username}@${lab_infra_server_ipv4_address}" "sudo ksmanager $vm_name --remove-host"; then
-                print_warning "[WARNING] Could not clean up ksmanager databases for $vm_name"
+                print_warning "Could not clean up ksmanager databases for $vm_name"
             fi
         fi
     fi

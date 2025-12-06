@@ -79,7 +79,7 @@ golden_image_path="/kvm-hub/golden-images-disk-store/${qemu_kvm_hostname}.qcow2"
 
 # Check if golden image already exists
 if [ -f "${golden_image_path}" ]; then
-    print_warning "[WARNING] Golden image \"${qemu_kvm_hostname}\" already exists!"
+    print_warning "Golden image \"${qemu_kvm_hostname}\" already exists!"
     read -p "Do you want to delete and recreate it? (yes/no): " answer
     echo -ne "\033[1A\033[2K"  # Move up one line and clear it
     case "$answer" in
@@ -127,7 +127,7 @@ POWEROFF_VM_CONTEXT="Stopping temporary VM" poweroff_vm "$qemu_kvm_hostname"
 if error_msg=$(sudo virsh undefine "$qemu_kvm_hostname" --nvram 2>&1); then
     print_info "[INFO] Temporary VM cleaned up successfully."
 else
-    print_warning "[WARNING] Could not cleanup temporary VM: $error_msg"
+    print_warning "Could not cleanup temporary VM: $error_msg"
 fi
 
 print_success "[SUCCESS] Golden image disk created successfully: ${golden_image_path}"

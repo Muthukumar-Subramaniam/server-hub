@@ -15,8 +15,8 @@ lab_bridge_interface_name="labbr0"
 # ====== DNS CONFIGURATION FUNCTION ======
 configure_dns_for_bridge() {
     print_info "[INFO] Configuring DNS for $lab_bridge_interface_name..." nskip
-    sudo resolvectl dns "$lab_bridge_interface_name" "$lab_infra_server_ipv4_address" || print_warning "[WARNING] Could not set DNS server"
-    sudo resolvectl domain "$lab_bridge_interface_name" "$lab_infra_domain_name" || print_warning "[WARNING] Could not set DNS domain"
+    sudo resolvectl dns "$lab_bridge_interface_name" "$lab_infra_server_ipv4_address" || print_warning "Could not set DNS server"
+    sudo resolvectl domain "$lab_bridge_interface_name" "$lab_infra_domain_name" || print_warning "Could not set DNS domain"
     print_success " [SUCCESS]"
 }
 
@@ -116,7 +116,7 @@ when_lab_infra_server_is_host() {
     if [ ${#failed_services_list[@]} -eq 0 ]; then
         print_success "[SUCCESS] All lab services restarted successfully"
     else
-        print_warning "[WARNING] Some services failed: ${failed_services_list[*]}"
+        print_warning "Some services failed: ${failed_services_list[*]}"
     fi
     
     # ====== STEP 8: Verify critical services ======
@@ -137,7 +137,7 @@ when_lab_infra_server_is_host() {
     if $all_services_active; then
         print_success "[SUCCESS] kvm lab infra is started, and all essential services are live."
     else
-        print_warning "[WARNING] kvm lab infra is started, but some services need attention."
+        print_warning "kvm lab infra is started, but some services need attention."
         print_info "[INFO] Run 'sudo systemctl status <service>' for details."
     fi
 }

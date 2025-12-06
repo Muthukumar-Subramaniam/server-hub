@@ -59,7 +59,7 @@ shutdown_vm() {
             print_error "$error_msg"
             return 1
         else
-            print_warning "[WARNING] Could not send shutdown signal to VM \"$vm_hostname\"."
+            print_warning "Could not send shutdown signal to VM \"$vm_hostname\"."
             print_warning "$error_msg"
             return 0
         fi

@@ -33,7 +33,7 @@ check_vm_exists() {
         if [[ "$vm_exists" == "true" ]]; then
             print_error "[ERROR] VM \"$vm_hostname\" exists already."
             if [[ $total_vms -eq 1 ]]; then
-                print_warning "[WARNING] Either do one of the following:"
+                print_warning "Either do one of the following:"
                 print_info "[INFO] Remove the VM using 'qlabvmctl remove', then try again."
                 print_info "[INFO] Re-image the VM using 'qlabvmctl reimage-golden' or 'qlabvmctl reimage-pxe'."
                 exit 1

@@ -123,7 +123,7 @@ parse_vm_command_args() {
     if [[ ${#HOSTNAMES[@]} -gt 1 ]]; then
         UNIQUE_HOSTNAMES=($(printf '%s\n' "${HOSTNAMES[@]}" | sort -u))
         if [[ ${#UNIQUE_HOSTNAMES[@]} -ne ${#HOSTNAMES[@]} ]]; then
-            print_warning "[WARNING] Removed duplicate hostnames from the list."
+            print_warning "Removed duplicate hostnames from the list."
             HOSTNAMES=("${UNIQUE_HOSTNAMES[@]}")
         fi
     fi
