@@ -35,25 +35,32 @@ vm_hostname_arg="$VM_HOSTNAME_ARG"
 start_vm() {
     local vm_name="$1"
     
-    # Check if VM exists in 'virsh list --all'
+    # Check if VM exists
+    print_task "Checking VM \"$vm_name\" exists..."
     if ! sudo virsh list --all | awk '{print $2}' | grep -Fxq "$vm_name"; then
-        print_error "[ERROR] VM \"$vm_name\" does not exist."
+        print_task_fail
+        print_error "[ERROR] VM does not exist"
         return 1
     fi
+    print_task_done
     
     # Check if VM is already running
+    print_task "Checking VM state..."
     if sudo virsh list | awk '{print $2}' | grep -Fxq "$vm_name"; then
-        print_info "[INFO] VM \"$vm_name\" is already running."
+        print_task_done
+        print_skip "VM \"$vm_name\" is already running"
         return 0
     fi
+    print_task_done
     
-    # Proceed with Start
+    # Start the VM
+    print_task "Starting VM \"$vm_name\"..."
     if error_msg=$(sudo virsh start "$vm_name" 2>&1); then
-        print_success "[SUCCESS] VM \"$vm_name\" started successfully."
+        print_task_done
         return 0
     else
-        print_error "[FAILED] Could not start VM \"$vm_name\"."
-        print_error "$error_msg"
+        print_task_fail
+        print_error "[ERROR] $error_msg"
         return 1
     fi
 }
@@ -78,24 +85,42 @@ if [[ -n "$hosts_list" ]]; then
     
     # Start each VM
     failed_vms=()
+    success_vms=()
+    skipped_vms=()
     total_vms=${#validated_hosts[@]}
     current=0
+    
     for vm_name in "${validated_hosts[@]}"; do
         ((current++))
-        print_info "[INFO] Starting VM $current of $total_vms: $vm_name"
-        if ! start_vm "$vm_name"; then
+        echo ""
+        print_info "[INFO] Processing VM $current/$total_vms: $vm_name"
+        
+        # Check if already running before starting
+        if sudo virsh list | awk '{print $2}' | grep -Fxq "$vm_name"; then
+            print_skip "VM \"$vm_name\" is already running"
+            skipped_vms+=("$vm_name")
+        elif start_vm "$vm_name"; then
+            success_vms+=("$vm_name")
+        else
             failed_vms+=("$vm_name")
         fi
     done
     
-    # Report results
-    if [[ ${#failed_vms[@]} -eq 0 ]]; then
-        print_success "[SUCCESS] All VMs started successfully."
-        exit 0
-    else
-        print_error "[FAILED] Some VMs failed to start: ${failed_vms[*]}"
+    # Print summary
+    echo ""
+    print_summary "Start Operation Results"
+    if [[ ${#success_vms[@]} -gt 0 ]]; then
+        print_success "  DONE: ${#success_vms[@]}/$total_vms (${success_vms[*]})"
+    fi
+    if [[ ${#skipped_vms[@]} -gt 0 ]]; then
+        print_warning "  SKIP: ${#skipped_vms[@]}/$total_vms (${skipped_vms[*]})"
+    fi
+    if [[ ${#failed_vms[@]} -gt 0 ]]; then
+        print_error "  FAIL: ${#failed_vms[@]}/$total_vms (${failed_vms[*]})"
         exit 1
     fi
+    
+    exit 0
 fi
 
 # Handle single host

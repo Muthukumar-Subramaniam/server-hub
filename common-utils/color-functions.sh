@@ -35,13 +35,38 @@ print_warning() {
 	fi
 }
 
-print_info() {
+print_notify() {
 	if [[ -z "${2:-}" ]] || [[ "${2:-}" != "nskip" ]] 
 	then
-		echo -e "${MAKE_IT_CYAN}${1}${RESET_COLOR}"
+		echo -e "${MAKE_IT_WHITE}${1}${RESET_COLOR}"
 	else
-		echo -ne "${MAKE_IT_CYAN}${1}${RESET_COLOR}"
+		echo -ne "${MAKE_IT_WHITE}${1}${RESET_COLOR}"
 	fi
+}
+
+# Task-level operations (always use nskip to allow same-line completion)
+print_task() {
+	echo -ne "${MAKE_IT_CYAN}[TASK] ${1}${RESET_COLOR}"
+}
+
+print_task_done() {
+	echo -e " ${MAKE_IT_GREEN}[DONE]${RESET_COLOR}"
+}
+
+print_task_fail() {
+	echo -e " ${MAKE_IT_RED}[FAIL]${RESET_COLOR}"
+}
+
+print_skip() {
+	echo -e "${MAKE_IT_YELLOW}[SKIP] ${1}${RESET_COLOR}"
+}
+
+print_ready() {
+	echo -e "${MAKE_IT_GREEN}[READY] ${1}${RESET_COLOR}"
+}
+
+print_summary() {
+	echo -e "${MAKE_IT_CYAN}[SUMMARY] ${1}${RESET_COLOR}"
 }
 
 print_notify() {
