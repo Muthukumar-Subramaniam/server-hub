@@ -8,22 +8,22 @@ source /server-hub/common-utils/color-functions.sh
 
 if [[ "$EUID" -ne 0 ]]; then
 	if [[ "$USER" == "$mgmt_super_user" ]]; then
-		print_error "[ERROR] Please run this tool using 'sudo' — direct execution is not allowed."
+		print_error "Please run this tool using 'sudo' — direct execution is not allowed."
 	    	exit 1
     	else
-		print_error "[ERROR] Access denied. Only infra management super user '${mgmt_super_user}' is authorized to run this tool."
+		print_error "Access denied. Only infra management super user '${mgmt_super_user}' is authorized to run this tool."
     		exit 1
     	fi
 fi
 
 if [[ "$(id -un)" == "root" && "$SUDO_USER" != "${mgmt_super_user}" ]]; then
-	print_error "[ERROR] Access denied. Only infra management super user '${mgmt_super_user}' is authorized to run this tool with 'sudo'."
+	print_error "Access denied. Only infra management super user '${mgmt_super_user}' is authorized to run this tool with 'sudo'."
 	exit 1
 fi
 
 script_name="$(basename "$0")"
 if [[ "$SUDO_COMMAND" != *"$script_name"* ]]; then
-	print_error "[ERROR] Direct root execution is not allowed. Only infra management super user '${mgmt_super_user}' can run this tool with sudo."
+	print_error "Direct root execution is not allowed. Only infra management super user '${mgmt_super_user}' can run this tool with sudo."
 	exit 1
 fi
 
@@ -66,10 +66,10 @@ fn_check_and_create_host_record() {
 		# shellcheck disable=SC2162
 		if [ -z "${1}" ]
 		then
-			print_info "[INFO] Create kickstart host profiles for PXE boot."
-			print_info "[INFO] Points to keep in mind while entering the hostname:"
-    		print_info "[INFO] - Use only lowercase letters, numbers, and hyphens (-)."
-    		print_info "[INFO] - Must not start or end with a hyphen."
+			print_info "Create kickstart host profiles for PXE boot."
+			print_info "Points to keep in mind while entering the hostname:"
+    		print_info "- Use only lowercase letters, numbers, and hyphens (-)."
+    		print_info "- Must not start or end with a hyphen."
 			read -r -p "Please enter the hostname for which kickstarts are required: " kickstart_hostname
 		else
 			kickstart_hostname="${1}"
@@ -80,24 +80,24 @@ fn_check_and_create_host_record() {
 			local stripped_hostname="${kickstart_hostname%.${ipv4_domain}}"
 			# Verify the stripped part doesn't contain dots (ensure it's just hostname.domain, not host.something.domain)
 			if [[ "${stripped_hostname}" == *.* ]]; then
-				print_error "[ERROR] Invalid hostname. Expected format: hostname.${ipv4_domain}"
+				print_error "Invalid hostname. Expected format: hostname.${ipv4_domain}"
 				exit 1
 			fi
 			# Validate the hostname part
 			if [[ ! "${stripped_hostname}" =~ ^[a-z0-9-]+$ || "${stripped_hostname}" =~ ^- || "${stripped_hostname}" =~ -$ ]]; then
-				print_error "[ERROR] Invalid hostname. Use only lowercase letters, numbers, and hyphens."
-				print_info "[INFO] Hostname must not start or end with a hyphen."
+				print_error "Invalid hostname. Use only lowercase letters, numbers, and hyphens."
+				print_info "Hostname must not start or end with a hyphen."
 				exit 1
 			fi
 			# Keep as FQDN
 		elif [[ "${kickstart_hostname}" == *.* ]]; then
-			print_error "[ERROR] Invalid domain. Expected domain: ${ipv4_domain}"
+			print_error "Invalid domain. Expected domain: ${ipv4_domain}"
 			exit 1
 		else
 			# Bare hostname provided - validate and convert to FQDN
 			if [[ ! "${kickstart_hostname}" =~ ^[a-z0-9-]+$ || "${kickstart_hostname}" =~ ^- || "${kickstart_hostname}" =~ -$ ]]; then
-				print_error "[ERROR] Invalid hostname. Use only lowercase letters, numbers, and hyphens."
-				print_info "[INFO] Hostname must not start or end with a hyphen."
+				print_error "Invalid hostname. Use only lowercase letters, numbers, and hyphens."
+				print_info "Hostname must not start or end with a hyphen."
 				exit 1
 			fi
 			kickstart_hostname="${kickstart_hostname}.${ipv4_domain}"
@@ -111,17 +111,13 @@ fn_check_and_create_host_record() {
 
 	if ! host "${kickstart_hostname}" "${dnsbinder_server_ipv4_address}" &>/dev/null
 	then
-		print_info "[INFO] No DNS record found for \"${kickstart_hostname}\"."
+		print_info "No DNS record found for \"${kickstart_hostname}\"."
 		
 		if $invoked_with_qemu_kvm; then
-			print_info "[INFO] Creating DNS record for \"${kickstart_hostname}\" using dnsbinder..."
 			"${dnsbinder_script}" -c "${kickstart_hostname}"
 
-			if host "${kickstart_hostname}" "${dnsbinder_server_ipv4_address}" &>/dev/null
-			then
-				print_info "[INFO] Proceeding with kickstart creation..."
-			else
-				print_error "[ERROR] Failed to create DNS record for \"${kickstart_hostname}\"."
+			if ! host "${kickstart_hostname}" "${dnsbinder_server_ipv4_address}" &>/dev/null; then
+				print_error "Failed to create DNS record for \"${kickstart_hostname}\"."
 				exit 1
 			fi
 		else
@@ -131,31 +127,27 @@ fn_check_and_create_host_record() {
 
 				if [[ "${v_confirmation}" == "y" ]]
 				then
-					print_info "[INFO] Creating DNS record for \"${kickstart_hostname}\" using dnsbinder..."
 					"${dnsbinder_script}" -c "${kickstart_hostname}"
 
-					if host "${kickstart_hostname}" "${dnsbinder_server_ipv4_address}" &>/dev/null
-					then
-						print_info "[INFO] Proceeding with kickstart creation..."
-						break
-					else
-						print_error "[ERROR] Failed to create DNS record for \"${kickstart_hostname}\"."
+					if ! host "${kickstart_hostname}" "${dnsbinder_server_ipv4_address}" &>/dev/null; then
+						print_error "Failed to create DNS record for \"${kickstart_hostname}\"."
 						exit 1
 					fi
+					break
 
 				elif [[ "${v_confirmation}" == "n" ]]
 				then
-					print_info "[INFO] Operation cancelled by user."
+					print_info "Operation cancelled by user."
 					exit
 				else
-					print_warning "[WARNING] Invalid input. Please enter 'y' or 'n'."
+					print_warning "Invalid input. Please enter 'y' or 'n'."
 					continue
 				fi
 			done
 		fi
 	else
-		print_success "[SUCCESS] DNS record found for \"${kickstart_hostname}\"."
-		print_info "[INFO] $(host ${kickstart_hostname} ${dnsbinder_server_ipv4_address} | grep 'has address')"
+		print_success "DNS record found for \"${kickstart_hostname}\"."
+		print_info "$(host ${kickstart_hostname} ${dnsbinder_server_ipv4_address} | grep 'has address')"
 	fi
 }
 
@@ -180,8 +172,8 @@ done
 # If --remove-host is requested, handle cleanup and exit
 if $remove_host_requested; then
     if [ -z "${1}" ] || [[ "${1}" == "--remove-host" ]]; then
-        print_error "[ERROR] Hostname is required with --remove-host flag."
-        print_info "[INFO] Usage: sudo ksmanager hostname --remove-host"
+        print_error "Hostname is required with --remove-host flag."
+        print_info "Usage: sudo ksmanager hostname --remove-host"
         exit 1
     fi
     
@@ -197,25 +189,25 @@ if $remove_host_requested; then
     if [[ "${cleanup_hostname}" == *.${ipv4_domain} ]]; then
         stripped_hostname="${cleanup_hostname%.${ipv4_domain}}"
         if [[ "${stripped_hostname}" == *.* ]]; then
-            print_error "[ERROR] Invalid hostname. Expected format: hostname.${ipv4_domain}"
+            print_error "Invalid hostname. Expected format: hostname.${ipv4_domain}"
             exit 1
         fi
         if [[ ! "${stripped_hostname}" =~ ^[a-z0-9-]+$ || "${stripped_hostname}" =~ ^- || "${stripped_hostname}" =~ -$ ]]; then
-            print_error "[ERROR] Invalid hostname. Use only lowercase letters, numbers, and hyphens."
+            print_error "Invalid hostname. Use only lowercase letters, numbers, and hyphens."
             exit 1
         fi
     elif [[ "${cleanup_hostname}" == *.* ]]; then
-        print_error "[ERROR] Invalid domain. Expected domain: ${ipv4_domain}"
+        print_error "Invalid domain. Expected domain: ${ipv4_domain}"
         exit 1
     else
         if [[ ! "${cleanup_hostname}" =~ ^[a-z0-9-]+$ || "${cleanup_hostname}" =~ ^- || "${cleanup_hostname}" =~ -$ ]]; then
-            print_error "[ERROR] Invalid hostname. Use only lowercase letters, numbers, and hyphens."
+            print_error "Invalid hostname. Use only lowercase letters, numbers, and hyphens."
             exit 1
         fi
         cleanup_hostname="${cleanup_hostname}.${ipv4_domain}"
     fi
     
-    print_info "[INFO] Removing host '${cleanup_hostname}' from all ksmanager databases..."
+    print_info "Removing host '${cleanup_hostname}' from all ksmanager databases..."
     
     # Get MAC address and IP before removal
     if [ -f "${ksmanager_hub_dir}/mac-address-cache" ]; then
@@ -230,41 +222,41 @@ if $remove_host_requested; then
     # 1. Remove from MAC address cache
     if [ -f "${ksmanager_hub_dir}/mac-address-cache" ] && grep -q "^${cleanup_hostname} " "${ksmanager_hub_dir}/mac-address-cache" 2>/dev/null; then
         sed -i "/^${cleanup_hostname} /d" "${ksmanager_hub_dir}/mac-address-cache"
-        print_info "[INFO] Removed from MAC address cache"
+        print_info "Removed from MAC address cache"
     else
-        print_info "[INFO] No MAC address cache entry found"
+        print_info "No MAC address cache entry found"
     fi
     
     # 2. Remove kickstart directory
     if [ -d "${ksmanager_hub_dir}/kickstarts/${cleanup_hostname}" ]; then
         rm -rf "${ksmanager_hub_dir}/kickstarts/${cleanup_hostname}"
-        print_info "[INFO] Removed kickstart files"
+        print_info "Removed kickstart files"
     else
-        print_info "[INFO] No kickstart files found"
+        print_info "No kickstart files found"
     fi
     
     # 3. Remove iPXE config file
     if [[ -n "$ipxe_cfg_mac" ]]; then
         if [ -f "${ipxe_web_dir}/${ipxe_cfg_mac}.ipxe" ]; then
             rm -f "${ipxe_web_dir}/${ipxe_cfg_mac}.ipxe"
-            print_info "[INFO] Removed iPXE config file (${ipxe_cfg_mac}.ipxe)"
+            print_info "Removed iPXE config file (${ipxe_cfg_mac}.ipxe)"
         else
-            print_info "[INFO] No iPXE config file found"
+            print_info "No iPXE config file found"
         fi
     else
-        print_info "[INFO] No iPXE config (no MAC address found)"
+        print_info "No iPXE config (no MAC address found)"
     fi
     
     # 4. Remove golden boot network config
     if [[ -n "$ipxe_cfg_mac" ]]; then
         if [ -f "${ksmanager_hub_dir}/golden-boot-mac-configs/network-config-${ipxe_cfg_mac}" ]; then
             rm -f "${ksmanager_hub_dir}/golden-boot-mac-configs/network-config-${ipxe_cfg_mac}"
-            print_info "[INFO] Removed golden boot network config"
+            print_info "Removed golden boot network config"
         else
-            print_info "[INFO] No golden boot network config found"
+            print_info "No golden boot network config found"
         fi
     else
-        print_info "[INFO] No golden boot config (no MAC address found)"
+        print_info "No golden boot config (no MAC address found)"
     fi
     
     # 5. Remove KEA DHCP reservation
@@ -339,22 +331,22 @@ EOF
             -d @"$kea_tmp_config" \
             "$kea_api_url" &>/dev/null
         
-        print_info "[INFO] Removed KEA DHCP reservations"
+        print_info "Removed KEA DHCP reservations"
     fi
     
     # 6. Remove DNS record
     if host "${cleanup_hostname}" "${dnsbinder_server_ipv4_address}" &>/dev/null; then
         "${dnsbinder_script}" -dy "${cleanup_hostname}"
         if ! host "${cleanup_hostname}" "${dnsbinder_server_ipv4_address}" &>/dev/null; then
-            print_info "[INFO] Removed DNS record"
+            print_info "Removed DNS record"
         else
-            print_warning "[WARNING] DNS record may not have been removed properly"
+            print_warning "DNS record may not have been removed properly"
         fi
     else
-        print_info "[INFO] No DNS record found"
+        print_info "No DNS record found"
     fi
     
-    print_success "[SUCCESS] Host '${cleanup_hostname}' has been removed from all ksmanager databases."
+    print_success "Host '${cleanup_hostname}' has been removed from all ksmanager databases."
     exit 0
 fi
 
@@ -382,9 +374,15 @@ fn_convert_mac_for_ipxe_cfg() {
 }
 
 fn_cache_the_mac() {
-	print_info "[INFO] Updating MAC address to cache for future use..."
-	sed -i "/${kickstart_hostname}/d" "${ksmanager_hub_dir}"/mac-address-cache
-	echo "${kickstart_hostname} ${mac_address_of_host} ${ipv4_address}" >> "${ksmanager_hub_dir}"/mac-address-cache
+	print_task "Caching MAC address..."
+	if sed -i "/${kickstart_hostname}/d" "${ksmanager_hub_dir}"/mac-address-cache && \
+	   echo "${kickstart_hostname} ${mac_address_of_host} ${ipv4_address}" >> "${ksmanager_hub_dir}"/mac-address-cache; then
+		print_task_done
+	else
+		print_task_fail
+		print_error "Failed to cache MAC address."
+		exit 1
+	fi
 }
 
 # Loop until a valid MAC address is provided
@@ -399,7 +397,7 @@ fn_get_mac_address() {
     		then
         		break
     		else
-			print_error "[ERROR] Invalid MAC address provided. Please try again."
+			print_error "Invalid MAC address provided. Please try again."
     		fi
 	done
 }
@@ -432,7 +430,7 @@ done
 
 fn_check_and_create_mac_if_required() {
 
-print_info "[INFO] Looking up MAC address for host \"${kickstart_hostname}\" from cache..."
+print_info "Looking up MAC address for host \"${kickstart_hostname}\" from cache..."
 
 if [ ! -f "${ksmanager_hub_dir}"/mac-address-cache ]; then
 	touch  "${ksmanager_hub_dir}"/mac-address-cache
@@ -442,7 +440,7 @@ if grep ^"${kickstart_hostname} " "${ksmanager_hub_dir}"/mac-address-cache &>/de
 then
 	mac_address_of_host=$(grep ^"${kickstart_hostname} " "${ksmanager_hub_dir}"/mac-address-cache | cut -d " " -f 2 )
 
-	print_success "[SUCCESS] MAC Address ${mac_address_of_host} found for ${kickstart_hostname} in cache."
+	print_success "MAC Address ${mac_address_of_host} found for ${kickstart_hostname} in cache."
 	while :
 	do
 		if $invoked_with_qemu_kvm; then
@@ -469,13 +467,13 @@ then
 			fn_cache_the_mac
 			break
 		else
-			print_warning "[WARNING] Invalid input."
+			print_warning "Invalid input."
 		fi
 	done
 else
-	print_info "[INFO] MAC address for \"${kickstart_hostname}\" not found in cache."
+	print_info "MAC address for \"${kickstart_hostname}\" not found in cache."
 	if $invoked_with_qemu_kvm; then
-		print_info "[INFO] Generating MAC address for QEMU/KVM VM \"${kickstart_hostname}\"..."
+		print_info "Generating MAC address for QEMU/KVM VM \"${kickstart_hostname}\"..."
 		mac_address_of_host=$(printf '52:54:00:%02x:%02x:%02x\n' $((RANDOM%256)) $((RANDOM%256)) $((RANDOM%256)))
 		fn_convert_mac_for_ipxe_cfg
 		fn_cache_the_mac
@@ -546,47 +544,47 @@ fn_select_os_distro() {
         case "${distro_from_flag}" in
             alma|almalinux) 
                 os_distribution="almalinux"
-                print_success "[SUCCESS] OS distribution selected via --distro flag: ${os_distribution}"
+                print_success "OS distribution selected via --distro flag: ${os_distribution}"
                 return
                 ;;
             rocky) 
                 os_distribution="rocky"
-                print_success "[SUCCESS] OS distribution selected via --distro flag: ${os_distribution}"
+                print_success "OS distribution selected via --distro flag: ${os_distribution}"
                 return
                 ;;
             oracle|oraclelinux) 
                 os_distribution="oraclelinux"
-                print_success "[SUCCESS] OS distribution selected via --distro flag: ${os_distribution}"
+                print_success "OS distribution selected via --distro flag: ${os_distribution}"
                 return
                 ;;
             centos|centos-stream) 
                 os_distribution="centos-stream"
-                print_success "[SUCCESS] OS distribution selected via --distro flag: ${os_distribution}"
+                print_success "OS distribution selected via --distro flag: ${os_distribution}"
                 return
                 ;;
             rhel|redhat) 
                 os_distribution="rhel"
-                print_success "[SUCCESS] OS distribution selected via --distro flag: ${os_distribution}"
+                print_success "OS distribution selected via --distro flag: ${os_distribution}"
                 return
                 ;;
             fedora) 
                 os_distribution="fedora"
-                print_success "[SUCCESS] OS distribution selected via --distro flag: ${os_distribution}"
+                print_success "OS distribution selected via --distro flag: ${os_distribution}"
                 return
                 ;;
             ubuntu-lts|ubuntu) 
                 os_distribution="ubuntu-lts"
-                print_success "[SUCCESS] OS distribution selected via --distro flag: ${os_distribution}"
+                print_success "OS distribution selected via --distro flag: ${os_distribution}"
                 return
                 ;;
             opensuse-leap|opensuse|suse) 
                 os_distribution="opensuse-leap"
-                print_success "[SUCCESS] OS distribution selected via --distro flag: ${os_distribution}"
+                print_success "OS distribution selected via --distro flag: ${os_distribution}"
                 return
                 ;;
             *)
-                print_error "[ERROR] Invalid distro specified with --distro flag: ${distro_from_flag}"
-                print_info "[INFO] Valid options: almalinux, rocky, oraclelinux, centos-stream, rhel, fedora, ubuntu-lts, opensuse-leap"
+                print_error "Invalid distro specified with --distro flag: ${distro_from_flag}"
+                print_info "Valid options: almalinux, rocky, oraclelinux, centos-stream, rhel, fedora, ubuntu-lts, opensuse-leap"
                 exit 1
                 ;;
         esac
@@ -595,7 +593,7 @@ fn_select_os_distro() {
     local auto_detected_os=$(fn_auto_detect_os_from_hostname)
     
     if [[ -n "${auto_detected_os}" ]]; then
-        print_success "[SUCCESS] Auto-detected OS distribution from hostname: ${auto_detected_os}"
+        print_success "Auto-detected OS distribution from hostname: ${auto_detected_os}"
         os_distribution="${auto_detected_os}"
         return
     fi
@@ -621,7 +619,7 @@ fn_select_os_distro() {
         6 )      os_distribution="fedora" ;;
         7 )      os_distribution="ubuntu-lts" ;;
         8 )      os_distribution="opensuse-leap" ;;
-	* ) print_error "[ERROR] Invalid option. Please try again."; fn_select_os_distro ;;
+	* ) print_error "Invalid option. Please try again."; fn_select_os_distro ;;
     esac
 }
 
@@ -665,10 +663,10 @@ else
 fi
 
 while [ ! -f "${ipxe_web_dir}/images/${os_distribution}-latest/${kernel_file_name}" ]; do
-	print_warning "[WARNING] ${os_distribution} is not yet prepared for PXE-boot environment."
-	print_info "[INFO] Please use 'prepare-distro-for-ksmanager' tool to prepare ${os_distribution} for PXE-boot."
+	print_warning "${os_distribution} is not yet prepared for PXE-boot environment."
+	print_info "Please use 'prepare-distro-for-ksmanager' tool to prepare ${os_distribution} for PXE-boot."
 	if $invoked_with_qemu_kvm; then
-		print_error "[ERROR] Cannot proceed with unprepared OS distribution in automation mode."
+		print_error "Cannot proceed with unprepared OS distribution in automation mode."
 		exit 1
 	fi
 	fn_select_os_distro
@@ -727,23 +725,29 @@ fi
 
 if ! $invoked_with_golden_image; then
 
-	print_info "[INFO] Generating kickstart profile and iPXE configs for PXE boot of VM '${kickstart_hostname}'..."
-
-	rsync -a -q --delete "${ksmanager_main_dir}"/addons-for-kickstarts/ "${ksmanager_hub_dir}"/addons-for-kickstarts/
-
-	rsync -a -q /home/${mgmt_super_user}/.ssh/{authorized_keys,kvm_lab_global_id_rsa.pub,kvm_lab_global_id_rsa} "${ksmanager_hub_dir}"/addons-for-kickstarts/
-
-	chmod +r "${ksmanager_hub_dir}"/addons-for-kickstarts/{authorized_keys,kvm_lab_global_id_rsa.pub,kvm_lab_global_id_rsa}
-
-	mkdir -p "${ksmanager_hub_dir}"/golden-boot-mac-configs
+	print_task "Generating kickstart profile and iPXE configs..."
+	if rsync -a -q --delete "${ksmanager_main_dir}"/addons-for-kickstarts/ "${ksmanager_hub_dir}"/addons-for-kickstarts/ && \
+	   rsync -a -q /home/${mgmt_super_user}/.ssh/{authorized_keys,kvm_lab_global_id_rsa.pub,kvm_lab_global_id_rsa} "${ksmanager_hub_dir}"/addons-for-kickstarts/ && \
+	   chmod +r "${ksmanager_hub_dir}"/addons-for-kickstarts/{authorized_keys,kvm_lab_global_id_rsa.pub,kvm_lab_global_id_rsa} && \
+	   mkdir -p "${ksmanager_hub_dir}"/golden-boot-mac-configs; then
+		print_task_done
+	else
+		print_task_fail
+		print_error "Failed to generate kickstart profile."
+		exit 1
+	fi
 fi
 
 if $invoked_with_golden_image; then
 
-	print_info "[INFO] Generating network configs for golden boot installation of VM '${kickstart_hostname}'..."
-
-	rsync -a -q "${ksmanager_main_dir}"/golden-boot-templates/network-config-for-mac-address "${ksmanager_hub_dir}"/golden-boot-mac-configs/network-config-"${ipxe_cfg_mac_address}"
-
+	print_task "Generating golden boot network config..."
+	if rsync -a -q "${ksmanager_main_dir}"/golden-boot-templates/network-config-for-mac-address "${ksmanager_hub_dir}"/golden-boot-mac-configs/network-config-"${ipxe_cfg_mac_address}"; then
+		print_task_done
+	else
+		print_task_fail
+		print_error "Failed to generate network config."
+		exit 1
+	fi
 fi
 
 # shellcheck disable=SC2044
@@ -830,7 +834,7 @@ fi
 chown -R ${mgmt_super_user}:${mgmt_super_user}  "${ksmanager_hub_dir}"
 
 fn_update_kea_dhcp_reservations() {
-  print_info "[INFO] Updating IPv4 reservations with kea-dhcp server..."
+  print_task "Updating KEA DHCP reservations..."
   local kea_cache_file="${ksmanager_hub_dir}/mac-address-cache"
   local kea_config_file="/etc/kea/kea-dhcp4.conf"
   local kea_api_url="http://127.0.0.1:8000/"
@@ -904,10 +908,16 @@ EOF
    "$kea_api_url" &>/dev/null
 
   # Push new config dynamically
-  curl -s -X POST -H "Content-Type: application/json" \
+  if curl -s -X POST -H "Content-Type: application/json" \
     -u "$kea_api_auth" \
     -d @"$kea_tmp_config" \
-    "$kea_api_url" &>/dev/null
+    "$kea_api_url" &>/dev/null; then
+    print_task_done
+  else
+    print_task_fail
+    print_error "Failed to update KEA DHCP reservations."
+    exit 1
+  fi
 }
 
 if systemctl is-active --quiet kea-ctrl-agent; then
@@ -915,7 +925,7 @@ if systemctl is-active --quiet kea-ctrl-agent; then
 fi
 
 if ! $invoked_with_golden_image; then
-	print_info "[INFO] Configuration Summary:
+	print_info "Configuration Summary:
   ✓ Hostname     : ${kickstart_hostname}
   ✓ MAC Address  : ${mac_address_of_host}
   ✓ IPv4 Address : ${ipv4_address}
@@ -932,9 +942,9 @@ if ! $invoked_with_golden_image; then
   ✓ KS Local     : ${host_kickstart_dir}
   ✓ KS Web       : https://${host_kickstart_dir#/}
   ✓ Requested OS : ${os_name_and_version}"
-	print_success "[SUCCESS] All done! You can proceed with installation of '${kickstart_hostname}' using PXE boot."
+	print_success "All done! You can proceed with installation of '${kickstart_hostname}' using PXE boot."
 else
-	print_info "[INFO] Configuration Summary:
+	print_info "Configuration Summary:
   ✓ Hostname     : ${kickstart_hostname}
   ✓ MAC Address  : ${mac_address_of_host}
   ✓ IPv4 Address : ${ipv4_address}
@@ -947,7 +957,7 @@ else
   ✓ Web Server   : ${web_server_name}.${ipv4_domain}
   ✓ NFS Server   : ${nfs_server_name}.${ipv4_domain}
   ✓ Requested OS : ${os_name_and_version}"
-	print_success "[SUCCESS] All done! You can proceed with installation of '${kickstart_hostname}' using golden image."
+	print_success "All done! You can proceed with installation of '${kickstart_hostname}' using golden image."
 fi
 
 exit
