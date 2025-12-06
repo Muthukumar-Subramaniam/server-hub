@@ -57,6 +57,10 @@ print_task_fail() {
 	echo -e " ${MAKE_IT_RED}[FAIL]${RESET_COLOR}"
 }
 
+print_task_skip() {
+	echo -e " ${MAKE_IT_YELLOW}[SKIP]${RESET_COLOR}"
+}
+
 print_skip() {
 	echo -e "${MAKE_IT_YELLOW}[SKIP] ${1}${RESET_COLOR}"
 }
