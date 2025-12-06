@@ -102,8 +102,7 @@ if [[ -n "$hosts_list" ]]; then
     
     for vm_name in "${validated_hosts[@]}"; do
         ((current++))
-        echo "" # Blank line for readability
-        print_info "[INFO] Progress: $current/$total_vms"
+        print_info "Progress: $current/$total_vms"
         if stop_vm "$vm_name"; then
             successful_vms+=("$vm_name")
         else
@@ -112,8 +111,7 @@ if [[ -n "$hosts_list" ]]; then
     done
     
     # Print summary
-    echo ""
-    print_info "[SUMMARY] Stop VMs Results"
+    print_summary "Stop VMs Results"
     if [[ ${#successful_vms[@]} -gt 0 ]]; then
         print_success "  DONE: ${#successful_vms[@]}/$total_vms (${successful_vms[*]})"
     fi
