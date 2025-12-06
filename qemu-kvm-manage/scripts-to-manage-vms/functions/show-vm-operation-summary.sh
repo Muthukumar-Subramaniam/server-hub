@@ -28,8 +28,7 @@ show_vm_operation_summary() {
     local -n successful_vms="$successful_array_name"
     local -n failed_vms="$failed_array_name"
 
-    echo ""
-    print_info "Operation Summary:"
+    print_summary "Operation Summary:"
     
     if [[ ${#successful_vms[@]} -gt 0 ]]; then
         print_success "Successfully initiated ${operation_desc}: ${#successful_vms[@]} VM(s)"
