@@ -6,6 +6,7 @@ MAKE_IT_BLUE='\033[0;34m'
 MAKE_IT_CYAN='\033[0;36m'
 MAKE_IT_BRIGHT_CYAN='\033[1;36m'
 MAKE_IT_WHITE='\033[0;37m'
+MAKE_IT_BRIGHT_WHITE='\033[1;37m'
 MAKE_IT_MAGENTA='\033[0;35m'
 RESET_COLOR='\033[0m' # Reset to default color
 
@@ -89,5 +90,5 @@ print_ready() {
 }
 
 print_summary() {
-	echo -e "${MAKE_IT_WHITE}[SUMMARY] ${1}${RESET_COLOR}"
+	echo -e "${MAKE_IT_BRIGHT_WHITE}[SUMMARY] ${1}${RESET_COLOR}"
 }
