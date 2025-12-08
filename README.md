@@ -159,7 +159,12 @@ qlabvmctl remove                    # 🗑️ Delete VMs completely
 ### 🔧 VM Configuration
 ```bash
 qlabvmctl resize                    # 📏 Resize memory, CPU, or disk
-qlabvmctl add-disk                  # 💾 Add additional storage disks
+qlabvmctl disk-add                  # 💾 Add new storage disks to VM
+qlabvmctl disk-attach               # 🔗 Attach disks from detached storage
+qlabvmctl disk-detach               # 📤 Detach and save disks for later use
+qlabvmctl disk-delete               # 🗑️ Permanently delete detached disks
+qlabvmctl nic-add                   # 🌐 Add network interfaces to VM
+qlabvmctl nic-remove                # ❌ Remove network interfaces from VM
 ```
 
 ### 🌍 Infrastructure Management
