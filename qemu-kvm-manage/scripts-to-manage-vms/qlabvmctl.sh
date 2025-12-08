@@ -53,6 +53,7 @@ OPTIONS:
 NOTES:
     - Use 'qlabstart' to start the lab infrastructure
     - Use 'qlabhealth' to check lab infrastructure health
+    - Use 'qlabdnsbinder' to manage DNS records for lab VMs
     - For subcommand help: qlabvmctl <subcommand> --help"
 }
 
@@ -95,7 +96,7 @@ main() {
             script_name="kvm-add-disk.sh"
             ;;
         *)
-            print_error "[ERROR] Unknown subcommand: $subcommand"
+            print_error "Unknown subcommand: $subcommand"
             echo
             echo "Run 'qlabvmctl --help' to see available subcommands"
             exit 1
@@ -105,7 +106,7 @@ main() {
     # Check if script exists
     local script_path="$SCRIPT_DIR/$script_name"
     if [[ ! -f "$script_path" ]]; then
-        print_error "[ERROR] Script not found: $script_name"
+        print_error "Script not found: $script_name"
         exit 1
     fi
     

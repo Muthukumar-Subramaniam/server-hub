@@ -10,19 +10,21 @@ source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/defaults.sh
 temp_dir_to_create_wrappers="/tmp/qlabtools-wrappers"
 SSH_OPTS="-o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
 
-print_info "[INFO] Authorizing SSH public key of infra server VM..." nskip
+print_task "Authorizing SSH public key of infra server VM"
 get_user_host_ssh_pub_key=$(ssh ${SSH_OPTS} ${lab_infra_admin_username}@${lab_infra_server_ipv4_address} "cat .ssh/kvm_lab_global_id_rsa.pub" | cut -d " " -f3)
 if ! grep -q "${get_user_host_ssh_pub_key}" ~/.ssh/authorized_keys; then
 	ssh ${SSH_OPTS} ${lab_infra_admin_username}@${lab_infra_server_ipv4_address} "cat .ssh/kvm_lab_global_id_rsa.pub" >> ~/.ssh/authorized_keys
 fi
-print_success "[ SUCCESS ]"
+print_task_done
 
-print_info "[INFO] Generating wrapper scripts..." nskip
+print_task "Generating wrapper scripts"
 mkdir -p "${temp_dir_to_create_wrappers}"
 
 # Create qlabvmctl wrapper
 cat > "${temp_dir_to_create_wrappers}/qlabvmctl" << 'EOF'
 #!/bin/bash
+source /server-hub/common-utils/color-functions.sh
+
 # Who am I?
 SSH_OPTIONS="-o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
 INFRA_SERVER_NAME="$(hostname -f)"
@@ -30,24 +32,15 @@ INFRA_SERVER_NAME="$(hostname -f)"
 # Check if any argument matches the infra server name
 for EACH_ARG in "$@"; do
     if [[ "${EACH_ARG}" == "${INFRA_SERVER_NAME}" ]]; then
-        echo -e "\033[0;31m[ERROR] This operation is not allowed to avoid self-referential KVM actions.\033[0m"
-        echo -e "\033[0;36m[INFO] You are running a KVM management action for the lab infra server from the infra server itself.\033[0m"
-        echo -e "\033[0;36m[INFO] To perform this operation, run it from the Linux workstation hosting the QEMU/KVM setup.\033[0m"
+        print_error "This operation is not allowed to avoid self-referential KVM actions."
+        print_info "You are running a KVM management action for the lab infra server from the infra server itself."
+        print_info "To perform this operation, run it from the Linux workstation hosting the QEMU/KVM setup."
         exit 1
     fi
 done
 
 # Forward qlabvmctl command to workstation
 ssh ${SSH_OPTIONS} -t __LAB_INFRA_USERNAME__@__LAB_INFRA_GATEWAY__ "export KVM_TOOL_EXECUTED_FROM='${INFRA_SERVER_NAME}'; qlabvmctl $@"
-exit
-EOF
-
-# Create qlabstart wrapper
-cat > "${temp_dir_to_create_wrappers}/qlabstart" << 'EOF'
-#!/bin/bash
-SSH_OPTIONS="-o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
-# Forward qlabstart command to workstation
-ssh ${SSH_OPTIONS} -t __LAB_INFRA_USERNAME__@__LAB_INFRA_GATEWAY__ "qlabstart $@"
 exit
 EOF
 
@@ -73,17 +66,16 @@ EOF
 sed -i "s|__LAB_INFRA_USERNAME__|${lab_infra_admin_username}|g" "${temp_dir_to_create_wrappers}/"*
 sed -i "s|__LAB_INFRA_GATEWAY__|${lab_infra_server_ipv4_gateway}|g" "${temp_dir_to_create_wrappers}/"*
 
-print_success "[ SUCCESS ]"
+print_task_done
 
-print_info "[INFO] Syncing wrapper scripts to infra server VM..." nskip
+print_task "Syncing wrapper scripts to infra server VM"
 rsync -az -e "ssh $SSH_OPTS" "${temp_dir_to_create_wrappers}/"* ${lab_infra_admin_username}@${lab_infra_server_ipv4_address}:
-ssh ${SSH_OPTS} ${lab_infra_admin_username}@${lab_infra_server_ipv4_address} "chmod +x qlabvmctl qlabstart qlabhealth qlabdnsbinder && sudo mv qlabvmctl qlabstart qlabhealth qlabdnsbinder /usr/bin/"
+ssh ${SSH_OPTS} ${lab_infra_admin_username}@${lab_infra_server_ipv4_address} "chmod +x qlabvmctl qlabhealth qlabdnsbinder && sudo mv qlabvmctl qlabhealth qlabdnsbinder /usr/bin/"
 rm -rf "$temp_dir_to_create_wrappers"
-print_success "[ SUCCESS ]"
+print_task_done
 
-print_success "[SUCCESS] Now you can manage QEMU/KVM environment from your infra server VM!"
-print_info "[INFO] Available commands:"
-print_info "[INFO]   - qlabvmctl <subcommand> [options]  # VM management"
-print_info "[INFO]   - qlabstart [options]               # Start lab infrastructure"
-print_info "[INFO]   - qlabhealth [options]              # Check lab health"
-print_info "[INFO]   - qlabdnsbinder [options]           # Manage DNS records"
+print_success "Now you can manage QEMU/KVM environment from your infra server VM!"
+print_info "Available commands:"
+print_info "  - qlabvmctl <subcommand> [options]  # VM management"
+print_info "  - qlabhealth [options]              # Check lab health"
+print_info "  - qlabdnsbinder [options]           # Manage DNS records"
