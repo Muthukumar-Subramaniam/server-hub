@@ -101,17 +101,29 @@ if [ -f "${golden_image_path}" ]; then
 fi
 
 print_info "Starting installation of VM \"${qemu_kvm_hostname}\" to create golden image disk..."
-print_info "Console will attach automatically. Press Ctrl+] to disconnect when installation completes."
 
 # Set custom paths for golden image creation
-export DISK_PATH="${golden_image_path}"
-export NVRAM_PATH="/kvm-hub/golden-images-disk-store/${qemu_kvm_hostname}_VARS.fd"
+DISK_PATH="${golden_image_path}"
+NVRAM_PATH="/kvm-hub/golden-images-disk-store/${qemu_kvm_hostname}_VARS.fd"
 
-# Override console mode to attach serial console for monitoring
-export CONSOLE_MODE="--console pty,target_type=serial"
-
-# Start VM installation using the default function
-if ! source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/default-vm-install.sh; then
+# Run virt-install with console attachment (don't use shared function to avoid complexity)
+if ! sudo virt-install \
+  --name ${qemu_kvm_hostname} \
+  --features acpi=on,apic=on \
+  --memory 2048 \
+  --vcpus 2 \
+  --disk path=${DISK_PATH},size=20,bus=virtio,boot.order=1 \
+  --os-variant almalinux9 \
+  --network network=default,model=virtio,mac=${MAC_ADDRESS},boot.order=2 \
+  --graphics none \
+  --console pty,target_type=serial \
+  --machine q35 \
+  --watchdog none \
+  --cpu host-model \
+  --boot loader=${OVMF_CODE_PATH},\
+nvram.template=${OVMF_VARS_PATH},\
+nvram=${NVRAM_PATH},\
+menu=on; then
     print_error "VM installation failed."
     exit 1
 fi
