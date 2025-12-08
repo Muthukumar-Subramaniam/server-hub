@@ -11,18 +11,18 @@ RESET_COLOR='\033[0m' # Reset to default color
 print_error() {
 	if [[ -z "${2:-}" ]] || [[ "${2:-}" != "nskip" ]] 
 	then
-		echo -e "${MAKE_IT_RED}${1}${RESET_COLOR}"
+		echo -e "${MAKE_IT_RED}[ERROR] ${1}${RESET_COLOR}"
 	else
-		echo -ne "${MAKE_IT_RED}${1}${RESET_COLOR}"
+		echo -ne "${MAKE_IT_RED}[ERROR] ${1}${RESET_COLOR}"
 	fi
 }
 
 print_success() {
 	if [[ -z "${2:-}" ]] || [[ "${2:-}" != "nskip" ]] 
 	then
-		echo -e "${MAKE_IT_GREEN}${1}${RESET_COLOR}"
+		echo -e "${MAKE_IT_GREEN}[SUCCESS] ${1}${RESET_COLOR}"
 	else
-		echo -ne "${MAKE_IT_GREEN}${1}${RESET_COLOR}"
+		echo -ne "${MAKE_IT_GREEN}[SUCCESS] ${1}${RESET_COLOR}"
 	fi
 }
 

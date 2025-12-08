@@ -24,7 +24,7 @@ start_vm_for_reimage() {
     
     print_info "Starting ${reimage_description} of VM \"$vm_hostname\"..."
     if error_msg=$(sudo virsh start "$vm_hostname" 2>&1); then
-        print_success "VM started successfully."
+        print_success "VM \"$vm_hostname\" started successfully."
         return 0
     else
         print_error "Could not start VM \"$vm_hostname\"."
