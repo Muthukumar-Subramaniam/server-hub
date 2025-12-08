@@ -17,19 +17,19 @@ create_vm_disk() {
     local disk_size_gib="$2"
     
     if [[ -z "$vm_hostname" || -z "$disk_size_gib" ]]; then
-        print_error "[ERROR] create_vm_disk: Missing required parameters."
+        print_error "create_vm_disk: Missing required parameters."
         return 1
     fi
     
     local vm_disk_path="/kvm-hub/vms/${vm_hostname}/${vm_hostname}.qcow2"
     
-    print_info "[INFO] Creating new disk ${vm_disk_path} with ${disk_size_gib} GiB..." nskip
+    print_task "Creating new disk ${vm_disk_path} with ${disk_size_gib} GiB..."
     
     if error_msg=$(sudo qemu-img create -f qcow2 "${vm_disk_path}" "${disk_size_gib}G" 2>&1); then
-        print_success "[ SUCCESS ]"
+        print_task_done
         return 0
     else
-        print_error "[ FAILED ]"
+        print_task_fail
         print_error "$error_msg"
         return 1
     fi

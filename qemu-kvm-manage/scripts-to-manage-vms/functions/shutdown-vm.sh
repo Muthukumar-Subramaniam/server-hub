@@ -31,31 +31,31 @@ shutdown_vm() {
     local strict_mode="${SHUTDOWN_VM_STRICT:-true}"
     
     if [[ -z "$vm_hostname" ]]; then
-        print_error "[ERROR] shutdown_vm: VM hostname not provided."
+        print_error "shutdown_vm: VM hostname not provided."
         return 1
     fi
     
     # Check if VM exists
     if ! sudo virsh list --all | awk '{print $2}' | grep -Fxq "$vm_hostname"; then
-        print_error "[ERROR] VM \"$vm_hostname\" does not exist."
+        print_error "VM \"$vm_hostname\" does not exist."
         return 1
     fi
     
     # Check if VM is running
     if ! sudo virsh list | awk '{print $2}' | grep -Fxq "$vm_hostname"; then
-        print_info "[INFO] VM \"$vm_hostname\" is not running (already stopped)."
+        print_info "VM \"$vm_hostname\" is not running (already stopped)."
         return 0
     fi
     
     # VM is running, proceed with graceful shutdown
-    print_info "[INFO] ${context} to VM \"$vm_hostname\"..."
+    print_task "${context} to VM \"$vm_hostname\"..."
     
     if error_msg=$(sudo virsh shutdown "$vm_hostname" 2>&1); then
-        print_success "[SUCCESS] Shutdown signal sent to VM \"$vm_hostname\" successfully."
+        print_task_done
         return 0
     else
         if [[ "$strict_mode" == "true" ]]; then
-            print_error "[FAILED] Could not send shutdown signal to VM \"$vm_hostname\"."
+            print_task_fail
             print_error "$error_msg"
             return 1
         else

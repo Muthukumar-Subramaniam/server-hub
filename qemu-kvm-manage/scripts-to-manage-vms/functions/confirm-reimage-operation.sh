@@ -19,7 +19,7 @@ confirm_reimage_operation() {
     local total_vms="${TOTAL_VMS:-1}"
     
     if [[ -z "$vm_hostname" || -z "$reimage_method" ]]; then
-        print_error "[ERROR] confirm_reimage_operation: Missing required parameters."
+        print_error "confirm_reimage_operation: Missing required parameters."
         exit 1
     fi
     

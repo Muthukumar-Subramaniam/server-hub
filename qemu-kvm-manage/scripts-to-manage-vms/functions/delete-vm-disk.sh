@@ -13,7 +13,7 @@ delete_vm_disk() {
     local vm_hostname="$1"
     
     if [[ -z "$vm_hostname" ]]; then
-        print_error "[ERROR] delete_vm_disk: Missing VM hostname."
+        print_error "delete_vm_disk: Missing VM hostname."
         return 1
     fi
     

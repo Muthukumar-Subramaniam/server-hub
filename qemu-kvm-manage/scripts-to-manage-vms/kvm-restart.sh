@@ -45,14 +45,14 @@ restart_vm() {
     # Check if VM exists in 'virsh list --all'
     if ! sudo virsh list --all | awk '{print $2}' | grep -Fxq "$vm_name"; then
         print_task_fail
-        print_error "[ERROR] VM does not exist"
+        print_error "VM does not exist"
         return 1
     fi
     
     # Check if VM is running
     if ! sudo virsh list | awk '{print $2}' | grep -Fxq "$vm_name"; then
         print_task_fail
-        print_error "[ERROR] VM is not running"
+        print_error "VM is not running"
         print_info "If you want to start the VM, use: qlabvmctl start $vm_name"
         return 1
     fi
@@ -63,7 +63,7 @@ restart_vm() {
         return 0
     else
         print_task_fail
-        print_error "[ERROR] $error_msg"
+        print_error "$error_msg"
         return 1
     fi
 }
@@ -74,7 +74,7 @@ if [[ -n "$hosts_list" ]]; then
     
     # Check if hosts list is empty
     if [[ ${#hosts_array[@]} -eq 0 ]]; then
-        print_error "[ERROR] No hostnames provided in --hosts list."
+        print_error "No hostnames provided in --hosts list."
         exit 1
     fi
     

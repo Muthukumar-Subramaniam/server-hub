@@ -12,7 +12,7 @@ normalize_os_distro() {
     local os_distro="$1"
 
     if [[ -z "$os_distro" ]]; then
-        print_error "[ERROR] normalize_os_distro requires OS distro name"
+        print_error "normalize_os_distro requires OS distro name"
         return 1
     fi
 
@@ -43,8 +43,8 @@ normalize_os_distro() {
             NORMALIZED_OS_DISTRO="opensuse-leap"
             ;;
         *)
-            print_error "[ERROR] Unrecognized OS distro: $os_distro"
-            print_info "[INFO] Supported distros: almalinux, rocky, oraclelinux, centos-stream, rhel, fedora, ubuntu-lts, opensuse-leap"
+            print_error "Unrecognized OS distro: $os_distro"
+            print_info "Supported distros: almalinux, rocky, oraclelinux, centos-stream, rhel, fedora, ubuntu-lts, opensuse-leap"
             return 1
             ;;
     esac

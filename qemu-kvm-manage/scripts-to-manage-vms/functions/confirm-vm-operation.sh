@@ -20,7 +20,7 @@ confirm_vm_operation() {
     local vm_list="$5"
     
     if [[ -z "$operation_name" || -z "$description" || -z "$notify_message" ]]; then
-        print_error "[ERROR] confirm_vm_operation: Missing required parameters."
+        print_error "confirm_vm_operation: Missing required parameters."
         return 1
     fi
     

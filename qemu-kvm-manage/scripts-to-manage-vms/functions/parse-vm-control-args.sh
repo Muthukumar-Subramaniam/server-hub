@@ -39,7 +39,7 @@ parse_vm_control_args() {
                     FORCE_FLAG=true
                     shift
                 else
-                    print_error "[ERROR] No such option: $1"
+                    print_error "No such option: $1"
                     fn_show_help
                     exit 1
                 fi
@@ -49,14 +49,14 @@ parse_vm_control_args() {
                     IGNORE_KSMANAGER_CLEANUP=true
                     shift
                 else
-                    print_error "[ERROR] No such option: $1"
+                    print_error "No such option: $1"
                     fn_show_help
                     exit 1
                 fi
                 ;;
             -H|--hosts)
                 if [[ -z "$2" || "$2" == -* ]]; then
-                    print_error "[ERROR] --hosts requires a comma-separated list of hostnames."
+                    print_error "--hosts requires a comma-separated list of hostnames."
                     fn_show_help
                     exit 1
                 fi
@@ -64,14 +64,14 @@ parse_vm_control_args() {
                 shift 2
                 ;;
             -*)
-                print_error "[ERROR] No such option: $1"
+                print_error "No such option: $1"
                 fn_show_help
                 exit 1
                 ;;
             *)
                 # This is the hostname argument
                 if [[ -n "$HOSTS_LIST" ]]; then
-                    print_error "[ERROR] Cannot use both hostname argument and --hosts option."
+                    print_error "Cannot use both hostname argument and --hosts option."
                     fn_show_help
                     exit 1
                 fi

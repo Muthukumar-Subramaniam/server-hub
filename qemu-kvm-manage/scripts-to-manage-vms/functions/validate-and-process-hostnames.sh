@@ -27,7 +27,7 @@ validate_and_process_hostnames() {
     
     # Check if any valid hosts remain after validation
     if [[ ${#validated_hosts[@]} -eq 0 ]]; then
-        print_error "[ERROR] No valid hostnames provided in --hosts list."
+        print_error "No valid hostnames provided in --hosts list."
         return 1
     fi
     

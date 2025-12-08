@@ -142,7 +142,7 @@ if [[ -n "$hosts_list" ]]; then
     
     # Check if hosts list is empty
     if [[ ${#hosts_array[@]} -eq 0 ]]; then
-        print_error "[ERROR] No hostnames provided in --hosts list."
+        print_error "No hostnames provided in --hosts list."
         exit 1
     fi
     

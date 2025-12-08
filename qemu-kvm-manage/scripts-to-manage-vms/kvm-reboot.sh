@@ -42,22 +42,22 @@ reboot_vm() {
     
     # Check if VM exists in 'virsh list --all'
     if ! sudo virsh list --all | awk '{print $2}' | grep -Fxq "$vm_name"; then
-        print_error "[ERROR] VM \"$vm_name\" does not exist."
+        print_error "VM \"$vm_name\" does not exist."
         return 1
     fi
     
     # Check if VM exists in 'virsh list'
     if ! sudo virsh list | awk '{print $2}' | grep -Fxq "$vm_name"; then
-        print_error "[ERROR] VM \"$vm_name\" is not running."
+        print_error "VM \"$vm_name\" is not running."
         return 1
     fi
     
     # Proceed with Reboot
     if error_msg=$(sudo virsh reboot "$vm_name" 2>&1); then
-        print_success "[SUCCESS] VM \"$vm_name\" reboot signal sent successfully."
+        print_success "VM \"$vm_name\" reboot signal sent successfully."
         return 0
     else
-        print_error "[FAILED] Could not reboot VM \"$vm_name\"."
+        print_error "Could not reboot VM \"$vm_name\"."
         print_error "$error_msg"
         return 1
     fi
@@ -69,7 +69,7 @@ if [[ -n "$hosts_list" ]]; then
     
     # Check if hosts list is empty
     if [[ ${#hosts_array[@]} -eq 0 ]]; then
-        print_error "[ERROR] No hostnames provided in --hosts list."
+        print_error "No hostnames provided in --hosts list."
         exit 1
     fi
     
@@ -95,7 +95,7 @@ if [[ -n "$hosts_list" ]]; then
     current=0
     for vm_name in "${validated_hosts[@]}"; do
         ((current++))
-        print_info "[INFO] Rebooting VM $current of $total_vms: $vm_name"
+        print_info "Rebooting VM $current of $total_vms: $vm_name"
         if ! reboot_vm "$vm_name"; then
             failed_vms+=("$vm_name")
         fi
@@ -103,10 +103,10 @@ if [[ -n "$hosts_list" ]]; then
     
     # Report results
     if [[ ${#failed_vms[@]} -eq 0 ]]; then
-        print_success "[SUCCESS] All VMs reboot signals sent successfully."
+        print_success "All VMs reboot signals sent successfully."
         exit 0
     else
-        print_error "[FAILED] Some VMs failed to reboot: ${failed_vms[*]}"
+        print_error "Some VMs failed to reboot: ${failed_vms[*]}"
         exit 1
     fi
 fi

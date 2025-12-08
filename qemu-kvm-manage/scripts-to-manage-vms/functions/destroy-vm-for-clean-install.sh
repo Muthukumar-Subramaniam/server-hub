@@ -14,26 +14,26 @@ destroy_vm_for_clean_install() {
     local vm_hostname="$1"
     
     if [[ -z "$vm_hostname" ]]; then
-        print_error "[ERROR] destroy_vm_for_clean_install: VM hostname not provided."
+        print_error "destroy_vm_for_clean_install: VM hostname not provided."
         return 1
     fi
     
     # Undefine the VM
-    print_info "[INFO] Undefining VM \"$vm_hostname\"..."
+    print_task "Undefining VM \"$vm_hostname\"..."
     if error_msg=$(sudo virsh undefine "$vm_hostname" --nvram 2>&1); then
-        print_success "[SUCCESS] VM undefined successfully."
+        print_task_done
     else
-        print_error "[FAILED] Could not undefine VM \"$vm_hostname\"."
+        print_task_fail
         print_error "$error_msg"
         return 1
     fi
     
     # Delete VM folder and contents
-    print_info "[INFO] Deleting VM folder /kvm-hub/vms/${vm_hostname}..."
+    print_task "Deleting VM folder /kvm-hub/vms/${vm_hostname}..."
     if sudo rm -rf "/kvm-hub/vms/${vm_hostname}"; then
-        print_success "[SUCCESS] VM folder deleted successfully."
+        print_task_done
     else
-        print_error "[FAILED] Could not delete VM folder."
+        print_task_fail
         return 1
     fi
     

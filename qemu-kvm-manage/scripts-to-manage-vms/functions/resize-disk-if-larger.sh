@@ -15,7 +15,7 @@ resize_disk_if_larger() {
     local base_disk_gib="$3"
     
     if [[ -z "$vm_hostname" || -z "$current_disk_gib" || -z "$base_disk_gib" ]]; then
-        print_error "[ERROR] resize_disk_if_larger: Missing required parameters."
+        print_error "resize_disk_if_larger: Missing required parameters."
         return 1
     fi
     
@@ -23,7 +23,7 @@ resize_disk_if_larger() {
     
     if [[ "$current_disk_gib" -gt "$base_disk_gib" ]]; then
         if sudo qemu-img resize "${vm_disk_path}" "${current_disk_gib}G" >/dev/null 2>&1; then
-            print_success "[SUCCESS] Retained disk size of ${current_disk_gib} GiB for VM \"$vm_hostname\"."
+            print_success "Retained disk size of ${current_disk_gib} GiB for VM \"$vm_hostname\"."
         fi
     fi
     

@@ -14,12 +14,12 @@ create_vm_directory() {
     local vm_hostname="$1"
     
     if [[ -z "$vm_hostname" ]]; then
-        print_error "[ERROR] create_vm_directory: VM hostname not provided."
+        print_error "create_vm_directory: VM hostname not provided."
         return 1
     fi
     
     if ! mkdir -p "/kvm-hub/vms/${vm_hostname}"; then
-        print_error "[ERROR] Failed to create VM directory: /kvm-hub/vms/${vm_hostname}"
+        print_error "Failed to create VM directory: /kvm-hub/vms/${vm_hostname}"
         return 1
     fi
     

@@ -18,7 +18,7 @@ get_current_disk_size() {
     local vm_hostname="$1"
     
     if [[ -z "$vm_hostname" ]]; then
-        print_error "[ERROR] get_current_disk_size: Missing VM hostname."
+        print_error "get_current_disk_size: Missing VM hostname."
         return 1
     fi
     

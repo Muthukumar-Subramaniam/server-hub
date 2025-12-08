@@ -19,7 +19,7 @@ check_vm_exists() {
     local total_vms="${TOTAL_VMS:-1}"
     
     if [[ -z "$vm_hostname" || -z "$operation" ]]; then
-        print_error "[ERROR] check_vm_exists: Missing required parameters."
+        print_error "check_vm_exists: Missing required parameters."
         return 1
     fi
     
@@ -31,11 +31,11 @@ check_vm_exists() {
     if [[ "$operation" == "install" ]]; then
         # For install operations, VM should NOT exist
         if [[ "$vm_exists" == "true" ]]; then
-            print_error "[ERROR] VM \"$vm_hostname\" exists already."
+            print_error "VM \"$vm_hostname\" exists already."
             if [[ $total_vms -eq 1 ]]; then
                 print_warning "Either do one of the following:"
-                print_info "[INFO] Remove the VM using 'qlabvmctl remove', then try again."
-                print_info "[INFO] Re-image the VM using 'qlabvmctl reimage-golden' or 'qlabvmctl reimage-pxe'."
+                print_info "Remove the VM using 'qlabvmctl remove', then try again."
+                print_info "Re-image the VM using 'qlabvmctl reimage-golden' or 'qlabvmctl reimage-pxe'."
                 exit 1
             fi
             return 1
@@ -43,14 +43,14 @@ check_vm_exists() {
     elif [[ "$operation" == "reimage" ]]; then
         # For reimage operations, VM MUST exist
         if [[ "$vm_exists" == "false" ]]; then
-            print_error "[ERROR] VM \"$vm_hostname\" does not exist."
+            print_error "VM \"$vm_hostname\" does not exist."
             if [[ $total_vms -eq 1 ]]; then
                 exit 1
             fi
             return 1
         fi
     else
-        print_error "[ERROR] check_vm_exists: Invalid operation '$operation'. Use 'install' or 'reimage'."
+        print_error "check_vm_exists: Invalid operation '$operation'. Use 'install' or 'reimage'."
         return 1
     fi
     
