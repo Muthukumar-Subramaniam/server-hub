@@ -19,7 +19,6 @@ tar -czf "$TARBALL_NAME" \
     --exclude='.gitignore' \
     --exclude='latest-release' \
     --exclude='create-release-tarball.sh' \
-    --transform "s,^,server-hub/," \
     *
 
 echo "✅ Tarball created: $TARBALL_NAME"
