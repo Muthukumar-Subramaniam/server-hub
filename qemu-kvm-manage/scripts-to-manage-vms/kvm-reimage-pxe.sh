@@ -19,8 +19,7 @@ SUPPORTS_DISTRO="yes"
 
 # Function to show help
 fn_show_help() {
-    print_info "Usage: qlabvmctl reimage-pxe [OPTIONS] [hostname]
-
+    print_cyan "Usage: qlabvmctl reimage-pxe [OPTIONS] [hostname]
 Options:
   -c, --console        Attach console during reimage (single VM only)
   -C, --clean-install  Destroy VM and reinstall with default specs (2 vCPUs, 2 GiB RAM, 20 GiB disk)

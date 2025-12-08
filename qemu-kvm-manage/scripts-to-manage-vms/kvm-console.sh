@@ -12,8 +12,7 @@ vm_hostname_arg=""
 
 # Function to show help
 fn_show_help() {
-    print_info "Usage: qlabvmctl console [OPTIONS] [hostname]
-
+    print_cyan "Usage: qlabvmctl console [OPTIONS] [hostname]
 Options:
   -h, --help           Show this help message
 

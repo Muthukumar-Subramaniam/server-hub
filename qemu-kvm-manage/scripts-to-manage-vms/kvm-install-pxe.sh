@@ -15,8 +15,7 @@ SUPPORTS_DISTRO="yes"
 
 # Function to show help
 fn_show_help() {
-    print_info "Usage: qlabvmctl install-pxe [OPTIONS] [hostname]
-
+    print_cyan "Usage: qlabvmctl install-pxe [OPTIONS] [hostname]
 Options:
   -c, --console        Attach console during installation (single VM only)
   -d, --distro         Specify OS distribution

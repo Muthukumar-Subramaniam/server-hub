@@ -11,8 +11,7 @@ ETC_HOSTS_FILE='/etc/hosts'
 
 # Function to show help
 fn_show_help() {
-    print_info "Usage: qlabvmctl remove [OPTIONS] [hostname]
-
+    print_cyan "Usage: qlabvmctl remove [OPTIONS] [hostname]
 Options:
   -f, --force                      Skip confirmation prompt (except for lab infra server)
   --ignore-ksmanager-cleanup       Skip cleanup of ksmanager databases (DNS, MAC, kickstart, iPXE, DHCP)

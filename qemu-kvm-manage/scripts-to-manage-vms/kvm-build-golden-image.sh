@@ -12,8 +12,7 @@ OS_DISTRO=""
 
 # Function to show help
 fn_show_help() {
-    print_info "Usage: qlabvmctl build-golden-image [OPTIONS]
-
+    print_cyan "Usage: qlabvmctl build-golden-image [OPTIONS]
 Description:
   Creates a golden image disk by installing a VM via PXE boot.
   The VM will be automatically removed after the disk is created.

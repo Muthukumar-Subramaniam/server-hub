@@ -9,8 +9,7 @@ source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/defaults.sh
 
 # Function to show help
 fn_show_help() {
-    print_info "Usage: qlabvmctl add-disk [OPTIONS] [hostname]
-
+    print_cyan "Usage: qlabvmctl add-disk [OPTIONS] [hostname]
 Options:
   -f, --force          Force power-off without prompt if VM is running
   -n, --count <num>    Number of disks to add (1-10, default: prompt)

@@ -9,8 +9,7 @@ source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/defaults.sh
 
 # Function to show help
 fn_show_help() {
-    print_info "Usage: qlabvmctl shutdown [OPTIONS] [hostname]
-
+    print_cyan "Usage: qlabvmctl shutdown [OPTIONS] [hostname]
 Options:
   -f, --force          Skip confirmation prompt and force graceful shutdown
   -H, --hosts <list>   Comma-separated list of VM hostnames to shutdown

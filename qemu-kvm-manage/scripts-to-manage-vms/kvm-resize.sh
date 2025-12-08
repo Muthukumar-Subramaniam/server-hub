@@ -9,8 +9,7 @@ source /server-hub/common-utils/color-functions.sh
 
 # Function to show help
 fn_show_help() {
-    print_info "Usage: qlabvmctl resize [OPTIONS] [hostname]
-
+    print_cyan "Usage: qlabvmctl resize [OPTIONS] [hostname]
 Options:
   -f, --force          Force power-off without prompt if VM is running
   -t, --type <type>    Resource type to resize: memory, cpu, disk (default: prompt)

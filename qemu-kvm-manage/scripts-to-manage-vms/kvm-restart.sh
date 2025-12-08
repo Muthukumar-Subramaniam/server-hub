@@ -9,8 +9,7 @@ source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/defaults.sh
 
 # Function to show help
 fn_show_help() {
-    print_info "Usage: qlabvmctl restart [OPTIONS] [hostname]
-
+    print_cyan "Usage: qlabvmctl restart [OPTIONS] [hostname]
 Options:
   -f, --force          Skip confirmation prompt and force cold restart
   -H, --hosts <list>   Comma-separated list of VM hostnames to restart
