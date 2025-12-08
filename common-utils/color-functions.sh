@@ -90,3 +90,58 @@ print_ready() {
 print_summary() {
 	echo -e "${MAKE_IT_WHITE}[SUMMARY] ${1}${RESET_COLOR}"
 }
+
+# Color-only print functions (no labels)
+print_red() {
+	if [[ -z "${2:-}" ]] || [[ "${2:-}" != "nskip" ]] 
+	then
+		echo -e "${MAKE_IT_RED}${1}${RESET_COLOR}"
+	else
+		echo -ne "${MAKE_IT_RED}${1}${RESET_COLOR}"
+	fi
+}
+
+print_green() {
+	if [[ -z "${2:-}" ]] || [[ "${2:-}" != "nskip" ]] 
+	then
+		echo -e "${MAKE_IT_GREEN}${1}${RESET_COLOR}"
+	else
+		echo -ne "${MAKE_IT_GREEN}${1}${RESET_COLOR}"
+	fi
+}
+
+print_blue() {
+	if [[ -z "${2:-}" ]] || [[ "${2:-}" != "nskip" ]] 
+	then
+		echo -e "${MAKE_IT_BLUE}${1}${RESET_COLOR}"
+	else
+		echo -ne "${MAKE_IT_BLUE}${1}${RESET_COLOR}"
+	fi
+}
+
+print_cyan() {
+	if [[ -z "${2:-}" ]] || [[ "${2:-}" != "nskip" ]] 
+	then
+		echo -e "${MAKE_IT_CYAN}${1}${RESET_COLOR}"
+	else
+		echo -ne "${MAKE_IT_CYAN}${1}${RESET_COLOR}"
+	fi
+}
+
+print_magenta() {
+	if [[ -z "${2:-}" ]] || [[ "${2:-}" != "nskip" ]] 
+	then
+		echo -e "${MAKE_IT_MAGENTA}${1}${RESET_COLOR}"
+	else
+		echo -ne "${MAKE_IT_MAGENTA}${1}${RESET_COLOR}"
+	fi
+}
+
+print_white() {
+	if [[ -z "${2:-}" ]] || [[ "${2:-}" != "nskip" ]] 
+	then
+		echo -e "${MAKE_IT_WHITE}${1}${RESET_COLOR}"
+	else
+		echo -ne "${MAKE_IT_WHITE}${1}${RESET_COLOR}"
+	fi
+}
