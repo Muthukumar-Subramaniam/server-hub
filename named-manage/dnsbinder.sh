@@ -1227,6 +1227,11 @@ fn_handle_multiple_host_record() {
 	
 	v_count_successfull=0
 	v_count_failed=0
+	v_count_invalid_host=0
+	v_count_already_exists=0
+	v_count_doesnt_exist=0
+	v_count_ip_exhausted=0
+	v_count_other_failures=0
 	
 	v_pre_execution_serial_fw_zone=$(grep ';Serial' ${v_fw_zone} | cut -d ";" -f 1 | tr -d '[:space:]')
 	
@@ -1234,24 +1239,24 @@ fn_handle_multiple_host_record() {
 	
 	v_host_count=0
 	
+	# Show initial header once
+	clear
+	fn_progress_title
+	
 	while read -r v_host_record
 	do
-		clear
-
-		fn_progress_title
+		# Update progress header in place (move cursor to top)
+		tput cup 1 0
+		print_cyan "####################################( Running )####################################"
+		print_white "Status     : [ ${v_host_count}/${v_total_host_records} ] host records have been processed"
+		print_green "Successful : ${v_count_successfull}"
+		print_red "Failed     : ${v_count_failed}"
+		
+		let v_host_count++
+		
+		print_task "Attempting to ${v_action_required} the host record ${v_host_record}.${v_domain_name} . . . " "nskip"
 	
-		if [[ ${v_host_count} -le ${v_total_host_records} ]];then
-			print_cyan "####################################( Running )####################################"
-			print_white "Status     : [ ${v_host_count}/${v_total_host_records} ] host records have been processed"
-			print_green "Successful : ${v_count_successfull}"
-			print_red "Failed     : ${v_count_failed}"
-		fi
-	
-	let v_host_count++
-	
-	print_task "Attempting to ${v_action_required} the host record ${v_host_record}.${v_domain_name} . . . " "nskip"
-
-	v_serial_fw_zone_pre_execution=$(grep ';Serial' ${v_fw_zone} | cut -d ";" -f 1 | tr -d '[:space:]')
+		v_serial_fw_zone_pre_execution=$(grep ';Serial' ${v_fw_zone} | cut -d ";" -f 1 | tr -d '[:space:]')
 	
 		if [[ ${v_action_required} == "create" ]]
                 then
@@ -1291,7 +1296,8 @@ fn_handle_multiple_host_record() {
 	then
         	print_red "Invalid-Host     ${v_details_of_host_record}" >> "${v_tmp_file_dnsbinder}"
 		print_task_fail
-		let v_count_failed++ 
+		let v_count_failed++
+		let v_count_invalid_host++ 
 
 	elif [[ ${var_exit_status} -eq 8 ]]
 	then
@@ -1307,12 +1313,18 @@ fn_handle_multiple_host_record() {
         	print_yellow "${v_existence_state} ${v_details_of_host_record}" >> "${v_tmp_file_dnsbinder}"
 		print_task_fail
 		let v_count_failed++
+		if [[ ${v_action_required} == "create" ]]; then
+			let v_count_already_exists++
+		else
+			let v_count_doesnt_exist++
+		fi
 
 	elif [[ ${var_exit_status} -eq 255 ]]
 	then
         	print_red "IP-Exhausted     ${v_details_of_host_record}" >> "${v_tmp_file_dnsbinder}"
 		print_task_fail
 		let v_count_failed++
+		let v_count_ip_exhausted++
 	else
 		v_serial_fw_zone_post_execution=$(grep ';Serial' ${v_fw_zone} | cut -d ";" -f 1 | tr -d '[:space:]')
 
@@ -1325,19 +1337,17 @@ fn_handle_multiple_host_record() {
         		print_red "Failed-to-${v_action_required^} ${v_details_of_host_record}" >> "${v_tmp_file_dnsbinder}"
 			print_task_fail
 			let v_count_failed++
+			let v_count_other_failures++
 		fi
 	fi
 
-	if [[ ${v_host_count} -eq ${v_total_host_records} ]];then
+	# Clear from cursor to end of screen for next iteration
+	tput ed
 	
-		clear
-		fn_progress_title
-		print_cyan "###################################( Completed )###################################"
-		print_white "Status     : [ ${v_host_count}/${v_total_host_records} ] host records have been processed"
-		print_green "Successful : ${v_count_successfull}"
-		print_red "Failed     : ${v_count_failed}"
-	fi	
 	done < "${v_host_list_file}"
+
+	# Clear the progress display before showing final summary
+	clear
 
 	v_post_execution_serial_fw_zone=$(grep ';Serial' ${v_fw_zone} | cut -d ";" -f 1 | tr -d '[:space:]')
 	
@@ -1370,7 +1380,32 @@ fn_handle_multiple_host_record() {
 	
 	cat "${v_tmp_file_dnsbinder}"
 	
-	echo
+	# Final completion summary with title and breakdown
+	fn_progress_title
+	print_cyan "###################################( Completed )###################################"
+	print_white "Total      : ${v_total_host_records} host records processed"
+	print_green "Successful : ${v_count_successfull}"
+	print_red "Failed     : ${v_count_failed}"
+	
+	# Show failure breakdown if there were failures
+	if [[ ${v_count_failed} -gt 0 ]]; then
+		print_white "Failure Breakdown:"
+		if [[ ${v_count_invalid_host} -gt 0 ]]; then
+			print_red "  Invalid Host    : ${v_count_invalid_host}"
+		fi
+		if [[ ${v_count_already_exists} -gt 0 ]]; then
+			print_yellow "  Already Exists  : ${v_count_already_exists}"
+		fi
+		if [[ ${v_count_doesnt_exist} -gt 0 ]]; then
+			print_yellow "  Doesn't Exist   : ${v_count_doesnt_exist}"
+		fi
+		if [[ ${v_count_ip_exhausted} -gt 0 ]]; then
+			print_red "  IP Exhausted    : ${v_count_ip_exhausted}"
+		fi
+		if [[ ${v_count_other_failures} -gt 0 ]]; then
+			print_red "  Other Failures  : ${v_count_other_failures}"
+		fi
+	fi
 	
 	rm -f "${v_tmp_file_dnsbinder}"
 
