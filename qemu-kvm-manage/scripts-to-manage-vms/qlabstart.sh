@@ -14,7 +14,7 @@ lab_bridge_interface_name="labbr0"
 
 # ====== DNS CONFIGURATION FUNCTION ======
 configure_dns_for_bridge() {
-    print_task "Configuring DNS for $lab_bridge_interface_name"
+    print_task "Configuring DNS for $lab_bridge_interface_name..."
     sudo resolvectl dns "$lab_bridge_interface_name" "$lab_infra_server_ipv4_address" || print_warning "Could not set DNS server"
     sudo resolvectl domain "$lab_bridge_interface_name" "$lab_infra_domain_name" || print_warning "Could not set DNS domain"
     print_task_done
@@ -32,7 +32,7 @@ when_lab_infra_server_is_host() {
     if sudo systemctl is-active --quiet libvirtd; then
         print_info "libvirtd is already running"
     else
-        print_task "Starting libvirtd"
+        print_task "Starting libvirtd..."
         if ! sudo systemctl restart libvirtd; then
             print_task_fail
             print_error "Failed to start libvirtd"
@@ -42,7 +42,7 @@ when_lab_infra_server_is_host() {
     fi
     
     # ====== STEP 2: Wait for labbr0 ======
-    print_task "Waiting for $lab_bridge_interface_name to be created"
+    print_task "Waiting for $lab_bridge_interface_name to be created..."
     local bridge_creation_timeout_seconds=30
     local bridge_creation_elapsed_seconds=0
     until ip link show "$lab_bridge_interface_name" &>/dev/null; do
@@ -58,7 +58,7 @@ when_lab_infra_server_is_host() {
     
     # ====== STEP 3: Create dummy link if missing ======
     if ! ip link show "$lab_bridge_dummy_interface_name" &>/dev/null; then
-        print_task "Creating dummy interface $lab_bridge_dummy_interface_name to keep $lab_bridge_interface_name always up"
+        print_task "Creating dummy interface $lab_bridge_dummy_interface_name to keep $lab_bridge_interface_name always up..."
         sudo ip link add name "$lab_bridge_dummy_interface_name" type dummy || { print_task_fail; print_error "Failed to create dummy interface"; return 1; }
         sudo ip link set "$lab_bridge_dummy_interface_name" master "$lab_bridge_interface_name" || { print_task_fail; print_error "Failed to attach dummy to bridge"; return 1; }
         sudo ip link set "$lab_bridge_dummy_interface_name" up || { print_task_fail; print_error "Failed to bring up dummy interface"; return 1; }
@@ -68,7 +68,7 @@ when_lab_infra_server_is_host() {
     fi
     
     # ====== STEP 4: Wait for labbr0 to come up ======
-    print_task "Waiting for $lab_bridge_interface_name to come UP"
+    print_task "Waiting for $lab_bridge_interface_name to come UP..."
     local bridge_up_timeout_seconds=30
     local bridge_up_elapsed_seconds=0
     while [[ "$(cat /sys/class/net/$lab_bridge_interface_name/operstate 2>/dev/null)" != "up" ]]; do
@@ -83,7 +83,7 @@ when_lab_infra_server_is_host() {
     print_task_done
     
     # ====== STEP 5: Assign IP address ======
-    print_task "Configuring IP ${lab_infra_server_ipv4_address} netmask ${lab_infra_server_ipv4_netmask} on $lab_bridge_interface_name"
+    print_task "Configuring IP ${lab_infra_server_ipv4_address} netmask ${lab_infra_server_ipv4_netmask} on $lab_bridge_interface_name..."
     # Add the secondary IP address with netmask
     if sudo ip addr add "${lab_infra_server_ipv4_address}/${lab_infra_server_ipv4_netmask}" dev "$lab_bridge_interface_name" 2>/dev/null; then
         print_task_done
@@ -93,7 +93,7 @@ when_lab_infra_server_is_host() {
     fi
 
     # ====== STEP 6: Restart named service ======
-    print_task "Restarting named service"
+    print_task "Restarting named service..."
     if ! sudo systemctl restart named; then
         print_task_fail
         print_error "Failed to restart named service"
@@ -150,7 +150,7 @@ when_lab_infra_server_is_vm() {
     if sudo systemctl is-active --quiet libvirtd; then
         print_info "libvirtd is already running"
     else
-        print_task "Starting libvirtd"
+        print_task "Starting libvirtd..."
         if ! sudo systemctl restart libvirtd; then
             print_task_fail
             print_error "Failed to start libvirtd"
@@ -159,7 +159,7 @@ when_lab_infra_server_is_vm() {
         print_task_done
     fi
     # ====== STEP 2: Wait for labbr0 ======
-    print_task "Waiting for $lab_bridge_interface_name to be created"
+    print_task "Waiting for $lab_bridge_interface_name to be created..."
     local bridge_creation_timeout_seconds=30
     local bridge_creation_elapsed_seconds=0
     until ip link show "$lab_bridge_interface_name" &>/dev/null; do
@@ -173,13 +173,13 @@ when_lab_infra_server_is_vm() {
     done
     print_task_done
     # ====== STEP 3: Check and start lab infra server VM ======
-    print_task "Checking lab infra server VM status"
+    print_task "Checking lab infra server VM status..."
     if sudo virsh list --state-running | awk '{print $2}' | grep -Fxq "$lab_infra_server_hostname"; then
         print_task_done
         print_info "VM is already running"
     else
         print_task_done
-        print_task "Starting VM"
+        print_task "Starting VM..."
         if sudo virsh start "$lab_infra_server_hostname" >/dev/null 2>&1; then
             print_task_done
         else
@@ -190,7 +190,7 @@ when_lab_infra_server_is_vm() {
     fi
 
     # ====== STEP 4: Wait for lab infra server VM to be SSH accessible ======
-    print_task "Waiting for VM to become SSH accessible"
+    print_task "Waiting for VM to become SSH accessible..."
     local ssh_check_timeout=120
     local ssh_check_elapsed=0
     local ssh_check_interval=5
@@ -277,10 +277,10 @@ when_lab_infra_server_is_vm() {
     configure_dns_for_bridge || return 1
 
     if $all_services_active; then
-        print_info "--------------------------------------------------------------"
+        print_cyan "--------------------------------------------------------------"
         print_success "KVM Lab Infra is started, and all essential services are live."
     else
-        print_info "--------------------------------------------------------------"
+        print_cyan "--------------------------------------------------------------"
         print_warning "KVM Lab Infra is started, but some services need attention."
         print_info "Total: ${#services_to_check[@]}, Active: $active_services, Inactive: $inactive_services"
     fi
@@ -288,20 +288,20 @@ when_lab_infra_server_is_vm() {
     
 # ====== MAIN LOGIC ======
 
-print_info "--------------------------------------------------------------"
+print_cyan "--------------------------------------------------------------"
 print_info "KVM Lab Infrastructure Startup"
-print_info "--------------------------------------------------------------"
+print_cyan "--------------------------------------------------------------"
 
 if $lab_infra_server_mode_is_host; then
     print_notify "Lab Infra Server Mode: HOST ( $lab_infra_server_hostname )"
-    print_info "--------------------------------------------------------------"
+    print_cyan "--------------------------------------------------------------"
     when_lab_infra_server_is_host
 else
     print_notify "Lab Infra Server Mode: VM ( $lab_infra_server_hostname )"
-    print_info "--------------------------------------------------------------"
+    print_cyan "--------------------------------------------------------------"
     when_lab_infra_server_is_vm
 fi
 
 exit_code=$?
-print_info "--------------------------------------------------------------"
+print_cyan "--------------------------------------------------------------"
 exit $exit_code
