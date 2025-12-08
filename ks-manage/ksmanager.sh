@@ -544,42 +544,42 @@ fn_select_os_distro() {
         case "${distro_from_flag}" in
             alma|almalinux) 
                 os_distribution="almalinux"
-                print_success "OS distribution selected via --distro flag: ${os_distribution}"
+                print_info "OS distribution selected via --distro flag: ${os_distribution}"
                 return
                 ;;
             rocky) 
                 os_distribution="rocky"
-                print_success "OS distribution selected via --distro flag: ${os_distribution}"
+                print_info "OS distribution selected via --distro flag: ${os_distribution}"
                 return
                 ;;
             oracle|oraclelinux) 
                 os_distribution="oraclelinux"
-                print_success "OS distribution selected via --distro flag: ${os_distribution}"
+                print_info "OS distribution selected via --distro flag: ${os_distribution}"
                 return
                 ;;
             centos|centos-stream) 
                 os_distribution="centos-stream"
-                print_success "OS distribution selected via --distro flag: ${os_distribution}"
+                print_info "OS distribution selected via --distro flag: ${os_distribution}"
                 return
                 ;;
             rhel|redhat) 
                 os_distribution="rhel"
-                print_success "OS distribution selected via --distro flag: ${os_distribution}"
+                print_info "OS distribution selected via --distro flag: ${os_distribution}"
                 return
                 ;;
             fedora) 
                 os_distribution="fedora"
-                print_success "OS distribution selected via --distro flag: ${os_distribution}"
+                print_info "OS distribution selected via --distro flag: ${os_distribution}"
                 return
                 ;;
             ubuntu-lts|ubuntu) 
                 os_distribution="ubuntu-lts"
-                print_success "OS distribution selected via --distro flag: ${os_distribution}"
+                print_info "OS distribution selected via --distro flag: ${os_distribution}"
                 return
                 ;;
             opensuse-leap|opensuse|suse) 
                 os_distribution="opensuse-leap"
-                print_success "OS distribution selected via --distro flag: ${os_distribution}"
+                print_info "OS distribution selected via --distro flag: ${os_distribution}"
                 return
                 ;;
             *)
@@ -593,7 +593,7 @@ fn_select_os_distro() {
     local auto_detected_os=$(fn_auto_detect_os_from_hostname)
     
     if [[ -n "${auto_detected_os}" ]]; then
-        print_success "Auto-detected OS distribution from hostname: ${auto_detected_os}"
+        print_info "Auto-detected OS distribution from hostname: ${auto_detected_os}"
         os_distribution="${auto_detected_os}"
         return
     fi
@@ -624,7 +624,7 @@ fn_select_os_distro() {
 	* ) print_error "Invalid option. Please try again."; fn_select_os_distro ;;
     esac
     
-    print_success "OS distribution selected: ${os_distribution}"
+    print_info "OS distribution selected: ${os_distribution}"
 }
 
 fn_select_os_distro
@@ -946,7 +946,7 @@ if ! $invoked_with_golden_image; then
   ✓ KS Local     : ${host_kickstart_dir}
   ✓ KS Web       : https://${host_kickstart_dir#/}
   ✓ Requested OS : ${os_name_and_version}"
-	print_success "All done! You can proceed with installation of '${kickstart_hostname}' using PXE boot."
+	print_info "Kickstart configs ready for '${kickstart_hostname}'."
 else
 	print_info "Configuration Summary:
   ✓ Hostname     : ${kickstart_hostname}
@@ -961,7 +961,7 @@ else
   ✓ Web Server   : ${web_server_name}.${ipv4_domain}
   ✓ NFS Server   : ${nfs_server_name}.${ipv4_domain}
   ✓ Requested OS : ${os_name_and_version}"
-	print_success "All done! You can proceed with installation of '${kickstart_hostname}' using golden image."
+	print_info "Golden boot configs ready for '${kickstart_hostname}'."
 fi
 
 exit
