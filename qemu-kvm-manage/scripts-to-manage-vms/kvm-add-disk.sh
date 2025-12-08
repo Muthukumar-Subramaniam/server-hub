@@ -166,7 +166,7 @@ fn_shutdown_or_poweroff() {
 }
 
 if ! sudo virsh list  | awk '{print $2}' | grep -Fxq "$qemu_kvm_hostname"; then
-    print_success "VM \"$qemu_kvm_hostname\" is not running. Proceeding further."
+    print_info "VM \"$qemu_kvm_hostname\" is not running. Proceeding further."
 else
     fn_shutdown_or_poweroff
 fi
@@ -179,14 +179,14 @@ if [[ -n "$disk_count_arg" ]]; then
         exit 1
     fi
     DISK_COUNT="$disk_count_arg"
-    print_success "Using disk count: $DISK_COUNT"
+    print_info "Using disk count: $DISK_COUNT"
 else
     # Prompt for disk count
     print_info "Select number of disks to add (1-10):"
     while true; do
         read -rp "Enter disk count: " DISK_COUNT
         if [[ "$DISK_COUNT" =~ ^[1-9][0-9]*$ ]] && (( DISK_COUNT <= 10 )); then
-            print_success "Selected $DISK_COUNT disk(s)."
+            print_info "Selected $DISK_COUNT disk(s)."
             break
         else
             print_error "Invalid input! Enter a number between 1 and 10."
@@ -202,7 +202,7 @@ if [[ -n "$disk_size_arg" ]]; then
         exit 1
     fi
     DISK_SIZE_GB="$disk_size_arg"
-    print_success "Using disk size: ${DISK_SIZE_GB}GB"
+    print_info "Using disk size: ${DISK_SIZE_GB}GB"
 else
     # Prompt for disk size
     print_info "Allowed disk size: Steps of 5GB (5, 10, 15 ... up to 50GB)"
@@ -210,7 +210,7 @@ else
         read -rp "Enter disk size in GB (default 5): " DISK_SIZE_GB
         DISK_SIZE_GB=${DISK_SIZE_GB:-5}
         if [[ "$DISK_SIZE_GB" =~ ^[0-9]+$ ]] && (( DISK_SIZE_GB >= 5 && DISK_SIZE_GB % 5 == 0 && DISK_SIZE_GB <= 50 )); then
-            print_success "Selected ${DISK_SIZE_GB}GB disk size."
+            print_info "Selected ${DISK_SIZE_GB}GB disk size."
             break
         else
             print_error "Invalid size! Enter a multiple of 5 between 5 and 50."
@@ -280,12 +280,11 @@ for ((i=1; i<=DISK_COUNT; i++)); do
     EXISTING_DISKS["$DISK_NAME"]=1
 done
 
-print_success "Added $DISK_COUNT ${DISK_SIZE_GB}GB disk(s) to VM \"$qemu_kvm_hostname\"."
 print_task "Starting VM \"$qemu_kvm_hostname\"..." nskip
 
 if error_msg=$(sudo virsh start "$qemu_kvm_hostname" 2>&1); then
     print_task_done
-    print_success "VM \"$qemu_kvm_hostname\" started successfully."
+    print_success "Added $DISK_COUNT ${DISK_SIZE_GB}GB disk(s) to VM \"$qemu_kvm_hostname\" and started successfully."
 else
     print_task_fail
     print_error "Could not start VM \"$qemu_kvm_hostname\"."
