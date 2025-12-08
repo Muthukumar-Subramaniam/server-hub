@@ -1,5 +1,7 @@
 # 🚀 Server-Hub: Build Your Own QEMU/KVM Virtual Home Lab
 
+[![stable release](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/Muthukumar-Subramaniam/server-hub/main/project_version.json)](https://github.com/Muthukumar-Subramaniam/server-hub/releases/latest)
+
 Transform your Linux workstation into a powerful, automated virtual datacenter! This project allows you to build and manage a virtual home lab, making it easy to deploy, break, and rebuild Linux VMs effortlessly. It automates VM provisioning, manages the complete lifecycle of your VMs, and provides a flexible environment for learning, testing, and experimenting with Linux-based technologies.
 
 Although many open-source alternatives exist, I built this project for the fun of creating something of my own and sharing it with anyone with similar interests.
@@ -57,9 +59,22 @@ The toolkits provide automated VM provisioning for all three major Linux familie
 
 ## 📥 Quick Start: Get Up and Running in 5 Steps
 
-### Step 1 – Clone the Repository
+### Step 1 – Download the Latest Release
 
-Let's start by grabbing the automation tools:
+[![stable release](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/Muthukumar-Subramaniam/server-hub/main/project_version.json)](https://github.com/Muthukumar-Subramaniam/server-hub/releases/latest)
+
+```bash
+sudo mkdir -p /server-hub
+sudo chown ${USER}:$(id -g) /server-hub
+curl -sSL https://github.com/Muthukumar-Subramaniam/server-hub/releases/latest/download/server-hub.tar.gz | tar -xzv -C /server-hub
+cd /server-hub/qemu-kvm-manage/
+```
+
+> 📦 **Using Latest Release**: This downloads the latest stable release directly from GitHub.
+
+**Alternative - Clone from Repository:**
+
+If you prefer to use the latest code from the repository:
 
 ```bash
 sudo mkdir -p /server-hub
