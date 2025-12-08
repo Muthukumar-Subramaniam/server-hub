@@ -301,11 +301,18 @@ for disk in "${DISKS_TO_ATTACH[@]}"; do
     fi
     
     # Generate new disk name based on VM hostname
-    new_disk_name="${qemu_kvm_hostname}-${next_target}.qcow2"
+    new_disk_name="${qemu_kvm_hostname}_${next_target}.qcow2"
     new_disk_path="$VM_DIR/$new_disk_name"
     
-    # Move and rename disk to VM directory
-    print_task "Moving $disk to VM directory as $new_disk_name..." nskip
+    # Move disk to VM directory (rename only if needed)
+    if [[ "$disk" == "$new_disk_name" ]]; then
+        # Disk already has correct name, just move it
+        print_task "Moving $disk to VM directory..." nskip
+    else
+        # Disk needs renaming
+        print_task "Moving $disk to VM directory as $new_disk_name..." nskip
+    fi
+    
     if error_msg=$(sudo mv "$detached_path" "$new_disk_path" 2>&1); then
         print_task_done
     else
