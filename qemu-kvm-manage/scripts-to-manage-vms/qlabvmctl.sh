@@ -50,8 +50,6 @@ VM CONFIGURATION:
     disk-delete             Permanently delete disk(s) from detached storage
     nic-add                 Add network interface to VM
     nic-remove              Remove network interface from VM
-    nic-add                 Add network interface to VM
-    nic-remove              Remove network interface from VM
 
 OPTIONS:
     -h, --help              Show this help message
