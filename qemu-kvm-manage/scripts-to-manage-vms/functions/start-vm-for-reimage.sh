@@ -18,16 +18,16 @@ start_vm_for_reimage() {
     local reimage_description="${2:-reimaging}"
     
     if [[ -z "$vm_hostname" ]]; then
-        print_error "[ERROR] start_vm_for_reimage: VM hostname not provided."
+        print_error "start_vm_for_reimage: VM hostname not provided."
         return 1
     fi
     
-    print_info "[INFO] Starting ${reimage_description} of VM \"$vm_hostname\"..."
+    print_info "Starting ${reimage_description} of VM \"$vm_hostname\"..."
     if error_msg=$(sudo virsh start "$vm_hostname" 2>&1); then
-        print_success "[SUCCESS] VM started successfully."
+        print_success "VM started successfully."
         return 0
     else
-        print_error "[FAILED] Could not start VM \"$vm_hostname\"."
+        print_error "Could not start VM \"$vm_hostname\"."
         print_error "$error_msg"
         return 1
     fi

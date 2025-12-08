@@ -19,15 +19,15 @@ show_vm_completion_message() {
     local time_message="$5"
 
     if [[ "$attach_console" == "yes" ]]; then
-        print_info "[INFO] Attaching to VM console. Press Ctrl+] to exit console."
+        print_info "Attaching to VM console. Press Ctrl+] to exit console."
         sudo virsh console "${vm_hostname}"
     elif [[ $total_vms -eq 1 ]]; then
         if [[ -n "$time_message" ]]; then
-            print_info "[INFO] ${time_message}"
+            print_info "${time_message}"
         fi
-        print_info "[INFO] To monitor progress, use: qlabvmctl console ${vm_hostname}"
-        print_info "[INFO] To check VM status, use: qlabvmctl list"
-        print_success "[SUCCESS] VM \"${vm_hostname}\" ${operation_desc} initiated successfully."
+        print_info "To monitor progress, use: qlabvmctl console ${vm_hostname}"
+        print_info "To check VM status, use: qlabvmctl list"
+        print_success "VM \"${vm_hostname}\" ${operation_desc} initiated successfully."
     fi
 
     return 0

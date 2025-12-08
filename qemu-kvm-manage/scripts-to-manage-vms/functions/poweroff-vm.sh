@@ -30,7 +30,7 @@ poweroff_vm() {
     local strict_mode="${POWEROFF_VM_STRICT:-false}"
     
     if [[ -z "$vm_hostname" ]]; then
-        print_error "[ERROR] poweroff_vm: VM hostname not provided."
+        print_error "poweroff_vm: VM hostname not provided."
         return 1
     fi
     
@@ -40,14 +40,14 @@ poweroff_vm() {
     fi
     
     # VM is running, proceed with force power-off
-    print_info "[INFO] VM \"$vm_hostname\" is currently running. ${context}..."
+    print_info "VM \"$vm_hostname\" is currently running. ${context}..."
     
     if error_msg=$(sudo virsh destroy "$vm_hostname" 2>&1); then
-        print_success "[SUCCESS] VM \"$vm_hostname\" has been powered off successfully."
+        print_success "VM \"$vm_hostname\" has been powered off successfully."
         return 0
     else
         if [[ "$strict_mode" == "true" ]]; then
-            print_error "[FAILED] Could not power off VM \"$vm_hostname\"."
+            print_error "Could not power off VM \"$vm_hostname\"."
             print_error "$error_msg"
             return 1
         else
