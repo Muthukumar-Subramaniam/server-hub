@@ -218,6 +218,23 @@ prepare_ubuntu() {
   prepare_iso "$distro" "$iso_file" "$iso_url" "casper/vmlinuz" "casper/initrd"
 }
 
+prepare_oraclelinux() {
+  local distro="oraclelinux"
+  # Fetch latest Oracle Linux 10 ISO
+  local latest_ol10_iso=$(curl -s https://yum.oracle.com/oracle-linux-isos.html | grep -oP 'OracleLinux-R10-U\d+-x86_64-dvd\.iso' | sort -V | tail -n1)
+  
+  if [[ -z "$latest_ol10_iso" ]]; then
+    print_error "Failed to detect latest Oracle Linux 10 ISO"
+    exit 1
+  fi
+  
+  # Extract update number (e.g., U1 -> u1)
+  local update_num=$(echo "$latest_ol10_iso" | grep -oP 'U\d+' | tr '[:upper:]' '[:lower:]')
+  local iso_url="https://yum.oracle.com/ISOS/OracleLinux/OL10/${update_num}/x86_64/${latest_ol10_iso}"
+  
+  prepare_iso "$distro" "$latest_ol10_iso" "$iso_url" "images/pxeboot/vmlinuz" "images/pxeboot/initrd.img"
+}
+
 cleanup_distro() {
   local distro="$1"
   local iso_file="$2"
@@ -323,9 +340,7 @@ case "$MODE" in
           "images/pxeboot/vmlinuz" "images/pxeboot/initrd.img"
         ;;
       oraclelinux)
-        prepare_iso "oraclelinux" "OracleLinux-R10-U0-x86_64-dvd.iso" \
-          "https://yum.oracle.com/ISOS/OracleLinux/OL10/u0/x86_64/OracleLinux-R10-U0-x86_64-dvd.iso" \
-          "images/pxeboot/vmlinuz" "images/pxeboot/initrd.img"
+        prepare_oraclelinux
         ;;
       centos-stream)
         prepare_iso "centos-stream" "CentOS-Stream-10-latest-x86_64-dvd.iso" \
