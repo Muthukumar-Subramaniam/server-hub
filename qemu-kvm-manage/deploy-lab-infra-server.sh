@@ -17,43 +17,43 @@ check_existing_lab_deployment() {
   local LAB_ENV_FILE="/kvm-hub/lab_environment_vars"
   local found_issues=0
   
-  print_info "[INFO] Checking for existing lab deployment..."
+  print_info "Checking for existing lab deployment..."
   
   # Check if lab environment file exists
   if [[ -f "$LAB_ENV_FILE" ]]; then
-    print_warning "[WARNING] Found existing lab environment configuration at: $LAB_ENV_FILE"
+    print_warning "Found existing lab environment configuration at: $LAB_ENV_FILE"
     found_issues=1
     
     # Source the file to get existing values
     source "$LAB_ENV_FILE"
     
     if [[ -n "${lab_infra_server_hostname:-}" ]]; then
-      print_warning "[WARNING] Lab Infra Server appears to be already configured:" nskip
-      print_warning "[WARNING]   Hostname: ${lab_infra_server_hostname}"
+      print_warning "Lab Infra Server appears to be already configured:" nskip
+      print_warning "  Hostname: ${lab_infra_server_hostname}"
       
       # Check if it's a VM deployment
       if [[ "${lab_infra_server_mode_is_host:-false}" == "false" ]]; then
         # Check if VM exists
         if sudo virsh list --all | grep -q "${lab_infra_server_hostname}"; then
-          print_warning "[WARNING]   VM Status: EXISTS (running or stopped)"
+          print_warning "  VM Status: EXISTS (running or stopped)"
           found_issues=2
         fi
         
         # Check if VM disk exists
         local VM_DIR="/kvm-hub/vms/${lab_infra_server_hostname}"
         if [[ -d "$VM_DIR" ]]; then
-          print_warning "[WARNING]   VM Directory: EXISTS at $VM_DIR"
+          print_warning "  VM Directory: EXISTS at $VM_DIR"
           found_issues=2
         fi
       else
         # Check if host-mode services are running
-        print_warning "[WARNING]   Mode: HOST (deployed directly on KVM host)"
+        print_warning "  Mode: HOST (deployed directly on KVM host)"
         if sudo systemctl is-active --quiet named; then
-          print_warning "[WARNING]   DNS Service (named): ACTIVE"
+          print_warning "  DNS Service (named): ACTIVE"
           found_issues=2
         fi
         if sudo systemctl is-active --quiet kea-dhcp4; then
-          print_warning "[WARNING]   DHCP Service (kea): ACTIVE"
+          print_warning "  DHCP Service (kea): ACTIVE"
           found_issues=2
         fi
       fi
@@ -62,76 +62,76 @@ check_existing_lab_deployment() {
   
   # Check for SSH keys
   if [[ -f "$HOME/.ssh/kvm_lab_global_id_rsa" ]]; then
-    print_warning "[WARNING] Lab SSH keys already exist at: $HOME/.ssh/kvm_lab_global_id_rsa"
+    print_warning "Lab SSH keys already exist at: $HOME/.ssh/kvm_lab_global_id_rsa"
     found_issues=1
   fi
   
   # Check for SSH config
   if [[ -f "/etc/ssh/ssh_config.d/999-kvm-lab-global.conf" ]]; then
-    print_warning "[WARNING] Lab SSH config already exists: /etc/ssh/ssh_config.d/999-kvm-lab-global.conf"
+    print_warning "Lab SSH config already exists: /etc/ssh/ssh_config.d/999-kvm-lab-global.conf"
     found_issues=1
   fi
   
   if [[ $found_issues -eq 2 ]]; then
     echo
-    print_error "[ERROR] ═══════════════════════════════════════════════════════════════════"
-    print_error "[ERROR] CRITICAL: Lab infrastructure is already deployed!"
-    print_error "[ERROR] Re-running this script will OVERWRITE your existing setup."
-    print_error "[ERROR] ═══════════════════════════════════════════════════════════════════"
+    print_error "═══════════════════════════════════════════════════════════════════"
+    print_error "CRITICAL: Lab infrastructure is already deployed!"
+    print_error "Re-running this script will OVERWRITE your existing setup."
+    print_error "═══════════════════════════════════════════════════════════════════"
     echo
-    print_warning "[WARNING] If you want to redeploy from scratch, you must:"
-    print_info "[INFO]   1. Backup any important data from your lab"
-    print_info "[INFO]   2. Manually remove the existing deployment:"
-    print_info "[INFO]      • Delete VM: sudo virsh undefine ${lab_infra_server_hostname:-lab-infra-server} --remove-all-storage"
-    print_info "[INFO]      • Or stop host services: sudo systemctl stop named kea-dhcp4 nginx"
-    print_info "[INFO]   3. Remove lab config: sudo rm -rf /kvm-hub/lab_environment_vars"
-    print_info "[INFO]   4. Remove SSH keys: rm -f ~/.ssh/kvm_lab_global_id_rsa*"
+    print_warning "If you want to redeploy from scratch, you must:"
+    print_info "  1. Backup any important data from your lab"
+    print_info "  2. Manually remove the existing deployment:"
+    print_info "     • Delete VM: sudo virsh undefine ${lab_infra_server_hostname:-lab-infra-server} --remove-all-storage"
+    print_info "     • Or stop host services: sudo systemctl stop named kea-dhcp4 nginx"
+    print_info "  3. Remove lab config: sudo rm -rf /kvm-hub/lab_environment_vars"
+    print_info "  4. Remove SSH keys: rm -f ~/.ssh/kvm_lab_global_id_rsa*"
     echo
     read -rp "Do you understand the risks and want to FORCE re-deployment? (yes/NO): " force_confirm
     
     if [[ "$force_confirm" != "yes" ]]; then
-      print_info "[INFO] Deployment cancelled. Your existing lab is safe."
+      print_info "Deployment cancelled. Your existing lab is safe."
       exit 0
     fi
     
-    print_warning "[WARNING] Proceeding with FORCED re-deployment..."
+    print_warning "Proceeding with FORCED re-deployment..."
     sleep 2
   elif [[ $found_issues -eq 1 ]]; then
     echo
-    print_warning "[WARNING] Some lab components already exist."
-    print_warning "[WARNING] Continuing may overwrite existing SSH keys or configuration."
+    print_warning "Some lab components already exist."
+    print_warning "Continuing may overwrite existing SSH keys or configuration."
     echo
     read -rp "Type 'OVERWRITE' to continue with deployment: " continue_confirm
     
     if [[ "$continue_confirm" != "OVERWRITE" ]]; then
-      print_info "[INFO] Deployment cancelled."
+      print_info "Deployment cancelled."
       exit 0
     fi
     
-    print_warning "[WARNING] Proceeding with deployment..."
+    print_warning "Proceeding with deployment..."
     sleep 1
   else
-    print_success "[SUCCESS] No existing lab deployment detected. Safe to proceed."
+    print_success "No existing lab deployment detected. Safe to proceed."
   fi
   
   echo
 }
 
 prepare_lab_infra_config() {
-  print_info "[INFO] Preparing general Lab Infra configuration..."
-  print_info "[INFO] Common configuration steps go here..."
+  print_info "Preparing general Lab Infra configuration..."
+  print_info "Common configuration steps go here..."
   # Pre-flight environment checks
   if ! command -v virt-install &>/dev/null; then
-    print_error "[ERROR] 'virt-install' command not found!"
-    print_info "[INFO] Please install and set up QEMU/KVM first."
-    print_info "[INFO] Run the script \033[1msetup-qemu-kvm.sh\033[0m to configure your environment."
+    print_error "'virt-install' command not found!"
+    print_info "Please install and set up QEMU/KVM first."
+    print_info "Run the script \033[1msetup-qemu-kvm.sh\033[0m to configure your environment."
     exit 1
   fi
 
   if [[ ! -d /kvm-hub ]]; then
-    print_error "[ERROR] Directory /kvm-hub does not exist."
-    print_warning "[WARNING] Seems like your QEMU/KVM environment is not yet setup."
-    print_info "[INFO] Run the script \033[1msetup-qemu-kvm.sh\033[0m to configure your environment."
+    print_error "Directory /kvm-hub does not exist."
+    print_warning "Seems like your QEMU/KVM environment is not yet setup."
+    print_info "Run the script \033[1msetup-qemu-kvm.sh\033[0m to configure your environment."
     exit 1
   fi
 
@@ -140,16 +140,16 @@ prepare_lab_infra_config() {
   ISO_NAME="AlmaLinux-10-latest-x86_64-dvd.iso"
 
   if [[ ! -f "${ISO_DIR}/${ISO_NAME}" ]]; then
-      print_error "[ERROR] ISO file not found: ${ISO_DIR}/${ISO_NAME}"
-      print_info "[INFO] Please download it using the script \033[1mdownload-almalinux-latest.sh\033[0m"
+      print_error "ISO file not found: ${ISO_DIR}/${ISO_NAME}"
+      print_info "Please download it using the script \033[1mdownload-almalinux-latest.sh\033[0m"
       exit 1
   fi
 
-  print_success "[SUCCESS] ISO file found: ${ISO_DIR}/${ISO_NAME}"
+  print_success "ISO file found: ${ISO_DIR}/${ISO_NAME}"
 
   default_linux_distro_iso_path="${ISO_DIR}/${ISO_NAME}"
 
-  print_success "[SUCCESS] Pre-flight checks passed: QEMU/KVM environment is ready."
+  print_success "Pre-flight checks passed: QEMU/KVM environment is ready."
 
   # Get Infra Server VM Name
   while true; do
@@ -162,23 +162,23 @@ prepare_lab_infra_config() {
     fi
 
     if [[ ${#lab_infra_server_shortname} -lt 6 ]]; then
-      print_error "[ERROR] Server name must be at least 6 characters long."
+      print_error "Server name must be at least 6 characters long."
       continue
     fi
 
     if [[ ! "$lab_infra_server_shortname" =~ ^[a-z0-9-]+$ || "$lab_infra_server_shortname" =~ ^- || "$lab_infra_server_shortname" =~ -$ ]]; then
-      print_error "[ERROR] Invalid hostname!"
-      print_info "[INFO] Use only lowercase letters, numbers, and hyphens (-)." nskip
-      print_info "[INFO] Must not start or end with a hyphen."
+      print_error "Invalid hostname!"
+      print_info "Use only lowercase letters, numbers, and hyphens (-)." nskip
+      print_info "Must not start or end with a hyphen."
       continue
     fi
 
     break
   done
 
-  print_success "[SUCCESS] Using Lab Infra Server name: \033[1m${lab_infra_server_shortname}\033[0m"
+  print_success "Using Lab Infra Server name: \033[1m${lab_infra_server_shortname}\033[0m"
   lab_infra_admin_username="$USER"
-  print_info "[INFO] Using current user '${lab_infra_admin_username}' as Lab Infra Global user."
+  print_info "Using current user '${lab_infra_admin_username}' as Lab Infra Global user."
 
   # Prompt for password, validate length, confirm match
   while true; do
@@ -186,13 +186,13 @@ prepare_lab_infra_config() {
     read -s -p "Enter your Lab Infra Global password: " lab_admin_password_plain
     echo
     if [[ -z "$lab_admin_password_plain" ]]; then
-      print_error "[ERROR] Password cannot be empty. Please try again."
+      print_error "Password cannot be empty. Please try again."
       continue
     elif [[ ${#lab_admin_password_plain} -lt 8 ]]; then
-      print_warning "[WARNING] Password is less than 8 characters!"
+      print_warning "Password is less than 8 characters!"
       read -rp "Are you sure you want to proceed? (y/n): " confirm_weak
       if [[ ! "$confirm_weak" =~ ^[Yy]$ ]]; then
-        print_error "[ERROR] Aborting. Please enter a stronger password."
+        print_error "Aborting. Please enter a stronger password."
         continue
       fi
     fi
@@ -201,7 +201,7 @@ prepare_lab_infra_config() {
     read -s -p "Re-enter your Lab Infra Global password: " confirm_password
     echo
     if [[ "$lab_admin_password_plain" != "$confirm_password" ]]; then
-      print_error "[ERROR] Passwords do not match. Please try again."
+      print_error "Passwords do not match. Please try again."
       continue
     fi
 
@@ -214,7 +214,7 @@ prepare_lab_infra_config() {
   # Generate SHA-512 shadow-compatible hash
   lab_admin_shadow_password=$(openssl passwd -6 -salt "$lab_admin_password_salt" "$lab_admin_password_plain")
 
-  print_success "[SUCCESS] Infra Management user credentials are ready for user: \033[1m${lab_infra_admin_username}\033[0m"
+  print_success "Infra Management user credentials are ready for user: \033[1m${lab_infra_admin_username}\033[0m"
 
   # Function to instruct user on valid domain names
   fn_instruct_on_valid_domain_name() {
@@ -255,19 +255,19 @@ prepare_lab_infra_config() {
        [[ "${lab_infra_domain_name}" =~ ^[[:alnum:]]+([-.][[:alnum:]]+)*(\.[[:alnum:]]+){0,2}\.local$ ]]; then
       break
     else
-      print_error "[ERROR] Invalid domain name. Please follow the rules above."
+      print_error "Invalid domain name. Please follow the rules above."
     fi
   done
 
   # Print the final validated domain name
-  print_success "[SUCCESS] Lab Infra Domain Name set to: \033[1m${lab_infra_domain_name}\033[0m"
+  print_success "Lab Infra Domain Name set to: \033[1m${lab_infra_domain_name}\033[0m"
 
   lab_infra_server_hostname="${lab_infra_server_shortname}.${lab_infra_domain_name}"
   
-  print_success "[SUCCESS] Lab Infra Server Hostname set to: \033[1m${lab_infra_server_hostname}\033[0m"
+  print_success "Lab Infra Server Hostname set to: \033[1m${lab_infra_server_hostname}\033[0m"
 
   # SSH public key logic
-  print_info "[INFO] Checking for SSH public key on local workstation..."
+  print_info "Checking for SSH public key on local workstation..."
 
   SSH_DIR="$HOME/.ssh"
   SSH_PRIVATE_KEY_FILE="$SSH_DIR/kvm_lab_global_id_rsa"
@@ -275,58 +275,58 @@ prepare_lab_infra_config() {
 
   # Ensure ~/.ssh directory exists
   if [[ ! -d "$SSH_DIR" ]]; then
-      print_info "[INFO] .ssh directory not found. Creating..."
+      print_info ".ssh directory not found. Creating..."
       mkdir -p "$SSH_DIR"
       chmod 700 "$SSH_DIR"
   fi
 
   # Check if SSH public key exists
   if [[ ! -f "$SSH_PUB_KEY_FILE" ]]; then
-      print_error "[ERROR] SSH keys for the kvm lab not found on this local workstation."
-      print_info "[INFO] Generating a new RSA key pair..."
+      print_error "SSH keys for the kvm lab not found on this local workstation."
+      print_info "Generating a new RSA key pair..."
       ssh-keygen -t rsa -b 4096 -N "" -f "$SSH_PRIVATE_KEY_FILE" -C "${lab_infra_domain_name}" &>/dev/null
-      print_success "[SUCCESS] New SSH keys generated successfully:"
-      print_info "[INFO] Private Key: $SSH_PRIVATE_KEY_FILE" nskip
-      print_info "[INFO] Public Key : $SSH_PUB_KEY_FILE"
+      print_success "New SSH keys generated successfully:"
+      print_info "Private Key: $SSH_PRIVATE_KEY_FILE" nskip
+      print_info "Public Key : $SSH_PUB_KEY_FILE"
   else
-      print_success "[SUCCESS] SSH keys for the kvm lab found on this local workstation."
+      print_success "SSH keys for the kvm lab found on this local workstation."
   fi
   # Read the public key into an explanatory variable
   lab_infra_ssh_public_key=$(<"$SSH_PUB_KEY_FILE")
   lab_infra_ssh_private_key=$(<"$SSH_PRIVATE_KEY_FILE")
   # Update authorized_keys for current user
-  print_info "[INFO] Ensuring KVM Lab Infra SSH public key is in authorized_keys of user '${lab_infra_admin_username}'..."
+  print_info "Ensuring KVM Lab Infra SSH public key is in authorized_keys of user '${lab_infra_admin_username}'..."
   AUTHORIZED_KEYS_FILE="$SSH_DIR/authorized_keys"
   touch "$AUTHORIZED_KEYS_FILE"
   chmod 600 "$AUTHORIZED_KEYS_FILE"
   if ! grep -qF "$lab_infra_ssh_public_key" "$AUTHORIZED_KEYS_FILE"; then
       echo "$lab_infra_ssh_public_key" >> "$AUTHORIZED_KEYS_FILE"
-      print_success "[SUCCESS] KVM Lab Infra SSH public key added to authorized_keys."
+      print_success "KVM Lab Infra SSH public key added to authorized_keys."
   else
-      print_success "[SUCCESS] KVM Lab Infra SSH public key already present in authorized_keys."
+      print_success "KVM Lab Infra SSH public key already present in authorized_keys."
   fi
   # Print confirmation
-  print_success "[SUCCESS] Lab Infra SSH public key is ready for user \033[1m${lab_infra_admin_username}\033[0m on domain \033[1m${lab_infra_domain_name}\033[0m:"
+  print_success "Lab Infra SSH public key is ready for user \033[1m${lab_infra_admin_username}\033[0m on domain \033[1m${lab_infra_domain_name}\033[0m:"
   echo "\033[1m${lab_infra_ssh_public_key}\033[0m"
 
   # Capture network info from QEMU-KVM default bridge
-  print_info "[INFO] Capturing network info from QEMU-KVM default network bridge..." nskip
+  print_task "Capturing network info from QEMU-KVM default network bridge"
 
   qemu_kvm_default_net_info=$(sudo virsh net-dumpxml default)
   lab_infra_server_ipv4_gateway=$(echo "$qemu_kvm_default_net_info" | awk -F"'" '/<ip address=/ {print $2}')
   lab_infra_server_ipv4_netmask=$(echo "$qemu_kvm_default_net_info" | awk -F"'" '/<ip address=/ {print $4}')
   lab_infra_server_ipv4_address=$(echo "$lab_infra_server_ipv4_gateway" | awk -F. '{ printf "%d.%d.%d.%d", $1, $2, $3, $4+1 }')
 
-  print_success "[SUCCESS]"
+  print_task_done
 
   # Print captured network information in user-friendly format
-  print_info "[INFO] Lab Network Information:
+  print_info "Lab Network Information:
 ✓ Lab Infra Server IPv4 Gateway : \033[1m${lab_infra_server_ipv4_gateway}\033[0m
 ✓ Lab Infra Server Netmask      : \033[1m${lab_infra_server_ipv4_netmask}\033[0m
 ✓ Lab Infra Server IPv4 Address : \033[1m${lab_infra_server_ipv4_address}\033[0m"
 
   # Update SSH Custom Config
-  print_info "[INFO] Creating SSH Custom Config for '${lab_infra_domain_name}' domain to assist with future SSH logins..." nskip
+  print_task "Creating SSH Custom Config for '${lab_infra_domain_name}' domain"
   # Split IP address
   IFS='.' read -r lab_infra_ipv4_octet1 lab_infra_ipv4_octet2 lab_infra_ipv4_octet3 lab_infra_ipv4_octet4 <<< "$lab_infra_server_ipv4_address"
   # Split Netmask
@@ -365,9 +365,9 @@ Host *.${lab_infra_domain_name} ${lab_infra_server_ipv4_address} ${subnets_to_al
     LogLevel QUIET
 EOF
 
-  print_success "[SUCCESS] SSH Custom Config created."
+  print_task_done
 
-  print_info "[INFO] Updating /etc/hosts for ${lab_infra_server_hostname}..." nskip
+  print_task "Updating /etc/hosts for ${lab_infra_server_hostname}"
 
   # Remove any existing entry
   sudo sed -i.bak "/${lab_infra_server_hostname}/d" /etc/hosts 
@@ -375,11 +375,11 @@ EOF
   # Add new entry
   echo "${lab_infra_server_ipv4_address} ${lab_infra_server_hostname}" | sudo tee -a /etc/hosts &>/dev/null
 
-  print_success "[SUCCESS] /etc/hosts updated successfully with ${lab_infra_server_hostname}."
+  print_task_done
   # Save all lab environment variables to file
   LAB_ENV_VARS_FILE="/kvm-hub/lab_environment_vars"
 
-  print_info "[INFO] Saving Lab Environment variables to: $LAB_ENV_VARS_FILE..."
+  print_info "Saving Lab Environment variables to: $LAB_ENV_VARS_FILE..."
 
 cat > "$LAB_ENV_VARS_FILE" <<EOF
 lab_infra_server_hostname="${lab_infra_server_hostname}"
@@ -395,7 +395,7 @@ EOF
 
   chmod 600 "$LAB_ENV_VARS_FILE"
 
-  print_success "[SUCCESS] Lab environment variables saved successfully."
+  print_success "Lab environment variables saved successfully."
 
 }
 
@@ -404,7 +404,7 @@ EOF
 #-------------------------------------------------------------
 deploy_lab_infra_server_vm() {
   prepare_lab_infra_config
-  print_info "[INFO] Starting deployment of lab infra server on a dedicated VM..."
+  print_info "Starting deployment of lab infra server on a dedicated VM..."
 
   # VM directory and disk path
   VM_DIR="/kvm-hub/vms/${lab_infra_server_hostname}"
@@ -415,19 +415,19 @@ deploy_lab_infra_server_vm() {
 
   # Check if VM already exists in virsh
   if sudo virsh list --all | grep -qw "${lab_infra_server_hostname}"; then
-      print_error "[ERROR] Lab Infra VM '${lab_infra_server_hostname}' already exists in libvirt!"
-      print_info "[INFO] To remove it, run: sudo virsh undefine ${lab_infra_server_hostname} --remove-all-storage"
+      print_error "Lab Infra VM '${lab_infra_server_hostname}' already exists in libvirt!"
+      print_info "To remove it, run: sudo virsh undefine ${lab_infra_server_hostname} --remove-all-storage"
       exit 1
   fi
 
   # Check if VM disk already exists
   if [[ -f "$VM_DISK_PATH" ]]; then
-      print_error "[ERROR] Lab Infra VM disk already exists at $VM_DISK_PATH."
-      print_info "[INFO] To remove it, run: sudo rm -rf ${VM_DIR}"
+      print_error "Lab Infra VM disk already exists at $VM_DISK_PATH."
+      print_info "To remove it, run: sudo rm -rf ${VM_DIR}"
       exit 1
   fi
 
-  print_success "[SUCCESS] Lab Infra VM '${lab_infra_server_hostname}' does not exist. Ready to create."
+  print_success "Lab Infra VM '${lab_infra_server_hostname}' does not exist. Ready to create."
 
   lab_infra_server_mode_is_host=false
 
@@ -440,17 +440,17 @@ deploy_lab_infra_server_vm() {
     fi
   fi
 
-  print_info "[INFO] Mounting ISO ${ISO_DIR}/${ISO_NAME} on /mnt/iso-for-${lab_infra_server_hostname} for VM installation..." nskip
+  print_task "Mounting ISO ${ISO_DIR}/${ISO_NAME} for VM installation"
 
   sudo mkdir -p /mnt/iso-for-${lab_infra_server_hostname}
   sudo mount -o loop "${ISO_DIR}/${ISO_NAME}" /mnt/iso-for-${lab_infra_server_hostname} &>/dev/null
 
-  print_success "[SUCCESS] ISO mounted successfully on /mnt/iso-for-${lab_infra_server_hostname}."
+  print_task_done
 
   # -----------------------------
   # Kickstart file preparation
   # -----------------------------
-  print_info "[INFO] Preparing Kickstart file for unattended installation of Lab Infra VM..."
+  print_info "Preparing Kickstart file for unattended installation of Lab Infra VM..."
 
   KS_FILE="${VM_DIR}/${lab_infra_server_hostname}_ks.cfg"
 
@@ -474,14 +474,14 @@ deploy_lab_infra_server_vm() {
   awk -v val="$lab_infra_ssh_private_key" '{ gsub(/get_ssh_private_key_of_qemu_host_machine/, val) } 1' \
       "${KS_FILE}" > "${KS_FILE}"_tmp_ksmanager && mv "${KS_FILE}"_tmp_ksmanager "${KS_FILE}"
 
-  print_success "[SUCCESS] Kickstart file prepared at ${KS_FILE}"
+  print_success "Kickstart file prepared at ${KS_FILE}"
   # -------------------------
   # Further deployment logic goes here
   # -------------------------
   # -----------------------------
   # Launch VM via virt-install
   # -----------------------------
-  print_info "[INFO] Buckle up! We are about to view the Infra Server VM (${lab_infra_server_hostname}) deployment from console!"
+  print_info "Buckle up! We are about to view the Infra Server VM (${lab_infra_server_hostname}) deployment from console!"
   source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/select-ovmf.sh
 
   sudo virt-install \
@@ -509,10 +509,10 @@ nvram="${VM_DIR}/${lab_infra_server_hostname}_VARS.fd",menu=on
   # Check deployment status
   # -----------------------------
   if sudo virsh list | grep -q "${lab_infra_server_hostname}"; then
-    print_success "[SUCCESS] Successfully deployed your Infra Server VM (${lab_infra_server_hostname})!"
+    print_success "Successfully deployed your Infra Server VM (${lab_infra_server_hostname})!"
   else
-    print_error "[ERROR] Failed to deploy your Infra Server VM (${lab_infra_server_hostname})!"
-    print_info "[INFO] Please check where it went wrong."
+    print_error "Failed to deploy your Infra Server VM (${lab_infra_server_hostname})!"
+    print_info "Please check where it went wrong."
   fi
 
   # Cleanup ISO mount
@@ -523,10 +523,10 @@ nvram="${VM_DIR}/${lab_infra_server_hostname}_VARS.fd",menu=on
 
 deploy_lab_infra_server_host() {
   prepare_lab_infra_config
-  print_info "[INFO] Starting deployment of lab infra server directly on the KVM host..."
+  print_info "Starting deployment of lab infra server directly on the KVM host..."
   
   # Check if critical services are already running (indicates existing deployment)
-  print_info "[INFO] Checking for existing host-mode services..."
+  print_info "Checking for existing host-mode services..."
   local existing_services=()
   
   if sudo systemctl is-active --quiet named; then
@@ -540,20 +540,20 @@ deploy_lab_infra_server_host() {
   fi
   
   if [[ ${#existing_services[@]} -gt 0 ]]; then
-    print_warning "[WARNING] Found active lab services on host:"
+    print_warning "Found active lab services on host:"
     for svc in "${existing_services[@]}"; do
-      print_warning "[WARNING]   - $svc"
+      print_warning "  - $svc"
     done
     echo
-    print_warning "[WARNING] These services will be reconfigured/overwritten."
+    print_warning "These services will be reconfigured/overwritten."
     read -rp "Type 'RECONFIGURE' to continue with host deployment: " host_continue
     
     if [[ "$host_continue" != "RECONFIGURE" ]]; then
-      print_info "[INFO] Host deployment cancelled."
+      print_info "Host deployment cancelled."
       exit 0
     fi
     
-    print_warning "[WARNING] Proceeding with host deployment..."
+    print_warning "Proceeding with host deployment..."
     sleep 1
   fi
   
@@ -576,23 +576,23 @@ deploy_lab_infra_server_host() {
 
     # ====== Check and start libvirtd if needed ======
     if sudo systemctl is-active --quiet libvirtd; then
-        print_success "[SUCCESS] libvirtd is already running"
+        print_success "libvirtd is already running"
     else
-        print_info "[INFO] Starting libvirtd..."
+        print_info "Starting libvirtd..."
         if ! sudo systemctl restart libvirtd; then
-            print_error "[ERROR] Failed to start libvirtd"
+            print_error "Failed to start libvirtd"
             exit 1
         fi
-        print_success "[SUCCESS] libvirtd started successfully"
+        print_success "libvirtd started successfully"
     fi
     
     # ====== Wait for labbr0 ======
-    print_info "[INFO] Waiting for $lab_bridge_interface_name to be created..."
+    print_info "Waiting for $lab_bridge_interface_name to be created..."
     local bridge_creation_timeout_seconds=30
     local bridge_creation_elapsed_seconds=0
     until ip link show "$lab_bridge_interface_name" &>/dev/null; do
         if [ $bridge_creation_elapsed_seconds -ge $bridge_creation_timeout_seconds ]; then
-            print_error "[ERROR] Timeout waiting for $lab_bridge_interface_name"
+            print_error "Timeout waiting for $lab_bridge_interface_name"
             exit 1
         fi
         printf "."
@@ -600,26 +600,26 @@ deploy_lab_infra_server_host() {
         bridge_creation_elapsed_seconds=$((bridge_creation_elapsed_seconds + 1))
     done
     echo
-    print_success "[SUCCESS] $lab_bridge_interface_name detected!"
+    print_success "$lab_bridge_interface_name detected!"
     
     # ====== Create dummy link if missing ======
     if ! ip link show "$lab_bridge_dummy_interface_name" &>/dev/null; then
-        print_info "[INFO] Creating dummy interface $lab_bridge_dummy_interface_name to keep $lab_bridge_interface_name always up..."
-        sudo ip link add name "$lab_bridge_dummy_interface_name" type dummy || { print_error "[ERROR] Failed to create dummy interface"; return 1; }
-        sudo ip link set "$lab_bridge_dummy_interface_name" master "$lab_bridge_interface_name" || { print_error "[ERROR] Failed to attach dummy to bridge"; return 1; }
-        sudo ip link set "$lab_bridge_dummy_interface_name" up || { print_error "[ERROR] Failed to bring up dummy interface"; return 1; }
-        print_success "[SUCCESS] Dummy interface created and attached"
+        print_info "Creating dummy interface $lab_bridge_dummy_interface_name to keep $lab_bridge_interface_name always up..."
+        sudo ip link add name "$lab_bridge_dummy_interface_name" type dummy || { print_error "Failed to create dummy interface"; return 1; }
+        sudo ip link set "$lab_bridge_dummy_interface_name" master "$lab_bridge_interface_name" || { print_error "Failed to attach dummy to bridge"; return 1; }
+        sudo ip link set "$lab_bridge_dummy_interface_name" up || { print_error "Failed to bring up dummy interface"; return 1; }
+        print_success "Dummy interface created and attached"
     else
-        print_info "[INFO] Dummy interface $lab_bridge_dummy_interface_name already exists."
+        print_info "Dummy interface $lab_bridge_dummy_interface_name already exists."
     fi
     
     # ====== Wait for labbr0 to come up ======    # ====== CLEANUP ON EXIT ======
-    print_info "[INFO] Waiting for $lab_bridge_interface_name to come UP..."
+    print_info "Waiting for $lab_bridge_interface_name to come UP..."
     local bridge_up_timeout_seconds=30
     local bridge_up_elapsed_seconds=0
     while [[ "$(cat /sys/class/net/$lab_bridge_interface_name/operstate 2>/dev/null)" != "up" ]]; do
         if [ $bridge_up_elapsed_seconds -ge $bridge_up_timeout_seconds ]; then
-            print_error "[ERROR] Timeout waiting for $lab_bridge_interface_name to come up"
+            print_error "Timeout waiting for $lab_bridge_interface_name to come up"
             exit 1
         fi
         printf "."
@@ -627,21 +627,21 @@ deploy_lab_infra_server_host() {
         bridge_up_elapsed_seconds=$((bridge_up_elapsed_seconds + 1))
     done
     echo
-    print_success "[SUCCESS] $lab_bridge_interface_name is UP and running!"
+    print_success "$lab_bridge_interface_name is UP and running!"
     
     # ====== STEP 5: Assign IP address ======
-    print_info "[INFO] Configuring IP ${lab_infra_server_ipv4_address} netmask ${lab_infra_server_ipv4_netmask} on $lab_bridge_interface_name..."
+    print_info "Configuring IP ${lab_infra_server_ipv4_address} netmask ${lab_infra_server_ipv4_netmask} on $lab_bridge_interface_name..."
     # Add the secondary IP address with netmask
     if sudo ip addr add "${lab_infra_server_ipv4_address}/${lab_infra_server_ipv4_netmask}" dev "$lab_bridge_interface_name" 2>/dev/null; then
-        print_success "[SUCCESS] IP address assigned successfully"
+        print_success "IP address assigned successfully"
     else
-        print_info "[INFO] IP address may already be assigned"
+        print_info "IP address may already be assigned"
     fi
 
   # -----------------------------
   # Install required packages
   # -----------------------------
-  print_info "[INFO] Installing required packages on host via dnf..."
+  print_info "Installing required packages on host via dnf..."
 
   REQUIRED_PACKAGES=(
     bash-completion vim git bind-utils bind wget tar net-tools cifs-utils zip
@@ -653,15 +653,15 @@ deploy_lab_infra_server_host() {
   # Install packages, skipping already installed ones
   sudo dnf install -y "${REQUIRED_PACKAGES[@]}"
 
-  print_success "[SUCCESS] All required packages installed on host successfully."
+  print_success "All required packages installed on host successfully."
 
   # -----------------------------
   # Install Ansible if not already installed
   # -----------------------------
   if command -v ansible &>/dev/null; then
-      print_success "[SUCCESS] Ansible is already installed. Proceeding further..."
+      print_success "Ansible is already installed. Proceeding further..."
   else
-      print_info "[INFO] Installing Ansible on the host..."
+      print_info "Installing Ansible on the host..."
 
       # Install Python dependencies
       sudo dnf install python3-pip python3-cryptography -y
@@ -674,13 +674,13 @@ deploy_lab_infra_server_host() {
       # Enable global shell completion
       activate-global-python-argcomplete
 
-      print_success "[SUCCESS] Ansible installation completed successfully."
+      print_success "Ansible installation completed successfully."
   fi
 
   # ---------------------------
   # Lab Infra DNS configuration
   # ---------------------------
-  print_info "[INFO] Setting up Lab Infra DNS with custom utility dnsbinder..."
+  print_info "Setting up Lab Infra DNS with custom utility dnsbinder..."
   sudo bash /server-hub/named-manage/dnsbinder.sh --setup "${lab_infra_domain_name}"
 
   # Set mgmt_super_user in environment using lab_infra_admin_username
@@ -714,31 +714,31 @@ deploy_lab_infra_server_host() {
     done < /etc/environment
   fi
 
-  print_info "[INFO] Reserving DNS Records for DHCP lease..."
+  print_info "Reserving DNS Records for DHCP lease..."
 
   # Loop through IPs 201–254 to create DHCP lease DNS entries
   for IPOCTET in $(seq 201 254); do
     sudo bash /server-hub/named-manage/dnsbinder.sh -ci dhcp-lease${IPOCTET} ${dnsbinder_last24_subnet}.${IPOCTET}
   done
 
-  print_info "[INFO] Checking SELinux status..."
+  print_info "Checking SELinux status..."
 
   if sestatus 2>/dev/null | grep -q "disabled"; then
-    print_success "[SUCCESS] SELinux is already disabled."
+    print_success "SELinux is already disabled."
   else
-    print_info "[INFO] Disabling SELinux for current boot and persistently..."
+    print_info "Disabling SELinux for current boot and persistently..."
     # Disable for current boot
     sudo setenforce 0 2>/dev/null || true
     # Disable for all future boots
     sudo grubby --update-kernel ALL --args selinux=0
-    print_success "[SUCCESS] SELinux has been disabled."
+    print_success "SELinux has been disabled."
   fi
 
   # -----------------------------
   # Ansible playbook execution
   # -----------------------------
 
-  print_info "[INFO] Executing Ansible playbook to configure Lab Infra Services..."
+  print_info "Executing Ansible playbook to configure Lab Infra Services..."
 
   sed -i "/remote_user/c\\remote_user=${lab_infra_admin_username}" /server-hub/build-almalinux-server/ansible.cfg
 
@@ -747,7 +747,7 @@ deploy_lab_infra_server_host() {
   # Run ansible-playbook that congigures the essential services
   ansible-playbook /server-hub/build-almalinux-server/build-server.yaml
 
-  print_success "[SUCCESS] Successfully deployed Lab Infra Server ${lab_infra_server_hostname} on your machine!"
+  print_success "Successfully deployed Lab Infra Server ${lab_infra_server_hostname} on your machine!"
   
 }
 
@@ -762,7 +762,7 @@ check_existing_lab_deployment
 # Deployment selection prompt
 #-------------------------------------------------------------
 print_info "-------------------------------------------------------------
-[INFO] Lab Infra Server Deployment Mode Selection
+Lab Infra Server Deployment Mode Selection
 -------------------------------------------------------------
 Choose where to deploy your lab infra server:
 
@@ -778,17 +778,17 @@ while true; do
   read -rp "Enter your choice (vm/host): " DEPLOY_TARGET
   case "$DEPLOY_TARGET" in
     vm)
-      print_success "[SUCCESS] Confirmed: Lab Infra Server Deployment Mode set to 'VM'."
+      print_success "Confirmed: Lab Infra Server Deployment Mode set to 'VM'."
       deploy_lab_infra_server_vm
       break
       ;;
     host)
-      print_success "[SUCCESS] Confirmed: Lab Infra Server Deployment Mode set to 'Host'."
+      print_success "Confirmed: Lab Infra Server Deployment Mode set to 'Host'."
       deploy_lab_infra_server_host
       break
       ;;
     *)
-      print_warning "[WARNING] Invalid choice. Please type either 'vm' or 'host'."
+      print_warning "Invalid choice. Please type either 'vm' or 'host'."
       ;;
   esac
 done
