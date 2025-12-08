@@ -8,7 +8,7 @@ run_ksmanager() {
         log_file="/tmp/ksmanager-golden-image-$$.log"
     else
         if [[ -z "$hostname" ]]; then
-            print_error "[ERROR] run_ksmanager requires hostname"
+            print_error "run_ksmanager requires hostname"
             return 1
         fi
         log_file="/tmp/ksmanager-${hostname}-$$.log"
@@ -18,36 +18,38 @@ run_ksmanager() {
     >"$log_file"
 
     # Execute ksmanager
+    local ksmanager_exit_code=0
     if $lab_infra_server_mode_is_host; then
         if [[ -z "$hostname" ]]; then
             # For golden image creation without hostname
-            if ! sudo ksmanager ${ksmanager_options} | tee -a "$log_file"; then
-                print_error "[FAILED] ksmanager execution failed."
-                rm -f "$log_file"
-                return 1
-            fi
+            sudo ksmanager ${ksmanager_options} | tee -a "$log_file"
+            ksmanager_exit_code=$?
         else
-            if ! sudo ksmanager "${hostname}" ${ksmanager_options} | tee -a "$log_file"; then
-                print_error "[FAILED] ksmanager execution failed for \"$hostname\"."
-                rm -f "$log_file"
-                return 1
-            fi
+            sudo ksmanager "${hostname}" ${ksmanager_options} | tee -a "$log_file"
+            ksmanager_exit_code=$?
         fi
     else
         if [[ -z "$hostname" ]]; then
             # For golden image creation without hostname
-            if ! ssh -o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -t "${lab_infra_admin_username}@${lab_infra_server_ipv4_address}" "sudo ksmanager ${ksmanager_options}" | tee -a "$log_file"; then
-                print_error "[FAILED] ksmanager execution failed."
-                rm -f "$log_file"
-                return 1
-            fi
+            ssh -o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -t "${lab_infra_admin_username}@${lab_infra_server_ipv4_address}" "sudo ksmanager ${ksmanager_options}" | tee -a "$log_file"
+            ksmanager_exit_code=$?
         else
-            if ! ssh -o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -t "${lab_infra_admin_username}@${lab_infra_server_ipv4_address}" "sudo ksmanager ${hostname} ${ksmanager_options}" | tee -a "$log_file"; then
-                print_error "[FAILED] ksmanager execution failed for \"$hostname\"."
-                rm -f "$log_file"
-                return 1
-            fi
+            ssh -o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -t "${lab_infra_admin_username}@${lab_infra_server_ipv4_address}" "sudo ksmanager ${hostname} ${ksmanager_options}" | tee -a "$log_file"
+            ksmanager_exit_code=$?
         fi
+    fi
+
+    # Check if user cancelled (exit code 130)
+    if [[ $ksmanager_exit_code -eq 130 ]]; then
+        rm -f "$log_file"
+        return 1
+    fi
+
+    # Check for other failures
+    if [[ $ksmanager_exit_code -ne 0 ]]; then
+        print_error "ksmanager execution failed."
+        rm -f "$log_file"
+        return 1
     fi
 
     # Extract values from log file (strip ANSI color codes)
@@ -62,31 +64,31 @@ run_ksmanager() {
 
     # Validate extracted values
     if [[ -z "${MAC_ADDRESS}" ]]; then
-        print_error "[ERROR] Failed to extract MAC address from ksmanager output."
-        print_info "[INFO] Please check the lab infrastructure server VM at ${lab_infra_server_ipv4_address} for details."
+        print_error "Failed to extract MAC address from ksmanager output."
+        print_info "Please check the lab infrastructure server VM at ${lab_infra_server_ipv4_address} for details."
         return 1
     fi
 
     # For golden image creation, we need hostname instead of IP
     if [[ "$ksmanager_options" == *"--create-golden-image"* ]]; then
         if [[ -z "${EXTRACTED_HOSTNAME}" ]]; then
-            print_error "[ERROR] Failed to extract hostname from ksmanager output."
-            print_info "[INFO] Please check the lab infrastructure server VM at ${lab_infra_server_ipv4_address} for details."
+            print_error "Failed to extract hostname from ksmanager output."
+            print_info "Please check the lab infrastructure server VM at ${lab_infra_server_ipv4_address} for details."
             return 1
         fi
     else
         # For regular VM operations, we need IP address
         if [[ -z "${IPV4_ADDRESS}" ]]; then
-            print_error "[ERROR] Failed to extract IPv4 address from ksmanager output."
-            print_info "[INFO] Please check the lab infrastructure server VM at ${lab_infra_server_ipv4_address} for details."
+            print_error "Failed to extract IPv4 address from ksmanager output."
+            print_info "Please check the lab infrastructure server VM at ${lab_infra_server_ipv4_address} for details."
             return 1
         fi
     fi
 
     # OS_DISTRO is optional - only validate if it was expected (golden-image mode)
     if [[ "$ksmanager_options" == *"--golden-image"* && -z "${OS_DISTRO}" ]]; then
-        print_error "[ERROR] Failed to extract OS distro from ksmanager output."
-        print_info "[INFO] Please check the lab infrastructure server VM at ${lab_infra_server_ipv4_address} for details."
+        print_error "Failed to extract OS distro from ksmanager output."
+        print_info "Please check the lab infrastructure server VM at ${lab_infra_server_ipv4_address} for details."
         return 1
     fi
 

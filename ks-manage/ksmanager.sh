@@ -620,7 +620,7 @@ fn_select_os_distro() {
         6 )      os_distribution="fedora" ;;
         7 )      os_distribution="ubuntu-lts" ;;
         8 )      os_distribution="opensuse-leap" ;;
-        9 )      print_info "Operation cancelled by user."; exit 0 ;;
+        9 )      print_info "Operation cancelled by user."; exit 130 ;;
 	* ) print_error "Invalid option. Please try again."; fn_select_os_distro ;;
     esac
 }
