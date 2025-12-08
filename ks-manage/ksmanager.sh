@@ -623,6 +623,8 @@ fn_select_os_distro() {
         9 )      print_info "Operation cancelled by user."; exit 130 ;;
 	* ) print_error "Invalid option. Please try again."; fn_select_os_distro ;;
     esac
+    
+    print_success "OS distribution selected: ${os_distribution}"
 }
 
 fn_select_os_distro

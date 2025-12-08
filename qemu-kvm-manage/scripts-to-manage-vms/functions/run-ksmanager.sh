@@ -52,12 +52,12 @@ run_ksmanager() {
         return 1
     fi
 
-    # Extract values from log file (strip ANSI color codes)
-    MAC_ADDRESS=$(grep "MAC Address  :" "$log_file" | sed 's/\x1b\[[0-9;]*m//g' | awk -F': ' '{print $2}' | tr -d '[:space:]')
-    IPV4_ADDRESS=$(grep "IPv4 Address :" "$log_file" | sed 's/\x1b\[[0-9;]*m//g' | awk -F': ' '{print $2}' | tr -d '[:space:]')
+    # Extract values from log file (strip ANSI color codes first, then search)
+    MAC_ADDRESS=$(sed 's/\x1b\[[0-9;]*m//g' "$log_file" | grep "MAC Address  :" | awk -F': ' '{print $2}' | tr -d '[:space:]')
+    IPV4_ADDRESS=$(sed 's/\x1b\[[0-9;]*m//g' "$log_file" | grep "IPv4 Address :" | awk -F': ' '{print $2}' | tr -d '[:space:]')
     # Extract OS distro from auto-detection or selection message, not from "Requested OS" (which includes version)
-    OS_DISTRO=$(grep -E "(Auto-detected OS distribution|OS distribution selected)" "$log_file" | sed 's/\x1b\[[0-9;]*m//g' | awk -F': ' '{print $2}' | tr -d '[:space:]')
-    EXTRACTED_HOSTNAME=$(grep "Hostname     :" "$log_file" | sed 's/\x1b\[[0-9;]*m//g' | awk -F': ' '{print $2}' | tr -d '[:space:]')
+    OS_DISTRO=$(sed 's/\x1b\[[0-9;]*m//g' "$log_file" | grep -E "(Auto-detected OS distribution|OS distribution selected)" | awk -F': ' '{print $2}' | tr -d '[:space:]')
+    EXTRACTED_HOSTNAME=$(sed 's/\x1b\[[0-9;]*m//g' "$log_file" | grep "Hostname     :" | awk -F': ' '{print $2}' | tr -d '[:space:]')
 
     # Clean up log file
     rm -f "$log_file"
