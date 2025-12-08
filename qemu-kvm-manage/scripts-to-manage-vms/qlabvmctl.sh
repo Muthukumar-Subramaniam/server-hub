@@ -48,6 +48,10 @@ VM CONFIGURATION:
     disk-attach             Attach disk(s) from detached storage
     disk-detach             Detach and save disk(s) from VM
     disk-delete             Permanently delete disk(s) from detached storage
+    nic-add                 Add network interface to VM
+    nic-remove              Remove network interface from VM
+    nic-add                 Add network interface to VM
+    nic-remove              Remove network interface from VM
 
 OPTIONS:
     -h, --help              Show this help message
@@ -95,7 +99,7 @@ main() {
         build-golden-image)
             script_name="kvm-build-golden-image.sh"
             ;;
-        disk-add|disk-attach|disk-detach|disk-delete)
+        disk-add|disk-attach|disk-detach|disk-delete|nic-add|nic-remove)
             script_name="kvm-${subcommand}.sh"
             ;;
         *)
