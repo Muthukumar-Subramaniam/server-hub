@@ -118,13 +118,22 @@ if [[ -n "$hosts_list" ]]; then
     # Print summary
     print_summary "Stop VMs Results"
     if [[ ${#successful_vms[@]} -gt 0 ]]; then
-        print_green "  DONE: ${#successful_vms[@]}/$total_vms (${successful_vms[*]})"
+        print_green "  DONE: ${#successful_vms[@]}/$total_vms"
+        for vm in "${successful_vms[@]}"; do
+            print_green "    - $vm"
+        done
     fi
     if [[ ${#skipped_vms[@]} -gt 0 ]]; then
-        print_yellow "  SKIP: ${#skipped_vms[@]}/$total_vms (${skipped_vms[*]})"
+        print_yellow "  SKIP: ${#skipped_vms[@]}/$total_vms"
+        for vm in "${skipped_vms[@]}"; do
+            print_yellow "    - $vm"
+        done
     fi
     if [[ ${#failed_vms[@]} -gt 0 ]]; then
-        print_red "  FAIL: ${#failed_vms[@]}/$total_vms (${failed_vms[*]})"
+        print_red "  FAIL: ${#failed_vms[@]}/$total_vms"
+        for vm in "${failed_vms[@]}"; do
+            print_red "    - $vm"
+        done
     fi
     
     # Exit with appropriate code
