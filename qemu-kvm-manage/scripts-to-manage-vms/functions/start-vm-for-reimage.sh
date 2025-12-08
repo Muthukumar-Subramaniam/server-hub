@@ -22,11 +22,12 @@ start_vm_for_reimage() {
         return 1
     fi
     
-    print_info "Starting ${reimage_description} of VM \"$vm_hostname\"..."
+    print_task "Starting VM \"$vm_hostname\" (${reimage_description})..."
     if error_msg=$(sudo virsh start "$vm_hostname" 2>&1); then
-        print_success "VM \"$vm_hostname\" started successfully."
+        print_task_done
         return 0
     else
+        print_task_fail
         print_error "Could not start VM \"$vm_hostname\"."
         print_error "$error_msg"
         return 1

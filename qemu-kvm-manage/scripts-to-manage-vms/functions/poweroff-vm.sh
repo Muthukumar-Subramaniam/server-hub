@@ -40,17 +40,19 @@ poweroff_vm() {
     fi
     
     # VM is running, proceed with force power-off
-    print_info "VM \"$vm_hostname\" is currently running. ${context}..."
+    print_task "Powering off VM \"$vm_hostname\" (${context})..."
     
     if error_msg=$(sudo virsh destroy "$vm_hostname" 2>&1); then
-        print_success "VM \"$vm_hostname\" has been powered off successfully."
+        print_task_done
         return 0
     else
         if [[ "$strict_mode" == "true" ]]; then
+            print_task_fail
             print_error "Could not power off VM \"$vm_hostname\"."
             print_error "$error_msg"
             return 1
         else
+            print_task_fail
             print_warning "Could not power off VM \"$vm_hostname\"."
             print_warning "$error_msg"
             return 0
