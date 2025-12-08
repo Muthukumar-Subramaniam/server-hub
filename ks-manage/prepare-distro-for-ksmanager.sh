@@ -17,6 +17,22 @@ set -euo pipefail
 : "${dnsbinder_server_fqdn:?Must set dnsbinder_server_fqdn}"
 : "${mgmt_super_user:?Must set mgmt_super_user}"
 
+# Validate required commands are installed
+REQUIRED_COMMANDS=("wget" "rsync" "curl" "mountpoint" "sed" "awk" "grep")
+MISSING_COMMANDS=()
+
+for cmd in "${REQUIRED_COMMANDS[@]}"; do
+  if ! command -v "$cmd" &> /dev/null; then
+    MISSING_COMMANDS+=("$cmd")
+  fi
+done
+
+if [[ ${#MISSING_COMMANDS[@]} -gt 0 ]]; then
+  print_error "Missing required commands: ${MISSING_COMMANDS[*]}"
+  print_info "Please install the missing tools before running this script."
+  exit 1
+fi
+
 ISO_DIR="/iso-files"
 FSTAB="/etc/fstab"
 
