@@ -128,10 +128,10 @@ menu=on; then
     exit 1
 fi
 
-print_info "VM installation completed."
+print_info "VM installation of \"${qemu_kvm_hostname}\" completed."
 
 # Cleanup: destroy and undefine the temporary VM
-print_info "Cleaning up temporary VM..."
+print_info "Cleaning up temporary VM \"${qemu_kvm_hostname}\"..."
 
 # Destroy VM if running
 source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/poweroff-vm.sh
@@ -139,9 +139,9 @@ POWEROFF_VM_CONTEXT="Stopping temporary VM" poweroff_vm "$qemu_kvm_hostname"
 
 # Undefine VM
 if error_msg=$(sudo virsh undefine "$qemu_kvm_hostname" --nvram 2>&1); then
-    print_info "Temporary VM cleaned up successfully."
+    print_info "Temporary VM \"${qemu_kvm_hostname}\" cleaned up successfully."
 else
-    print_warning "Could not cleanup temporary VM: $error_msg"
+    print_warning "Could not cleanup temporary VM \"${qemu_kvm_hostname}\": $error_msg"
 fi
 
 print_success "Golden image disk created successfully: ${golden_image_path}"
