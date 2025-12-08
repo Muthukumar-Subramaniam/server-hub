@@ -15,7 +15,7 @@ _qlabvmctl_completions() {
     prev="${COMP_WORDS[COMP_CWORD-1]}"
     
     # All available subcommands (removed lab-start and lab-health - now separate tools)
-    subcommands="dnsbinder build-golden-image install-golden install-pxe reimage-golden reimage-pxe start stop shutdown restart reboot remove list console resize add-disk version"
+    subcommands="dnsbinder build-golden-image install-golden install-pxe reimage-golden reimage-pxe start stop shutdown restart reboot remove list console resize add-disk detach-disk version"
     
     # Top-level options
     local options="-h --help -v --version"

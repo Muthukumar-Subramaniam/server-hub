@@ -45,6 +45,7 @@ VM OPERATIONS:
 VM CONFIGURATION:
     resize                  Resize VM resources (CPU, memory, disk)
     add-disk                Add additional disk to VM
+    detach-disk             Detach and save disk(s) from VM
 
 OPTIONS:
     -h, --help              Show this help message
@@ -92,8 +93,8 @@ main() {
         build-golden-image)
             script_name="kvm-build-golden-image.sh"
             ;;
-        add-disk)
-            script_name="kvm-add-disk.sh"
+        add-disk|detach-disk)
+            script_name="kvm-${subcommand}.sh"
             ;;
         *)
             print_error "Unknown subcommand: $subcommand"
