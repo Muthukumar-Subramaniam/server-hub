@@ -60,7 +60,7 @@ NOTES:
 # Show version
 show_version() {
     print_cyan "qlabvmctl version $VERSION"
-    print_cyan "KVM Lab VM Management Tool"
+    print_cyan "QEMU/KVM Lab VM Management Tool"
 }
 
 # Main logic
