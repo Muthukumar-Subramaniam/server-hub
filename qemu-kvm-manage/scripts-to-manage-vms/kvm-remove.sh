@@ -182,10 +182,10 @@ if [[ -n "$hosts_list" ]]; then
     # Print summary
     print_summary "Remove VMs Results"
     if [[ ${#successful_vms[@]} -gt 0 ]]; then
-        print_success "  DONE: ${#successful_vms[@]}/$total_vms (${successful_vms[*]})"
+        print_green "  DONE: ${#successful_vms[@]}/$total_vms (${successful_vms[*]})"
     fi
     if [[ ${#failed_vms[@]} -gt 0 ]]; then
-        print_error "  FAIL: ${#failed_vms[@]}/$total_vms (${failed_vms[*]})"
+        print_red "  FAIL: ${#failed_vms[@]}/$total_vms (${failed_vms[*]})"
     fi
     
     # Exit with appropriate code

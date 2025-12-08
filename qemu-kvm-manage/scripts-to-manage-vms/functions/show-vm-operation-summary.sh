@@ -32,11 +32,11 @@ show_vm_operation_summary() {
     print_summary "Results: ${operation_desc}"
     
     if [[ ${#successful_vms[@]} -gt 0 ]]; then
-        print_success "  DONE: ${#successful_vms[@]}/$total_vms (${successful_vms[*]})"
+        print_green "  DONE: ${#successful_vms[@]}/$total_vms (${successful_vms[*]})"
     fi
     
     if [[ ${#failed_vms[@]} -gt 0 ]]; then
-        print_error "  FAIL: ${#failed_vms[@]}/$total_vms (${failed_vms[*]})"
+        print_red "  FAIL: ${#failed_vms[@]}/$total_vms (${failed_vms[*]})"
     fi
     
     # Add helpful info for install/reimage operations
