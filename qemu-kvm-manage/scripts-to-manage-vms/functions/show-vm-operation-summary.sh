@@ -28,28 +28,27 @@ show_vm_operation_summary() {
     local -n successful_vms="$successful_array_name"
     local -n failed_vms="$failed_array_name"
 
-    print_summary "Operation Summary:"
+    # Use consistent summary format matching other VM control scripts
+    print_summary "Results: ${operation_desc}"
     
     if [[ ${#successful_vms[@]} -gt 0 ]]; then
-        print_success "Successfully initiated ${operation_desc}: ${#successful_vms[@]} VM(s)"
-        for vm in "${successful_vms[@]}"; do
-            print_success "  ✓ $vm"
-        done
+        print_success "  DONE: ${#successful_vms[@]}/$total_vms (${successful_vms[*]})"
     fi
     
     if [[ ${#failed_vms[@]} -gt 0 ]]; then
-        print_error "Failed to initiate ${operation_desc}: ${#failed_vms[@]} VM(s)"
-        for vm in "${failed_vms[@]}"; do
-            print_error "  ✗ $vm"
-        done
+        print_error "  FAIL: ${#failed_vms[@]}/$total_vms (${failed_vms[*]})"
     fi
     
+    # Add helpful info for install/reimage operations
     if [[ -n "$additional_info" ]]; then
+        echo ""
         print_info "${additional_info}"
     fi
     
-    print_info "To monitor progress, use: qlabvmctl console <hostname>"
-    print_info "To check VM status, use: qlabvmctl list"
+    if [[ ${#successful_vms[@]} -gt 0 ]]; then
+        print_info "To monitor progress: qlabvmctl console <hostname>"
+        print_info "To check VM status: qlabvmctl list"
+    fi
 
     # Return failure if any VMs failed
     if [[ ${#failed_vms[@]} -gt 0 ]]; then
