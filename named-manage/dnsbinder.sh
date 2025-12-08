@@ -1148,11 +1148,11 @@ fn_handle_multiple_host_record() {
 	
 		if [[ ${v_action_required} == "create" ]]
 		then
-			print_info "#############################(DNS-Bulk-Records-Maker)##############################"
+			print_cyan "#############################(DNS-Bulk-Records-Maker)##############################"
 
 		elif [[ ${v_action_required} == "delete" ]]
 		then
-			print_info "###########################(DNS-Bulk-Records-Destroyer)############################"
+			print_cyan "###########################(DNS-Bulk-Records-Destroyer)############################"
 		fi
 	}
 
@@ -1202,8 +1202,6 @@ fn_handle_multiple_host_record() {
 	
 	> "${v_tmp_file_dnsbinder}"
 	
-	v_successfull="[DONE]"
-	v_failed="[FAIL]"
 	v_count_successfull=0
 	v_count_failed=0
 	
@@ -1220,17 +1218,17 @@ fn_handle_multiple_host_record() {
 		fn_progress_title
 	
 		if [[ ${v_host_count} -le ${v_total_host_records} ]];then
-			print_info "####################################( Running )####################################"
-			print_info "Status     : [ ${v_host_count}/${v_total_host_records} ] host records have been processed"
-			print_success "Successful : ${v_count_successfull}"
-			print_error "Failed     : ${v_count_failed}"
+			print_cyan "####################################( Running )####################################"
+			print_white "Status     : [ ${v_host_count}/${v_total_host_records} ] host records have been processed"
+			print_green "Successful : ${v_count_successfull}"
+			print_red "Failed     : ${v_count_failed}"
 		fi
 	
-		let v_host_count++
+	let v_host_count++
 	
-		print_task "Attempting to ${v_action_required} the host record ${v_host_record}.${v_domain_name}..."
-	
-		v_serial_fw_zone_pre_execution=$(grep ';Serial' ${v_fw_zone} | cut -d ";" -f 1 | tr -d '[:space:]')
+	print_white "Attempting to ${v_action_required} the host record ${v_host_record}.${v_domain_name} . . . " "nskip"
+
+	v_serial_fw_zone_pre_execution=$(grep ';Serial' ${v_fw_zone} | cut -d ";" -f 1 | tr -d '[:space:]')
 	
 		if [[ ${v_action_required} == "create" ]]
                 then
@@ -1266,58 +1264,56 @@ fn_handle_multiple_host_record() {
 			v_details_of_host_record="${v_fqdn}"
 		fi
 			
-		if [[ ${var_exit_status} -eq 9 ]]
-		then
-	        	print_error "Invalid-Host     ${v_details_of_host_record}" >> "${v_tmp_file_dnsbinder}"
-			print_error "${v_failed}"
-			let v_count_failed++ 
-	
-		elif [[ ${var_exit_status} -eq 8 ]]
-		then
-			if [[ ${v_action_required} == "create" ]]
-                	then
-				v_existence_state="Already-Exists  "
+	if [[ ${var_exit_status} -eq 9 ]]
+	then
+        	print_red "Invalid-Host     ${v_details_of_host_record}" >> "${v_tmp_file_dnsbinder}"
+		print_red "[ failed ]"
+		let v_count_failed++ 
 
-			elif [[ ${v_action_required} == "delete" ]]
-			then
-				v_existence_state="Doesn't-Exist   "
-			fi
+	elif [[ ${var_exit_status} -eq 8 ]]
+	then
+		if [[ ${v_action_required} == "create" ]]
+                then
+			v_existence_state="Already-Exists  "
 
-	        	print_warning "${v_existence_state} ${v_details_of_host_record}" >> "${v_tmp_file_dnsbinder}"
-			print_error "${v_failed}"
-			let v_count_failed++
-	
-		elif [[ ${var_exit_status} -eq 255 ]]
+		elif [[ ${v_action_required} == "delete" ]]
 		then
-	        	print_error "IP-Exhausted     ${v_details_of_host_record}" >> "${v_tmp_file_dnsbinder}"
-			print_error "${v_failed}"
-			let v_count_failed++
+			v_existence_state="Doesn't-Exist   "
+		fi
+
+        	print_yellow "${v_existence_state} ${v_details_of_host_record}" >> "${v_tmp_file_dnsbinder}"
+		print_red "[ failed ]"
+		let v_count_failed++
+
+	elif [[ ${var_exit_status} -eq 255 ]]
+	then
+        	print_red "IP-Exhausted     ${v_details_of_host_record}" >> "${v_tmp_file_dnsbinder}"
+		print_red "[ failed ]"
+		let v_count_failed++
+	else
+		v_serial_fw_zone_post_execution=$(grep ';Serial' ${v_fw_zone} | cut -d ";" -f 1 | tr -d '[:space:]')
+
+		if [[ "${v_serial_fw_zone_pre_execution}" -ne "${v_serial_fw_zone_post_execution}" ]]
+		then
+			print_green "${v_action_required^}d          ${v_details_of_host_record}" >> "${v_tmp_file_dnsbinder}"
+			print_green "[ done ]"
+			let v_count_successfull++
 		else
-			v_serial_fw_zone_post_execution=$(grep ';Serial' ${v_fw_zone} | cut -d ";" -f 1 | tr -d '[:space:]')
-	
-			if [[ "${v_serial_fw_zone_pre_execution}" -ne "${v_serial_fw_zone_post_execution}" ]]
-			then
-				print_success "${v_action_required^}d          ${v_details_of_host_record}" >> "${v_tmp_file_dnsbinder}"
-				print_success "${v_successfull}"
-				let v_count_successfull++
-			else
-	        		print_error "Failed-to-${v_action_required^} ${v_details_of_host_record}" >> "${v_tmp_file_dnsbinder}"
-				print_error "${v_failed}"
-				let v_count_failed++
-			fi
+        		print_red "Failed-to-${v_action_required^} ${v_details_of_host_record}" >> "${v_tmp_file_dnsbinder}"
+			print_red "[ failed ]"
+			let v_count_failed++
 		fi
+	fi
+
+	if [[ ${v_host_count} -eq ${v_total_host_records} ]];then
 	
-		if [[ ${v_host_count} -eq ${v_total_host_records} ]];then
-	
-			clear
-			fn_progress_title
-			print_info "###################################( Completed )###################################"
-			print_info "Status     : [ ${v_host_count}/${v_total_host_records} ] host records have been processed"
-			print_success "Successful : ${v_count_successfull}"
-			print_error "Failed     : ${v_count_failed}"
-		fi
-	
-	
+		clear
+		fn_progress_title
+		print_cyan "###################################( Completed )###################################"
+		print_white "Status     : [ ${v_host_count}/${v_total_host_records} ] host records have been processed"
+		print_green "Successful : ${v_count_successfull}"
+		print_red "Failed     : ${v_count_failed}"
+	fi	
 	done < "${v_host_list_file}"
 
 	v_post_execution_serial_fw_zone=$(grep ';Serial' ${v_fw_zone} | cut -d ";" -f 1 | tr -d '[:space:]')
@@ -1335,18 +1331,18 @@ fn_handle_multiple_host_record() {
 			print_task_fail
 		fi
 	else
-		print_warning "No changes done! Nothing to do!"
+		print_yellow "No changes done! Nothing to do!"
 	fi
 		
-	print_warning "Please find the below details of the records :"
+	print_white "Please find the below details of the records:"
 
 	if [[ ${v_action_required} == "create" ]]
 	then
-		print_info "Action-Taken     FQDN ( IPv4-Address )"
+		print_white "Action-Taken     FQDN ( IPv4-Address )"
 
 	elif [[ ${v_action_required} == "delete" ]]
 	then
-		print_info "Action-Taken     FQDN"
+		print_white "Action-Taken     FQDN"
 	fi
 	
 	cat "${v_tmp_file_dnsbinder}"
