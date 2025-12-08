@@ -215,7 +215,7 @@ fn_configure_named_dns_server() {
 		fi
 	done
 
-	print_info "Fetching network information from the system . . . "  "nskip"
+	print_task "Fetching network information from the system..."
 
 	if $KVM_HOST_MODE_SET; then
 		source /kvm-hub/lab_environment_vars
@@ -232,35 +232,35 @@ fn_configure_named_dns_server() {
 
 	fn_split_network_into_cidr24subnets
 
-	print_success "[ done ]"
+	print_task_done
 
-	print_info "Checking whether required bind dns packages are installed . . . "  "nskip"
+	print_task "Checking whether required bind dns packages are installed..."
 
 	if rpm -q bind bind-utils &>/dev/null 
 	then
-		print_success "[ already installed ]"
+		print_task_done
 	else
-		print_warning "[ not yet installed ]"
+		print_warning "Not yet installed"
 
-		print_info "Installing the required bind dns packages . . . "  "nskip"
+		print_task "Installing the required bind dns packages..."
 
 		if dnf install bind bind-utils -y &>/dev/null
 		then
-			print_success "[ installed ]"
+			print_task_done
 		else
-			print_error "[ failed to install ]"
-			print_error "Try installing the packages bind and bind-utils manually then try the script again! "
+			print_task_fail
+			print_error "Try installing the packages bind and bind-utils manually then try the script again!"
 			exit 1
 		fi
 	fi
 
-	print_info "Taking backup of named.conf . . . " "nskip"
+	print_task "Taking backup of named.conf..."
 
 	cp -p /etc/named.conf /etc/named.conf_bkp_by_dnsbinder
 	
-	print_success "[ done ]"
+	print_task_done
 
-	print_info "Configuring named.conf . . . " "nskip"
+	print_task "Configuring named.conf..."
 
 	if $KVM_HOST_MODE_SET; then
 		sed -i "s/listen-on port 53 {\s*127.0.0.1;\s*};/listen-on port 53 { ${v_primary_ip}; };/" /etc/named.conf
@@ -313,9 +313,9 @@ EOF
 
 	echo -e "# END zones-of-${v_given_domain}-domain" | tee -a /etc/named.conf > /dev/null
 
-	print_success "[ done ]"
+	print_task_done
 
-	print_info "Creating and configuring zone files . . . " "nskip"
+	print_task "Creating and configuring zone files..."
 
 	mkdir -p "${var_zone_dir}"
 
@@ -377,22 +377,22 @@ EOF
 		fi
 	done
 
-	print_success "[ done ]"
+	print_task_done
 
-	print_info "Enabling and starting named DNS Service . . . " "nskip"
+	print_task "Enabling and starting named DNS Service..."
 
 	systemctl enable --now named &>/dev/null	
 	
-	print_success "[ done ]"
+	print_task_done
 
-	print_info "Doing a final restart of named DNS Service . . . " "nskip"
+	print_task "Doing a final restart of named DNS Service..."
 
 	systemctl restart named &>/dev/null	
 
-	print_success "[ done ]"
+	print_task_done
 
     if ! "${server_is_hosted_on_gcp}" ; then
-		print_info "Updating dnsbinder related global variables to /etc/environment . . . " "nskip"
+		print_task "Updating dnsbinder related global variables to /etc/environment..."
 		declare -A dnsbinder_environment_map=(
 			["dnsbinder_domain"]="$v_given_domain"
 			["dnsbinder_network_cidr"]="$v_network_and_cidr"
@@ -426,24 +426,27 @@ EOF
 
 		source /etc/environment
 
+		print_task_done
+
 		if ! $KVM_HOST_MODE_SET; then
-			print_info "Updating Network Manager to point the local dns server and domain . . . " "nskip"
+			print_task "Updating Network Manager to point the local dns server and domain..."
 			v_active_connection_name=$(nmcli connection show --active | grep "${v_primary_interface}" | head -n 1 | awk '{ print $1 }')
 			nmcli connection modify "${v_active_connection_name}" ipv4.dns-search "${v_given_domain}" &>/dev/null
 			nmcli connection modify "${v_active_connection_name}" ipv4.dns "127.0.0.1,8.8.8.8,8.8.4.4"  &>/dev/null
 			nmcli connection reload "${v_active_connection_name}" &>/dev/null
 			nmcli connection up "${v_active_connection_name}" &>/dev/null
-			print_success "[ done ]"
+			print_task_done
 		else
-			print_info "Updating systemd-resolvd to point the local dns server and domain . . . " "nskip"
+			print_task "Updating systemd-resolvd to point the local dns server and domain..."
 			if command -v resolvectl &>/dev/null; then
   				resolvectl dns labbr0 "$v_primary_ip"
   				resolvectl domain labbr0 "$v_given_domain"
 			fi
+			print_task_done
 		fi
 	fi
 
-	print_info "Make named service as a dependency for network-online.target . . . " "nskip"
+	print_task "Make named service as a dependency for network-online.target..."
 
 	if ! $KVM_HOST_MODE_SET; then
 		if [ ! -f /etc/systemd/system/network-online.target.wants/named.service ]; then
@@ -451,13 +454,13 @@ EOF
 		fi
 	fi
 
-	print_success "[ done ]"
+	print_task_done
 
-	print_info "Creating the command dnsbinder . . . " "nskip"
+	print_task "Creating the command dnsbinder..."
 
 	ln -s /server-hub/named-manage/dnsbinder.sh /usr/bin/dnsbinder
 
-	print_success "[ done ]"
+	print_task_done
 
 	print_success "All done! Your domain \"${v_given_domain}\" with DNS server ${v_primary_ip} [ ${v_dns_host_short_name}.${v_given_domain}  ] has been configured."
 	print_info "Now you could manage the domain  \"${v_given_domain}\" with dnsbinder utility from command line."
@@ -589,7 +592,7 @@ fn_get_host_record() {
 
 fn_update_serial_number_of_zones() {
 
-	${v_if_autorun_false} && print_info "Updating serial numbers of zone files . . . " "nskip"
+	${v_if_autorun_false} && print_task "Updating serial numbers of zone files..."
 
 	v_current_serial_fw_zone=$(grep ';Serial' "${v_fw_zone}" | cut -d ";" -f 1 | tr -d '[:space:]')
 	v_set_new_serial_fw_zone=$(( v_current_serial_fw_zone + 1 ))
@@ -602,7 +605,7 @@ fn_update_serial_number_of_zones() {
 		sed -i "/;Serial/s/${v_current_serial_ptr_zone}/${v_set_new_serial_ptr_zone}/g" "${v_ptr_zone}"
 	fi
 
-	${v_if_autorun_false} && print_success "[ done ]"
+	${v_if_autorun_false} && print_task_done
 }
 
 
@@ -614,15 +617,15 @@ fn_reload_named_dns_service() {
 		cname_record_true="false"
 	fi
 
-	print_info "Reloading the DNS service ( named ) . . . " "nskip"
+	print_task "Reloading the DNS service (named)..."
 
 	systemctl reload named &>/dev/null
 
 	if systemctl is-active named &>/dev/null;
 	then 
-		print_success "[ ok ]"
+		print_task_done
 	else
-		print_error "[ failed ]"
+		print_task_fail
 	fi
         
 	if [[  "${v_action_requested}" == "create" ]]
@@ -650,12 +653,12 @@ fn_reload_named_dns_service() {
 
 	if "${cname_record_true}" && [[ "${v_action_requested}" == "create" ]]
 	then
-		print_info "Validating CNAME record . . . " "nskip"
+		print_task "Validating CNAME record..."
 		if host ${v_input_cname}.${v_domain_name} &>/dev/null
 		then
-			print_success "[ ok ]"
+			print_task_done
 		else
-			print_error "[ failed ]"
+			print_task_fail
 		fi
 
 		print_info "FYI :\n$(host ${v_input_cname}.${v_domain_name})"
@@ -666,32 +669,32 @@ fn_reload_named_dns_service() {
 	if [[ "${v_action_requested}" != "delete" ]]
 	then
 
-		print_info "Validating forward look up . . . " "nskip"
+		print_task "Validating forward look up..."
 
 		if  [[ "${v_action_requested}" == "rename" ]]
 		then
 			if host ${v_rename_record}.${v_domain_name} &>/dev/null
 			then
-				print_success "[ ok ]"
+				print_task_done
 			else
-				print_error "[ failed ]"
+				print_task_fail
 			fi
 		else
 			if host ${v_host_record}.${v_domain_name} &>/dev/null
 			then
-				print_success "[ ok ]"
+				print_task_done
 			else
-				print_error "[ failed ]"
+				print_task_fail
 			fi
 		fi
 
-		print_info "Validating reverse look up . . . " "nskip"
+		print_task "Validating reverse look up..."
 
 		if host ${v_current_ip_of_host_record} &>/dev/null
 		then
-                	print_success "[ ok ]"
+                	print_task_done
                 else
-                	print_error "[ failed ]"
+                	print_task_fail
                 fi
 
 		if  [[ "${v_action_requested}" == "rename" ]]
@@ -720,7 +723,7 @@ fn_set_ptr_zone() {
 	do
     		if [[ "${v_current_ip_of_host_record}" =~ ${arr_subnets[i]} ]]
 		then
-        		${v_if_autorun_false} && print_success "Match found with IP ${v_current_ip_of_host_record} for host record ${v_host_record}.${v_domain_name} "
+        		${v_if_autorun_false} && print_info "Match found with IP ${v_current_ip_of_host_record} for host record ${v_host_record}.${v_domain_name}"
         		v_ptr_zone="${arr_ptr_zones[i]}"
         		break
     		fi
@@ -953,7 +956,7 @@ fn_create_host_record() {
 	done
 
 
-	${v_if_autorun_false} && print_info "Creating host record ${v_host_record}.${v_domain_name} . . . " "nskip"
+	${v_if_autorun_false} && print_task "Creating host record ${v_host_record}.${v_domain_name}..."
 
 	############### A Record Creation Section ############################
 
@@ -988,7 +991,7 @@ fn_create_host_record() {
 	############# End of PTR Record Create Section #######################
 
 
-	${v_if_autorun_false} && print_success "[ done ]"
+	${v_if_autorun_false} && print_task_done
 
 	fn_update_serial_number_of_zones
 
@@ -1035,12 +1038,12 @@ fn_delete_host_record() {
 
 		if [[ ${v_confirmation} == "y" ]]
 		then
-			${v_if_autorun_false} && print_info "Deleting host record ${v_host_record}.${v_domain_name} . . . " "nskip"
+			${v_if_autorun_false} && print_task "Deleting host record ${v_host_record}.${v_domain_name}..."
 
 			sed -i "/^${v_capture_ptr_prefix} /d" "${v_ptr_zone}"
 			sed -i "/^${v_capture_host_record}/d" "${v_fw_zone}"
 
-			${v_if_autorun_false} && print_success "[ done ]"
+			${v_if_autorun_false} && print_task_done
 
 			fn_update_serial_number_of_zones
 
@@ -1103,12 +1106,12 @@ fn_rename_host_record() {
 
 		if [[ $v_confirmation == "y" ]]
 		then
-			print_info "Renaming host record ${v_host_record}.${v_domain_name} to ${v_rename_record}.${v_domain_name} . . . " "nskip"
+			print_task "Renaming host record ${v_host_record}.${v_domain_name} to ${v_rename_record}.${v_domain_name}..."
 
 			sed -i "s/${v_host_record_exist}/${v_host_record_rename}/g" ${v_fw_zone}
 			sed -i "s/${v_host_record}.${v_domain_name}./${v_rename_record}.${v_domain_name}./g" ${v_ptr_zone}
 
-			print_success "[ done ]"
+			print_task_done
 			
 			fn_update_serial_number_of_zones
 
@@ -1199,8 +1202,8 @@ fn_handle_multiple_host_record() {
 	
 	> "${v_tmp_file_dnsbinder}"
 	
-	v_successfull="[ succeded ]"
-	v_failed="[ failed ]"
+	v_successfull="[DONE]"
+	v_failed="[FAIL]"
 	v_count_successfull=0
 	v_count_failed=0
 	
@@ -1225,7 +1228,7 @@ fn_handle_multiple_host_record() {
 	
 		let v_host_count++
 	
-		print_info "Attempting to ${v_action_required} the host record ${v_host_record}.${v_domain_name} . . . "  "nskip"
+		print_task "Attempting to ${v_action_required} the host record ${v_host_record}.${v_domain_name}..."
 	
 		v_serial_fw_zone_pre_execution=$(grep ';Serial' ${v_fw_zone} | cut -d ";" -f 1 | tr -d '[:space:]')
 	
@@ -1321,15 +1324,15 @@ fn_handle_multiple_host_record() {
 	
 	if [[ "${v_pre_execution_serial_fw_zone}" -ne "${v_post_execution_serial_fw_zone}" ]]
 	then
-		print_info "Reloading the DNS service ( named ) for the changes to take effect . . . "  "nskip"
+		print_task "Reloading the DNS service (named) for the changes to take effect..."
 	
 		systemctl reload named &>/dev/null
 	
 		if systemctl is-active named &>/dev/null;
 		then 
-			print_success "[ done ]"
+			print_task_done
 		else
-			print_error "[ failed ]"
+			print_task_fail
 		fi
 	else
 		print_warning "No changes done! Nothing to do!"
@@ -1445,7 +1448,7 @@ fn_create_cname_record() {
 	
 	fn_get_cname_record "create"
 
-	print_info "Creating CNAME record \"${v_input_cname}.${v_domain_name}\" for the host record \"${v_input_hostname}.${v_domain_name}\" . . . " "nskip"
+	print_task "Creating CNAME record \"${v_input_cname}.${v_domain_name}\" for the host record \"${v_input_hostname}.${v_domain_name}\"..."
 
 	v_cname_adjusted_space=$(printf "%-*s" 63 "${v_input_cname}")
 
@@ -1453,7 +1456,7 @@ fn_create_cname_record() {
 
 	sed -i "/^;CNAME-Records/a \\${v_cname_record}" "${v_fw_zone}"
 
-	print_success "[ done ]"
+	print_task_done
 
 	fn_update_serial_number_of_zones "forward-zone-only"
 
@@ -1495,11 +1498,11 @@ fn_delete_cname_record() {
 		esac
 	done
 
-	print_info "Deleting CNAME record \"${v_input_cname}.${v_domain_name}\" . . . "  "nskip"
+	print_task "Deleting CNAME record \"${v_input_cname}.${v_domain_name}\"..."
 
 	sed -i "/^${v_input_cname} / {/IN CNAME/d}" "${v_fw_zone}" 
 
-	print_success "[ done ]"
+	print_task_done
 
 	fn_update_serial_number_of_zones "forward-zone-only"
 
