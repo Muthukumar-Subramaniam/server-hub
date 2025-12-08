@@ -80,9 +80,9 @@ Active Services   : $active_services
 Inactive Services : $inactive_services
 -------------------------------------------------------------"
 if [[ $active_services -eq 0 ]]; then
-    print_error "[FAILED] KVM Lab Infra health is CRITICAL."
+    print_error "KVM Lab Infra health is CRITICAL."
 elif [[ $total_services -eq $active_services ]]; then
-    print_success "[SUCCESS] KVM Lab Infra health is STABLE."
+    print_success "KVM Lab Infra health is STABLE."
 else
     print_warning "KVM Lab Infra health is DEGRADED."
 fi
