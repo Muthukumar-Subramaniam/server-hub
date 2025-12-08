@@ -139,13 +139,8 @@ prepare_iso() {
 
 prepare_rhel() {
   local distro="rhel"
-  if fn_is_distro_ready "$distro"; then
-    print_warning "Distro '$distro' already appears to be prepared."
-    print_info "Please cleanup first using: $(basename $0) --cleanup $distro"
-    exit 1
-  fi
   local iso_file="rhel-10.0-x86_64-dvd.iso"
-  local mount_dir="/${dnsbinder_server_fqdn}/${distro}"
+  local mount_dir="/${dnsbinder_server_fqdn}/${distro}-latest"
   local web_image_dir="/${dnsbinder_server_fqdn}/ipxe/images/${distro}-latest"
   local iso_path="${ISO_DIR}/${iso_file}"
 
@@ -157,11 +152,6 @@ prepare_rhel() {
 
 prepare_ubuntu() {
   local distro="ubuntu-lts"
-  if fn_is_distro_ready "$distro"; then
-    print_warning "Distro '$distro' already appears to be prepared."
-    print_info "Please cleanup first using: $(basename $0) --cleanup $distro"
-    exit 1
-  fi
   local latest_lts=$(curl -s https://cdimage.ubuntu.com/releases/ | sed -n 's/.*href="\([0-9][0-9]\.04\(\.[0-9][0-9]*\)\?\)\/".*/\1/p' | awk -F. '$1 % 2 == 0 { print }' | sort -V | tail -n1)
   local iso_file="ubuntu-${latest_lts}-live-server-amd64.iso"
   local iso_url="https://releases.ubuntu.com/${latest_lts}/${iso_file}"
@@ -240,53 +230,35 @@ fi
 # Main logic
 case "$MODE" in
   --setup)
+    # Check if distro is already prepared (DRY - check once)
+    if fn_is_distro_ready "$DISTRO"; then
+      print_warning "Distro '${DISTRO}' already appears to be prepared."
+      print_info "Please cleanup first using: $(basename $0) --cleanup ${DISTRO}"
+      exit 1
+    fi
+
     case "$DISTRO" in
       almalinux)
-        if fn_is_distro_ready "almalinux"; then
-          print_warning "Distro 'almalinux' already appears to be prepared."
-          print_info "Please cleanup first using: $(basename $0) --cleanup almalinux"
-          exit 1
-        fi
         prepare_iso "almalinux" "AlmaLinux-10-latest-x86_64-dvd.iso" \
           "https://repo.almalinux.org/almalinux/10/isos/x86_64/AlmaLinux-10-latest-x86_64-dvd.iso" \
           "images/pxeboot/vmlinuz" "images/pxeboot/initrd.img"
         ;;
       rocky)
-        if fn_is_distro_ready "rocky"; then
-          print_warning "Distro 'rocky' already appears to be prepared."
-          print_info "Please cleanup first using: $(basename $0) --cleanup rocky"
-          exit 1
-        fi
         prepare_iso "rocky" "Rocky-10-latest-x86_64-dvd.iso" \
           "https://dl.rockylinux.org/pub/rocky/10/isos/x86_64/Rocky-10-latest-x86_64-dvd.iso" \
           "images/pxeboot/vmlinuz" "images/pxeboot/initrd.img"
         ;;
       fedora)
-        if fn_is_distro_ready "fedora"; then
-          print_warning "Distro 'fedora' already appears to be prepared."
-          print_info "Please cleanup first using: $(basename $0) --cleanup rocky"
-          exit 1
-        fi
         prepare_iso "fedora" "Fedora-Server-dvd-x86_64-42-1.1.iso" \
           "https://download.fedoraproject.org/pub/fedora/linux/releases/42/Server/x86_64/iso/Fedora-Server-dvd-x86_64-42-1.1.iso" \
           "images/pxeboot/vmlinuz" "images/pxeboot/initrd.img"
         ;;
       oraclelinux)
-        if fn_is_distro_ready "oraclelinux"; then
-          print_warning "Distro 'oraclelinux' already appears to be prepared."
-          print_info "Please cleanup first using: $(basename $0) --cleanup oraclelinux"
-          exit 1
-        fi
         prepare_iso "oraclelinux" "OracleLinux-R10-U0-x86_64-dvd.iso" \
           "https://yum.oracle.com/ISOS/OracleLinux/OL10/u0/x86_64/OracleLinux-R10-U0-x86_64-dvd.iso" \
           "images/pxeboot/vmlinuz" "images/pxeboot/initrd.img"
         ;;
       centos-stream)
-        if fn_is_distro_ready "centos-stream"; then
-          print_warning "Distro 'centos-stream' already appears to be prepared."
-          print_info "Please cleanup first using: $(basename $0) --cleanup centos-stream"
-          exit 1
-        fi
         prepare_iso "centos-stream" "CentOS-Stream-10-latest-x86_64-dvd.iso" \
           "https://mirrors.centos.org/mirrorlist?path=/10-stream/BaseOS/x86_64/iso/CentOS-Stream-10-latest-x86_64-dvd1.iso&redirect=1&protocol=https" \
           "images/pxeboot/vmlinuz" "images/pxeboot/initrd.img"
@@ -298,11 +270,6 @@ case "$MODE" in
         prepare_ubuntu
         ;;
       opensuse-leap)
-        if fn_is_distro_ready "opensuse-leap"; then
-          print_warning "Distro 'opensuse-leap' already appears to be prepared."
-          print_info "Please cleanup first using: $(basename $0) --cleanup opensuse-leap"
-          exit 1
-        fi
         prepare_iso "opensuse-leap" "openSUSE-Leap-15.6-DVD-x86_64-Media.iso" \
           "https://download.opensuse.org/distribution/leap/15.6/iso/openSUSE-Leap-15.6-DVD-x86_64-Media.iso" \
           "boot/x86_64/loader/linux" "boot/x86_64/loader/initrd"
