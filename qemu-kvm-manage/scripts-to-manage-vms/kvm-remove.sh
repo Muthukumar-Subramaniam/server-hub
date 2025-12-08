@@ -167,6 +167,7 @@ if [[ -n "$hosts_list" ]]; then
     successful_vms=()
     total_vms=${#validated_hosts[@]}
     current=0
+    
     for vm_name in "${validated_hosts[@]}"; do
         ((current++))
         print_info "Progress: $current/$total_vms"
@@ -178,23 +179,21 @@ if [[ -n "$hosts_list" ]]; then
         fi
     done
     
-    # Report results
-    success_count=${#successful_vms[@]}
-    fail_count=${#failed_vms[@]}
-    
-    print_summary "Removed $success_count of $total_vms VM(s)."
-    if [[ $success_count -gt 0 ]]; then
-        for vm in "${successful_vms[@]}"; do
-            print_success "  $vm"
-        done
+    # Print summary
+    print_summary "Remove VMs Results"
+    if [[ ${#successful_vms[@]} -gt 0 ]]; then
+        print_success "  DONE: ${#successful_vms[@]}/$total_vms (${successful_vms[*]})"
     fi
-    if [[ $fail_count -gt 0 ]]; then
-        for vm in "${failed_vms[@]}"; do
-            print_error "  $vm"
-        done
+    if [[ ${#failed_vms[@]} -gt 0 ]]; then
+        print_error "  FAIL: ${#failed_vms[@]}/$total_vms (${failed_vms[*]})"
+    fi
+    
+    # Exit with appropriate code
+    if [[ ${#failed_vms[@]} -eq 0 ]]; then
+        exit 0
+    else
         exit 1
     fi
-    exit 0
 fi
 
 # Handle single host

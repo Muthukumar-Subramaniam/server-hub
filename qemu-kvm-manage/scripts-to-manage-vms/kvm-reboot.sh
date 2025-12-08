@@ -91,22 +91,33 @@ if [[ -n "$hosts_list" ]]; then
     
     # Reboot each VM
     failed_vms=()
+    successful_vms=()
     total_vms=${#validated_hosts[@]}
     current=0
+    
     for vm_name in "${validated_hosts[@]}"; do
         ((current++))
-        print_info "Rebooting VM $current of $total_vms: $vm_name"
-        if ! reboot_vm "$vm_name"; then
+        print_info "Progress: $current/$total_vms"
+        if reboot_vm "$vm_name"; then
+            successful_vms+=("$vm_name")
+        else
             failed_vms+=("$vm_name")
         fi
     done
     
-    # Report results
+    # Print summary
+    print_summary "Reboot VMs Results"
+    if [[ ${#successful_vms[@]} -gt 0 ]]; then
+        print_success "  DONE: ${#successful_vms[@]}/$total_vms (${successful_vms[*]})"
+    fi
+    if [[ ${#failed_vms[@]} -gt 0 ]]; then
+        print_error "  FAIL: ${#failed_vms[@]}/$total_vms (${failed_vms[*]})"
+    fi
+    
+    # Exit with appropriate code
     if [[ ${#failed_vms[@]} -eq 0 ]]; then
-        print_success "All VMs reboot signals sent successfully."
         exit 0
     else
-        print_error "Some VMs failed to reboot: ${failed_vms[*]}"
         exit 1
     fi
 fi
