@@ -214,31 +214,30 @@ prepare_lab_infra_config() {
 
   # Function to instruct user on valid domain names
   fn_instruct_on_valid_domain_name() {
-    echo -e "\n\e[1mDomain Name Rules:\e[0m"
-    echo "─────────────────────────────"
-    echo -e "  Only allowed TLD:          \e[1mlocal\e[0m"
-    echo -e "  Max subdomains allowed:    \e[1m2\e[0m"
-    echo -e "  Allowed characters:        Letters (a-z), digits (0-9), and hyphens (-)"
-    echo -e "  Hyphens:                   Cannot be at the start or end of subdomains"
-    echo -e "  Total length:              Must be between \e[1m1\e[0m and \e[1m63\e[0m characters"
-    echo -e "  Format compliance:         Based on \e[3mRFC 1035\e[0m"
-    echo ""
-    echo -e "\e[1mExamples of valid domain names:\e[0m"
-    echo "  test.local"
-    echo "  test.example.local"
-    echo "  123-example.local"
-    echo "  test-lab1.local"
-    echo "  123.example.local"
-    echo "  test1.lab1.local"
-    echo "  test-1.example-1.local"
-    echo ""
+    print_info "
+\e[1mDomain Name Rules:\e[0m
+─────────────────────────────
+  Only allowed TLD:          \e[1mlocal\e[0m
+  Max subdomains allowed:    \e[1m2\e[0m
+  Allowed characters:        Letters (a-z), digits (0-9), and hyphens (-)
+  Hyphens:                   Cannot be at the start or end of subdomains
+  Total length:              Must be between \e[1m1\e[0m and \e[1m63\e[0m characters
+  Format compliance:         Based on \e[3mRFC 1035\e[0m
+
+\e[1mExamples of valid domain names:\e[0m
+  test.local
+  test.example.local
+  123-example.local
+  test-lab1.local
+  123.example.local
+  test1.lab1.local
+  test-1.example-1.local
+"
   }
 
   # Prompt user for local infra domain name
   while true; do
-    echo
     fn_instruct_on_valid_domain_name
-    echo
     read -rp "Enter your local Infra Domain Name [default: lab.local]: " lab_infra_domain_name
 
     # Use default if empty
