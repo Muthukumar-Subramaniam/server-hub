@@ -606,7 +606,8 @@ fn_select_os_distro() {
   5)  Red Hat Enterprise Linux ${rhel_os_availability}
   6)  Fedora Linux             ${fedora_os_availability}
   7)  Ubuntu Server LTS        ${ubuntu_lts_os_availability}
-  8)  openSUSE Leap Latest     ${opensuse_leap_os_availability}"
+  8)  openSUSE Leap Latest     ${opensuse_leap_os_availability}
+  9)  Quit"
 
     read -p "Enter option number (default: AlmaLinux): " os_distribution
 
@@ -619,6 +620,7 @@ fn_select_os_distro() {
         6 )      os_distribution="fedora" ;;
         7 )      os_distribution="ubuntu-lts" ;;
         8 )      os_distribution="opensuse-leap" ;;
+        9 )      print_info "Operation cancelled by user."; exit 0 ;;
 	* ) print_error "Invalid option. Please try again."; fn_select_os_distro ;;
     esac
 }
