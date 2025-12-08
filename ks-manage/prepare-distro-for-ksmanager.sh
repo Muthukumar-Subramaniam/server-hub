@@ -205,9 +205,16 @@ prepare_rhel() {
 
 prepare_ubuntu() {
   local distro="ubuntu-lts"
-  local latest_lts=$(curl -s https://cdimage.ubuntu.com/releases/ | sed -n 's/.*href="\([0-9][0-9]\.04\(\.[0-9][0-9]*\)\?\)\/".*/\1/p' | awk -F. '$1 % 2 == 0 { print }' | sort -V | tail -n1)
-  local iso_file="ubuntu-${latest_lts}-live-server-amd64.iso"
-  local iso_url="https://releases.ubuntu.com/${latest_lts}/${iso_file}"
+  # Fetch latest 24.04.x point release
+  local latest_24_04=$(curl -s https://releases.ubuntu.com/24.04/ | sed -n 's/.*href="ubuntu-\(24\.04\.[0-9]*\)-live-server-amd64\.iso".*/\1/p' | sort -V | tail -n1)
+  
+  # Fallback to 24.04 if no point release found
+  if [[ -z "$latest_24_04" ]]; then
+    latest_24_04="24.04"
+  fi
+  
+  local iso_file="ubuntu-${latest_24_04}-live-server-amd64.iso"
+  local iso_url="https://releases.ubuntu.com/24.04/${iso_file}"
   prepare_iso "$distro" "$iso_file" "$iso_url" "casper/vmlinuz" "casper/initrd"
 }
 
