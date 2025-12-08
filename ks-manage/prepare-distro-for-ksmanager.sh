@@ -368,12 +368,12 @@ case "$MODE" in
     case "$DISTRO" in
       almalinux)       cleanup_distro "almalinux" "AlmaLinux-10-latest-x86_64-dvd.iso" ;;
       rocky)           cleanup_distro "rocky" "Rocky-10-latest-x86_64-dvd.iso" ;;
-      oraclelinux)     cleanup_distro "oraclelinux" "OracleLinux-*-x86_64-dvd.iso" ;;
+      oraclelinux)     cleanup_distro "oraclelinux" "OracleLinux-10*-x86_64-dvd.iso" ;;
       centos-stream)   cleanup_distro "centos-stream" "CentOS-Stream-10-latest-x86_64-dvd.iso" ;;
       rhel)            cleanup_distro "rhel" "rhel-10-latest-x86_64-dvd.iso" ;;
       fedora)          cleanup_distro "fedora" "Fedora-Server-dvd-x86_64*.iso" ;;
-      ubuntu-lts)      cleanup_distro "ubuntu-lts" "ubuntu-*-live-server-amd64.iso" ;;
-      opensuse-leap)   cleanup_distro "opensuse-leap" "openSUSE-Leap-*-DVD-x86_64-Media.iso" ;;
+      ubuntu-lts)      cleanup_distro "ubuntu-lts" "ubuntu-24*-live-server-amd64.iso" ;;
+      opensuse-leap)   cleanup_distro "opensuse-leap" "openSUSE-Leap-15*-DVD-x86_64-Media.iso" ;;
       *)
         print_error "Unknown distro: $DISTRO"
         exit 1
