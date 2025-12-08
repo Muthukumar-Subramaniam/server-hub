@@ -31,7 +31,7 @@ parse_vm_command_args() {
                 ;;
             -c|--console)
                 if [[ "$ATTACH_CONSOLE" == "yes" ]]; then
-                    print_error "[ERROR] Duplicate --console/-c option."
+                    print_error "Duplicate --console/-c option."
                     fn_show_help
                     exit 1
                 fi
@@ -40,12 +40,12 @@ parse_vm_command_args() {
                 ;;
             -f|--force)
                 if [[ "$supports_force" != "yes" ]]; then
-                    print_error "[ERROR] No such option: $1"
+                    print_error "No such option: $1"
                     fn_show_help
                     exit 1
                 fi
                 if [[ "$FORCE_REIMAGE" == "true" ]]; then
-                    print_error "[ERROR] Duplicate --force/-f option."
+                    print_error "Duplicate --force/-f option."
                     fn_show_help
                     exit 1
                 fi
@@ -54,12 +54,12 @@ parse_vm_command_args() {
                 ;;
             -C|--clean-install)
                 if [[ "$supports_clean_install" != "yes" ]]; then
-                    print_error "[ERROR] No such option: $1"
+                    print_error "No such option: $1"
                     fn_show_help
                     exit 1
                 fi
                 if [[ "$CLEAN_INSTALL" == "yes" ]]; then
-                    print_error "[ERROR] Duplicate --clean-install option."
+                    print_error "Duplicate --clean-install option."
                     fn_show_help
                     exit 1
                 fi
@@ -68,17 +68,17 @@ parse_vm_command_args() {
                 ;;
             -d|--distro)
                 if [[ "$supports_distro" != "yes" ]]; then
-                    print_error "[ERROR] No such option: $1"
+                    print_error "No such option: $1"
                     fn_show_help
                     exit 1
                 fi
                 if [[ -z "$2" || "$2" == -* ]]; then
-                    print_error "[ERROR] --distro/-d requires a distribution name."
+                    print_error "--distro/-d requires a distribution name."
                     fn_show_help
                     exit 1
                 fi
                 if [[ -n "$OS_DISTRO" ]]; then
-                    print_error "[ERROR] Duplicate --distro/-d option."
+                    print_error "Duplicate --distro/-d option."
                     fn_show_help
                     exit 1
                 fi
@@ -87,7 +87,7 @@ parse_vm_command_args() {
                 ;;
             -H|--hosts)
                 if [[ -z "$2" || "$2" == -* ]]; then
-                    print_error "[ERROR] --hosts/-H requires a comma-separated list of hostnames."
+                    print_error "--hosts/-H requires a comma-separated list of hostnames."
                     fn_show_help
                     exit 1
                 fi
@@ -95,7 +95,7 @@ parse_vm_command_args() {
                 shift 2
                 ;;
             -*)
-                print_error "[ERROR] No such option: $1"
+                print_error "No such option: $1"
                 fn_show_help
                 exit 1
                 ;;
@@ -103,7 +103,7 @@ parse_vm_command_args() {
                 if [[ ${#HOSTNAMES[@]} -eq 0 ]]; then
                     HOSTNAMES+=("$1")
                 else
-                    print_error "[ERROR] Cannot mix positional hostname with --hosts/-H option."
+                    print_error "Cannot mix positional hostname with --hosts/-H option."
                     fn_show_help
                     exit 1
                 fi
@@ -114,7 +114,7 @@ parse_vm_command_args() {
 
     # Validate console + multiple VMs conflict
     if [[ "$ATTACH_CONSOLE" == "yes" && ${#HOSTNAMES[@]} -gt 1 ]]; then
-        print_error "[ERROR] --console/-c option cannot be used with multiple VMs."
+        print_error "--console/-c option cannot be used with multiple VMs."
         fn_show_help
         exit 1
     fi
@@ -149,7 +149,7 @@ parse_vm_command_args() {
 
     # Check if any valid hosts remain after validation
     if [[ ${#HOSTNAMES[@]} -eq 0 ]]; then
-        print_error "[ERROR] No valid hostnames provided."
+        print_error "No valid hostnames provided."
         exit 1
     fi
 
