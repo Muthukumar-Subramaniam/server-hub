@@ -193,10 +193,20 @@ if [[ -n "$macs_arg" ]]; then
     # Parse comma-separated MAC list
     IFS=',' read -ra MACS_TO_REMOVE <<< "$macs_arg"
     
+    # Get primary NIC MAC (first one)
+    primary_mac=$(echo "${AVAILABLE_NICS[0]}" | cut -d'|' -f1)
+    
     # Validate each MAC
     for mac in "${MACS_TO_REMOVE[@]}"; do
         # Remove whitespace
         mac=$(echo "$mac" | xargs)
+        
+        # Check if trying to remove primary NIC
+        if [[ "$mac" == "$primary_mac" ]]; then
+            print_error "Cannot remove primary NIC with MAC $mac"
+            print_info "The first NIC is the primary interface and must remain attached."
+            exit 1
+        fi
         
         # Check if MAC exists
         found=false
@@ -219,11 +229,16 @@ else
     print_notify "NICs attached to VM \"$qemu_kvm_hostname\":"
     for i in "${!AVAILABLE_NICS[@]}"; do
         IFS='|' read -r mac type network <<< "${AVAILABLE_NICS[$i]}"
-        echo "  $((i+1))) MAC: $mac, Type: $type, Network: $network"
+        if [[ $i -eq 0 ]]; then
+            echo "  $((i+1))) MAC: $mac, Type: $type, Network: $network [PRIMARY - Cannot be removed]"
+        else
+            echo "  $((i+1))) MAC: $mac, Type: $type, Network: $network"
+        fi
     done
     echo "  q) Quit"
     
-    print_info "Enter NIC numbers to remove (space-separated, e.g., '1 3'):"
+    print_info "Enter NIC numbers to remove (space-separated, e.g., '2 3'):"
+    print_warning "Note: NIC #1 is the primary interface and cannot be removed."
     read -rp "Selection: " selection
     
     if [[ "$selection" == "q" || "$selection" == "Q" ]]; then
@@ -237,6 +252,13 @@ else
             print_error "Invalid selection: $num"
             exit 1
         fi
+        
+        # Prevent removal of primary NIC (index 0)
+        if [[ $num -eq 1 ]]; then
+            print_error "Cannot remove NIC #1 - it is the primary interface."
+            exit 1
+        fi
+        
         idx=$((num - 1))
         if (( idx < 0 || idx >= ${#AVAILABLE_NICS[@]} )); then
             print_error "Invalid NIC number: $num"
