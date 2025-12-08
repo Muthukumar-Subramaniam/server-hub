@@ -73,20 +73,19 @@ check_existing_lab_deployment() {
   fi
   
   if [[ $found_issues -eq 2 ]]; then
-    echo
-    print_error "═══════════════════════════════════════════════════════════════════"
-    print_error "CRITICAL: Lab infrastructure is already deployed!"
-    print_error "Re-running this script will OVERWRITE your existing setup."
-    print_error "═══════════════════════════════════════════════════════════════════"
-    echo
-    print_warning "If you want to redeploy from scratch, you must:"
-    print_info "  1. Backup any important data from your lab"
-    print_info "  2. Manually remove the existing deployment:"
-    print_info "     • Delete VM: sudo virsh undefine ${lab_infra_server_hostname:-lab-infra-server} --remove-all-storage"
-    print_info "     • Or stop host services: sudo systemctl stop named kea-dhcp4 nginx"
-    print_info "  3. Remove lab config: sudo rm -rf /kvm-hub/lab_environment_vars"
-    print_info "  4. Remove SSH keys: rm -f ~/.ssh/kvm_lab_global_id_rsa*"
-    echo
+    print_red "═══════════════════════════════════════════════════════════════════
+CRITICAL: Lab infrastructure is already deployed!
+Re-running this script will OVERWRITE your existing setup.
+═══════════════════════════════════════════════════════════════════"
+    
+    print_yellow "If you want to redeploy from scratch, you must:
+  1. Backup any important data from your lab
+  2. Manually remove the existing deployment:
+     • Delete VM: sudo virsh undefine ${lab_infra_server_hostname:-lab-infra-server} --remove-all-storage
+     • Or stop host services: sudo systemctl stop named kea-dhcp4 nginx
+  3. Remove lab config: sudo rm -rf /kvm-hub/lab_environment_vars
+  4. Remove SSH keys: rm -f ~/.ssh/kvm_lab_global_id_rsa*"
+    
     read -rp "Do you understand the risks and want to FORCE re-deployment? (yes/NO): " force_confirm
     
     if [[ "$force_confirm" != "yes" ]]; then
@@ -97,10 +96,9 @@ check_existing_lab_deployment() {
     print_warning "Proceeding with FORCED re-deployment..."
     sleep 2
   elif [[ $found_issues -eq 1 ]]; then
-    echo
-    print_warning "Some lab components already exist."
-    print_warning "Continuing may overwrite existing SSH keys or configuration."
-    echo
+    print_warning "Some lab components already exist.
+Continuing may overwrite existing SSH keys or configuration."
+    
     read -rp "Type 'OVERWRITE' to continue with deployment: " continue_confirm
     
     if [[ "$continue_confirm" != "OVERWRITE" ]]; then
@@ -113,8 +111,6 @@ check_existing_lab_deployment() {
   else
     print_success "No existing lab deployment detected. Safe to proceed."
   fi
-  
-  echo
 }
 
 prepare_lab_infra_config() {
