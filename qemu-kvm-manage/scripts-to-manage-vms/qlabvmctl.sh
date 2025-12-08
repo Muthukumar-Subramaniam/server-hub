@@ -47,6 +47,7 @@ VM CONFIGURATION:
     add-disk                Add additional disk to VM
     attach-disk             Attach disk(s) from detached storage
     detach-disk             Detach and save disk(s) from VM
+    delete-disk             Permanently delete disk(s) from detached storage
 
 OPTIONS:
     -h, --help              Show this help message
@@ -94,7 +95,7 @@ main() {
         build-golden-image)
             script_name="kvm-build-golden-image.sh"
             ;;
-        add-disk|attach-disk|detach-disk)
+        add-disk|attach-disk|detach-disk|delete-disk)
             script_name="kvm-${subcommand}.sh"
             ;;
         *)
