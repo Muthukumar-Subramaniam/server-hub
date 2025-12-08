@@ -34,7 +34,7 @@ confirm_reimage_operation() {
         print_warning "All existing data on this VM will be permanently lost."
         read -rp "Are you sure you want to proceed? (yes/no): " confirmation
         if [[ "$confirmation" != "yes" ]]; then
-            print_info "[INFO] Operation cancelled by user."
+            print_info "Operation cancelled by user."
             exit 0
         fi
     fi

@@ -35,7 +35,7 @@ confirm_vm_operation() {
     echo -ne "\033[1A\033[2K"  # Move up one line and clear it
     
     if [[ "$confirmation" != "yes" ]]; then
-        print_info "[INFO] Operation cancelled by user."
+        print_info "Operation cancelled by user."
         return 1
     fi
     
