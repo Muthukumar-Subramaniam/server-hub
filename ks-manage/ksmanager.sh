@@ -498,9 +498,9 @@ fn_check_distro_availability() {
 	fi
 
 	if [[ ! -f "${ipxe_web_dir}/images/${os_distribution}-latest/${kernel_file_name}" ]]; then
-		print_warning '[Not-Ready]'
+		print_yellow '[Not-Ready]'
 	else
-		print_success '[Ready]'
+		print_green '[Ready]'
 	fi
 }
 
