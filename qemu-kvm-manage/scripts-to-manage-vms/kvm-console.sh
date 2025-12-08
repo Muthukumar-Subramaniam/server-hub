@@ -35,7 +35,7 @@ while [[ $# -gt 0 ]]; do
             exit 0
             ;;
         -*)
-            print_error "[ERROR] No such option: $1"
+            print_error "No such option: $1"
             fn_show_help
             exit 1
             ;;
@@ -52,17 +52,17 @@ source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/input-hostnam
 
 # Check if VM exists in 'virsh list --all'
 if ! sudo virsh list --all | awk '{print $2}' | grep -Fxq "$qemu_kvm_hostname"; then
-    print_error "[ERROR] VM \"$qemu_kvm_hostname\" does not exist."
+    print_error "VM \"$qemu_kvm_hostname\" does not exist."
     exit 1
 fi
 
 # Check if VM is running
 if ! sudo virsh list | awk '{print $2}' | grep -Fxq "$qemu_kvm_hostname"; then
-    print_error "[ERROR] VM \"$qemu_kvm_hostname\" is not running."
+    print_error "VM \"$qemu_kvm_hostname\" is not running."
     exit 1
 fi
 
 # Proceed to access console
-print_info "[INFO] Connecting to console of VM \"$qemu_kvm_hostname\"..."
+print_info "Connecting to console of VM \"$qemu_kvm_hostname\"..."
 print_notify "Press Ctrl+] to exit the console."
 sudo virsh console "$qemu_kvm_hostname"
