@@ -102,7 +102,12 @@ prepare_iso() {
     print_info "ISO already exists: $iso_path\n"
   else
     print_info "Downloading ISO from $iso_url\n"
-    wget --continue --output-document="$iso_path" "$iso_url"
+    if ! wget --continue --output-document="$iso_path" "$iso_url"; then
+      print_error "Failed to download ISO from $iso_url"
+      print_info "Cleaning up partial download..."
+      sudo rm -f "$iso_path"
+      exit 1
+    fi
     sudo chown "${mgmt_super_user}:${mgmt_super_user}" "$iso_path"
     print_success "Download complete and ownership set.\n"
   fi
@@ -113,7 +118,12 @@ prepare_iso() {
   local fstab_entry="$iso_path $mount_dir iso9660 uid=${mgmt_super_user},gid=${mgmt_super_user} 0 0"
   if ! grep -qF "$fstab_entry" "$FSTAB"; then
     print_info "Adding mount entry to /etc/fstab\n"
-    echo "$fstab_entry" | sudo tee -a "$FSTAB" > /dev/null
+    if ! echo "$fstab_entry" | sudo tee -a "$FSTAB" > /dev/null; then
+      print_error "Failed to add fstab entry"
+      print_info "Cleaning up ISO file..."
+      sudo rm -f "$iso_path"
+      exit 1
+    fi
     sudo systemctl daemon-reload
   else
     print_info "fstab already contains ISO mount entry.\n"
@@ -121,7 +131,15 @@ prepare_iso() {
 
   if ! mountpoint -q "$mount_dir"; then
     print_info "Mounting ISO to $mount_dir\n"
-    sudo mount "$mount_dir"
+    if ! sudo mount "$mount_dir"; then
+      print_error "Failed to mount ISO at $mount_dir"
+      print_info "Cleaning up..."
+      sudo sed -i "\|${mount_dir}|d" "$FSTAB"
+      sudo systemctl daemon-reload
+      sudo rm -f "$iso_path"
+      sudo rm -rf "$mount_dir"
+      exit 1
+    fi
     print_success "ISO mounted.\n"
   else
     print_info "ISO already mounted.\n"
@@ -131,8 +149,27 @@ prepare_iso() {
   sudo mkdir -p "$web_image_dir"
   sudo chown "${mgmt_super_user}:${mgmt_super_user}" "$web_image_dir"
 
-  rsync -avPh "$mount_dir/$kernel_path" "$web_image_dir/"
-  rsync -avPh "$mount_dir/$initrd_path" "$web_image_dir/"
+  if ! rsync -avPh "$mount_dir/$kernel_path" "$web_image_dir/"; then
+    print_error "Failed to sync kernel file"
+    print_info "Cleaning up..."
+    sudo umount "$mount_dir"
+    sudo sed -i "\|${mount_dir}|d" "$FSTAB"
+    sudo systemctl daemon-reload
+    sudo rm -f "$iso_path"
+    sudo rm -rf "$mount_dir" "$web_image_dir"
+    exit 1
+  fi
+  
+  if ! rsync -avPh "$mount_dir/$initrd_path" "$web_image_dir/"; then
+    print_error "Failed to sync initrd file"
+    print_info "Cleaning up..."
+    sudo umount "$mount_dir"
+    sudo sed -i "\|${mount_dir}|d" "$FSTAB"
+    sudo systemctl daemon-reload
+    sudo rm -f "$iso_path"
+    sudo rm -rf "$mount_dir" "$web_image_dir"
+    exit 1
+  fi
 
   print_success "All done for $distro.\n"
 }
