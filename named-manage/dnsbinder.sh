@@ -1204,7 +1204,8 @@ fn_handle_multiple_host_record() {
 	
 		cat ${v_host_list_file}
 	
-		print_warning "Provide your confirmation to ${v_action_required} the above host records (y/n) : " "nskip"
+		echo
+		print_notify "Provide your confirmation to ${v_action_required} the above host records (y/n) : " "nskip"
 		
 		read v_confirmation
 	
@@ -1248,7 +1249,7 @@ fn_handle_multiple_host_record() {
 	
 	let v_host_count++
 	
-	print_white "Attempting to ${v_action_required} the host record ${v_host_record}.${v_domain_name} . . . " "nskip"
+	print_task "Attempting to ${v_action_required} the host record ${v_host_record}.${v_domain_name} . . . " "nskip"
 
 	v_serial_fw_zone_pre_execution=$(grep ';Serial' ${v_fw_zone} | cut -d ";" -f 1 | tr -d '[:space:]')
 	
@@ -1289,7 +1290,7 @@ fn_handle_multiple_host_record() {
 	if [[ ${var_exit_status} -eq 9 ]]
 	then
         	print_red "Invalid-Host     ${v_details_of_host_record}" >> "${v_tmp_file_dnsbinder}"
-		print_red "[ failed ]"
+		print_task_fail
 		let v_count_failed++ 
 
 	elif [[ ${var_exit_status} -eq 8 ]]
@@ -1304,13 +1305,13 @@ fn_handle_multiple_host_record() {
 		fi
 
         	print_yellow "${v_existence_state} ${v_details_of_host_record}" >> "${v_tmp_file_dnsbinder}"
-		print_red "[ failed ]"
+		print_task_fail
 		let v_count_failed++
 
 	elif [[ ${var_exit_status} -eq 255 ]]
 	then
         	print_red "IP-Exhausted     ${v_details_of_host_record}" >> "${v_tmp_file_dnsbinder}"
-		print_red "[ failed ]"
+		print_task_fail
 		let v_count_failed++
 	else
 		v_serial_fw_zone_post_execution=$(grep ';Serial' ${v_fw_zone} | cut -d ";" -f 1 | tr -d '[:space:]')
@@ -1318,11 +1319,11 @@ fn_handle_multiple_host_record() {
 		if [[ "${v_serial_fw_zone_pre_execution}" -ne "${v_serial_fw_zone_post_execution}" ]]
 		then
 			print_green "${v_action_required^}d          ${v_details_of_host_record}" >> "${v_tmp_file_dnsbinder}"
-			print_green "[ done ]"
+			print_task_done
 			let v_count_successfull++
 		else
         		print_red "Failed-to-${v_action_required^} ${v_details_of_host_record}" >> "${v_tmp_file_dnsbinder}"
-			print_red "[ failed ]"
+			print_task_fail
 			let v_count_failed++
 		fi
 	fi
