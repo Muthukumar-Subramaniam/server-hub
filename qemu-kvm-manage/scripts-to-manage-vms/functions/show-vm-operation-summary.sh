@@ -45,13 +45,13 @@ show_vm_operation_summary() {
         done
     fi
     
-    # Add helpful info for install/reimage operations
-    if [[ -n "$additional_info" ]]; then
-        echo ""
-        print_info "${additional_info}"
-    fi
-    
+    # Add helpful info for install/reimage operations - only if some VMs succeeded
     if [[ ${#successful_vms[@]} -gt 0 ]]; then
+        if [[ -n "$additional_info" ]]; then
+            echo ""
+            print_info "${additional_info}"
+        fi
+        
         print_info "To monitor progress: qlabvmctl console <hostname>"
         print_info "To check VM status: qlabvmctl list"
     fi
