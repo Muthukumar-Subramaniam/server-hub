@@ -203,7 +203,7 @@ source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/input-hostnam
 
 # Remove the VM
 if remove_vm "$qemu_kvm_hostname" "$force_remove"; then
-    print_summary "VM '$qemu_kvm_hostname' removed successfully."
+    print_success "VM '$qemu_kvm_hostname' removed successfully."
     exit 0
 else
     exit 1
