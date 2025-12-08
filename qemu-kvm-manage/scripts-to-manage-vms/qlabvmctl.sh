@@ -53,7 +53,7 @@ OPTIONS:
 NOTES:
     - Use 'qlabstart' to start the lab infrastructure
     - Use 'qlabhealth' to check lab infrastructure health
-    - Use 'qlabdnsbinder' to manage DNS records for lab VMs
+    - Use 'qlabdnsbinder' to manage DNS records for lab infrastructure
     - For subcommand help: qlabvmctl <subcommand> --help"
 }
 
