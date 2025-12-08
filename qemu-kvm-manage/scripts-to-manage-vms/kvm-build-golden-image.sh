@@ -39,7 +39,7 @@ while [[ $# -gt 0 ]]; do
             ;;
         -d|--distro)
             if [[ -z "$2" || "$2" == -* ]]; then
-                print_error "[ERROR] --distro/-d requires a distribution name."
+                print_error "--distro/-d requires a distribution name."
                 fn_show_help
                 exit 1
             fi
@@ -47,27 +47,27 @@ while [[ $# -gt 0 ]]; do
             shift 2
             ;;
         -*)
-            print_error "[ERROR] No such option: $1"
+            print_error "No such option: $1"
             fn_show_help
             exit 1
             ;;
         *)
-            print_error "[ERROR] $(basename $0) does not accept positional arguments."
+            print_error "$(basename $0) does not accept positional arguments."
             fn_show_help
             exit 1
             ;;
     esac
 done
 
-print_info "[INFO] Invoking ksmanager to create PXE environment for golden image..."
+print_info "Invoking ksmanager to create PXE environment for golden image..."
 
 # Run ksmanager for golden image creation
 source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/run-ksmanager.sh
 ksmanager_opts="--qemu-kvm --create-golden-image"
 [[ -n "$OS_DISTRO" ]] && ksmanager_opts="$ksmanager_opts --distro $OS_DISTRO"
 if ! run_ksmanager "" "$ksmanager_opts"; then
-    print_error "[FAILED] Something went wrong while executing ksmanager!"
-    print_info "[INFO] Please check your Lab Infra Server for the root cause."
+    print_error "Something went wrong while executing ksmanager!"
+    print_info "Please check your Lab Infra Server for the root cause."
     exit 1
 fi
 
@@ -84,22 +84,22 @@ if [ -f "${golden_image_path}" ]; then
     echo -ne "\033[1A\033[2K"  # Move up one line and clear it
     case "$answer" in
         yes|YES)
-            print_info "[INFO] Deleting existing golden image..."
+            print_info "Deleting existing golden image..."
             if sudo rm -f "${golden_image_path}"; then
-                print_success "[SUCCESS] Existing golden image deleted."
+                print_success "Existing golden image deleted."
             else
-                print_error "[FAILED] Could not delete existing golden image."
+                print_error "Could not delete existing golden image."
                 exit 1
             fi
             ;;
         * )
-            print_info "[INFO] Keeping existing golden image \"${qemu_kvm_hostname}\". Exiting..."
+            print_info "Keeping existing golden image \"${qemu_kvm_hostname}\". Exiting..."
             exit 0
             ;;
     esac
 fi
 
-print_info "[INFO] Starting installation of VM \"${qemu_kvm_hostname}\" to create golden image disk..."
+print_info "Starting installation of VM \"${qemu_kvm_hostname}\" to create golden image disk..."
 
 # Set custom paths for golden image creation
 DISK_PATH="${golden_image_path}"
@@ -107,17 +107,17 @@ NVRAM_PATH="/kvm-hub/golden-images-disk-store/${qemu_kvm_hostname}_VARS.fd"
 CONSOLE_MODE="--console pty,target_type=serial"
 
 if ! virt_install_output=$(source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/default-vm-install.sh 2>&1); then
-    print_error "[FAILED] VM installation failed."
+    print_error "VM installation failed."
     if [[ -n "$virt_install_output" ]]; then
         print_error "$virt_install_output"
     fi
     exit 1
 fi
 
-print_info "[INFO] VM installation completed."
+print_info "VM installation completed."
 
 # Cleanup: destroy and undefine the temporary VM
-print_info "[INFO] Cleaning up temporary VM..."
+print_info "Cleaning up temporary VM..."
 
 # Destroy VM if running
 source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/poweroff-vm.sh
@@ -125,9 +125,9 @@ POWEROFF_VM_CONTEXT="Stopping temporary VM" poweroff_vm "$qemu_kvm_hostname"
 
 # Undefine VM
 if error_msg=$(sudo virsh undefine "$qemu_kvm_hostname" --nvram 2>&1); then
-    print_info "[INFO] Temporary VM cleaned up successfully."
+    print_info "Temporary VM cleaned up successfully."
 else
     print_warning "Could not cleanup temporary VM: $error_msg"
 fi
 
-print_success "[SUCCESS] Golden image disk created successfully: ${golden_image_path}"
+print_success "Golden image disk created successfully: ${golden_image_path}"
