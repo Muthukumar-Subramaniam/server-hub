@@ -9,14 +9,14 @@ source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/defaults.sh
 
 # Function to show help
 fn_show_help() {
-    print_cyan "Usage: qlabvmctl delete-disk [OPTIONS]
+    print_cyan "Usage: qlabvmctl disk-delete [OPTIONS]
 Options:
   -d, --disks <list>   Comma-separated list of disk files to delete from detached storage
   -h, --help           Show this help message
 
 Examples:
-  qlabvmctl delete-disk                         # Interactive mode - select disks
-  qlabvmctl delete-disk -d disk1.qcow2,disk2.qcow2  # Delete specific disks
+  qlabvmctl disk-delete                         # Interactive mode - select disks
+  qlabvmctl disk-delete -d disk1.qcow2,disk2.qcow2  # Delete specific disks
 
 WARNING:
   This permanently deletes disk files from detached storage.

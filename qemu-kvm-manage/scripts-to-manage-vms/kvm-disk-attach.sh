@@ -9,29 +9,27 @@ source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/defaults.sh
 
 # Function to show help
 fn_show_help() {
-    print_cyan "Usage: qlabvmctl add-disk [OPTIONS] [hostname]
+    print_cyan "Usage: qlabvmctl disk-attach [OPTIONS] [hostname]
 Options:
   -f, --force          Force power-off without prompt if VM is running
-  -n, --count <num>    Number of disks to add (1-10, default: prompt)
-  -s, --size <size>    Disk size in GB (multiple of 5, range: 5-50, default: prompt)
+  -d, --disks <list>   Comma-separated list of disk files to attach from detached storage
   -h, --help           Show this help message
 
 Arguments:
-  hostname             Name of the VM to add disks to (optional, will prompt if not given)
+  hostname             Name of the VM to attach disks to (optional, will prompt if not given)
 
 Examples:
-  qlabvmctl add-disk vm1                        # Interactive mode with prompts
-  qlabvmctl add-disk -f vm1                     # Force power-off if running
-  qlabvmctl add-disk -n 2 -s 10 vm1             # Add 2x10GB disks with prompts
-  qlabvmctl add-disk -f -n 3 -s 20 vm1          # Fully automated: 3x20GB disks
+  qlabvmctl disk-attach vm1                     # Interactive mode - select disks
+  qlabvmctl disk-attach -f vm1                  # Force power-off if running
+  qlabvmctl disk-attach -d disk1.qcow2,disk2.qcow2 vm1  # Attach specific disks
+  qlabvmctl disk-attach -f -d disk1.qcow2 vm2   # Fully automated
 "
 }
 
 # Parse arguments
 force_poweroff=false
 vm_hostname_arg=""
-disk_count_arg=""
-disk_size_arg=""
+disks_arg=""
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -43,20 +41,12 @@ while [[ $# -gt 0 ]]; do
             force_poweroff=true
             shift
             ;;
-        -n|--count)
+        -d|--disks)
             if [[ -z "$2" || "$2" == -* ]]; then
-                print_error "Option -n/--count requires a value."
+                print_error "Option -d/--disks requires a value."
                 exit 1
             fi
-            disk_count_arg="$2"
-            shift 2
-            ;;
-        -s|--size)
-            if [[ -z "$2" || "$2" == -* ]]; then
-                print_error "Option -s/--size requires a value."
-                exit 1
-            fi
-            disk_size_arg="$2"
+            disks_arg="$2"
             shift 2
             ;;
         -*)
@@ -170,54 +160,8 @@ else
     fn_shutdown_or_poweroff
 fi
 
-# Get disk count (from argument or prompt)
-if [[ -n "$disk_count_arg" ]]; then
-    # Validate provided disk count
-    if [[ ! "$disk_count_arg" =~ ^[1-9][0-9]*$ ]] || (( disk_count_arg > 10 )); then
-        print_error "Invalid disk count: $disk_count_arg. Must be between 1 and 10."
-        exit 1
-    fi
-    DISK_COUNT="$disk_count_arg"
-    print_info "Using disk count: $DISK_COUNT"
-else
-    # Prompt for disk count
-    print_notify "Select number of disks to add (1-10):"
-    while true; do
-        read -rp "Enter disk count: " DISK_COUNT
-        if [[ "$DISK_COUNT" =~ ^[1-9][0-9]*$ ]] && (( DISK_COUNT <= 10 )); then
-            print_info "Selected $DISK_COUNT disk(s)."
-            break
-        else
-            print_error "Invalid input! Enter a number between 1 and 10."
-        fi
-    done
-fi
-
-# Get disk size (from argument or prompt)
-if [[ -n "$disk_size_arg" ]]; then
-    # Validate provided disk size
-    if [[ ! "$disk_size_arg" =~ ^[0-9]+$ ]] || (( disk_size_arg < 5 || disk_size_arg % 5 != 0 || disk_size_arg > 50 )); then
-        print_error "Invalid disk size: $disk_size_arg. Must be a multiple of 5 between 5 and 50."
-        exit 1
-    fi
-    DISK_SIZE_GB="$disk_size_arg"
-    print_info "Using disk size: ${DISK_SIZE_GB}GB"
-else
-    # Prompt for disk size
-    print_info "Allowed disk size: Steps of 5GB (5, 10, 15 ... up to 50GB)"
-    while true; do
-        read -rp "Enter disk size in GB (default 5): " DISK_SIZE_GB
-        DISK_SIZE_GB=${DISK_SIZE_GB:-5}
-        if [[ "$DISK_SIZE_GB" =~ ^[0-9]+$ ]] && (( DISK_SIZE_GB >= 5 && DISK_SIZE_GB % 5 == 0 && DISK_SIZE_GB <= 50 )); then
-            print_info "Selected ${DISK_SIZE_GB}GB disk size."
-            break
-        else
-            print_error "Invalid size! Enter a multiple of 5 between 5 and 50."
-        fi
-    done
-fi
-
 VM_DIR="/kvm-hub/vms/${qemu_kvm_hostname}"
+DETACHED_DIR="/kvm-hub/detached-data-disks"
 
 # Verify VM directory exists
 if [[ ! -d "$VM_DIR" ]]; then
@@ -225,65 +169,177 @@ if [[ ! -d "$VM_DIR" ]]; then
     exit 1
 fi
 
-# Determine existing disks using associative array for O(1) lookup
-declare -A EXISTING_DISKS
-for disk_file in "$VM_DIR"/*.qcow2; do
-    [[ -e "$disk_file" ]] || continue
-    BASENAME=$(basename "$disk_file")
-    EXISTING_DISKS["$BASENAME"]=1
-done
+# Check detached disks directory
+if [[ ! -d "$DETACHED_DIR" ]]; then
+    print_error "Detached disks directory does not exist: $DETACHED_DIR"
+    print_info "No detached disks available to attach."
+    exit 1
+fi
 
-# Function to get next available disk letter
-get_next_disk_letter() {
-    local letter
-    for letter in {b..z}; do
-        if [[ -z "${EXISTING_DISKS[${qemu_kvm_hostname}_vd${letter}.qcow2]}" ]]; then
-            echo "$letter"
+# Get list of available detached disks
+print_info "Scanning detached disks..."
+declare -a AVAILABLE_DISKS
+while IFS= read -r disk_file; do
+    AVAILABLE_DISKS+=("$(basename "$disk_file")")
+done < <(sudo find "$DETACHED_DIR" -maxdepth 1 -type f -name "*.qcow2" 2>/dev/null)
+
+if [[ ${#AVAILABLE_DISKS[@]} -eq 0 ]]; then
+    print_warning "No detached disks found in $DETACHED_DIR"
+    exit 0
+fi
+
+# Get currently attached disk targets to find next available target
+declare -a USED_TARGETS
+while IFS= read -r target; do
+    USED_TARGETS+=("$target")
+done < <(sudo virsh domblklist "$qemu_kvm_hostname" --details | awk '$2 == "disk" {print $3}')
+
+# Function to get next available disk target
+get_next_disk_target() {
+    local letters=({b..z})
+    for letter in "${letters[@]}"; do
+        local target="vd${letter}"
+        if ! printf '%s\n' "${USED_TARGETS[@]}" | grep -Fxq "$target"; then
+            echo "$target"
             return 0
         fi
     done
     return 1
 }
 
-for ((i=1; i<=DISK_COUNT; i++)); do
-    # Get next available letter
-    if ! NEXT_DISK_LETTER=$(get_next_disk_letter); then
-        print_error "Maximum disk letters reached (vdb-vdz)."
-        exit 1
+# Get disks to attach (from argument or prompt)
+declare -a DISKS_TO_ATTACH
+
+if [[ -n "$disks_arg" ]]; then
+    # Parse comma-separated disk list
+    IFS=',' read -ra DISKS_TO_ATTACH <<< "$disks_arg"
+    
+    # Validate each disk
+    for disk in "${DISKS_TO_ATTACH[@]}"; do
+        # Remove whitespace
+        disk=$(echo "$disk" | xargs)
+        
+        # Check if disk exists in detached directory
+        if [[ ! -f "$DETACHED_DIR/$disk" ]]; then
+            print_error "Disk $disk not found in detached storage: $DETACHED_DIR"
+            exit 1
+        fi
+    done
+    print_info "Using specified disks: ${DISKS_TO_ATTACH[*]}"
+else
+    # Interactive mode - show available disks
+    print_notify "Available detached disks:"
+    for i in "${!AVAILABLE_DISKS[@]}"; do
+        disk="${AVAILABLE_DISKS[$i]}"
+        disk_path="$DETACHED_DIR/$disk"
+        if [[ -f "$disk_path" ]]; then
+            disk_size=$(du -h "$disk_path" | awk '{print $1}')
+            echo "  $((i+1))) $disk ($disk_size)"
+        else
+            echo "  $((i+1))) $disk"
+        fi
+    done
+    echo "  q) Quit"
+    
+    print_info "Enter disk numbers to attach (space-separated, e.g., '1 3' or 'all' for all disks):"
+    read -rp "Selection: " selection
+    
+    if [[ "$selection" == "q" || "$selection" == "Q" ]]; then
+        print_info "Quitting without any action."
+        exit 0
     fi
-
-    DISK_NAME="${qemu_kvm_hostname}_vd${NEXT_DISK_LETTER}.qcow2"
-    DISK_PATH="$VM_DIR/$DISK_NAME"
-
-    # Create disk
-    print_task "Creating disk vd${NEXT_DISK_LETTER} (${DISK_SIZE_GB}GB)..." nskip
-    if error_msg=$(qemu-img create -f qcow2 "$DISK_PATH" "${DISK_SIZE_GB}G" 2>&1); then
-        print_task_done
+    
+    if [[ "$selection" == "all" || "$selection" == "ALL" ]]; then
+        DISKS_TO_ATTACH=("${AVAILABLE_DISKS[@]}")
+        print_info "Selected all disks: ${DISKS_TO_ATTACH[*]}"
     else
-        print_task_fail
-        print_error "$error_msg"
-        exit 1
+        # Parse space-separated numbers
+        for num in $selection; do
+            if [[ ! "$num" =~ ^[0-9]+$ ]]; then
+                print_error "Invalid selection: $num"
+                exit 1
+            fi
+            idx=$((num - 1))
+            if (( idx < 0 || idx >= ${#AVAILABLE_DISKS[@]} )); then
+                print_error "Invalid disk number: $num"
+                exit 1
+            fi
+            DISKS_TO_ATTACH+=("${AVAILABLE_DISKS[$idx]}")
+        done
+        print_info "Selected disks: ${DISKS_TO_ATTACH[*]}"
     fi
+fi
 
-    # Attach disk
-    print_task "Attaching vd${NEXT_DISK_LETTER} (${DISK_SIZE_GB}GB) to VM \"$qemu_kvm_hostname\"..." nskip
-    if error_msg=$(sudo virsh attach-disk "$qemu_kvm_hostname" "$DISK_PATH" "vd$NEXT_DISK_LETTER" --subdriver qcow2 --persistent 2>&1); then
-        print_task_done
+# Confirm attachment
+print_warning "The following disk(s) will be attached to VM \"$qemu_kvm_hostname\" and renamed:"
+for disk in "${DISKS_TO_ATTACH[@]}"; do
+    disk_path="$DETACHED_DIR/$disk"
+    if [[ -f "$disk_path" ]]; then
+        disk_size=$(du -h "$disk_path" | awk '{print $1}')
+        echo "  - $disk ($disk_size)"
     else
-        print_task_fail
-        print_error "$error_msg"
-        exit 1
+        echo "  - $disk"
     fi
-
-    # Mark disk as used
-    EXISTING_DISKS["$DISK_NAME"]=1
 done
+
+read -rp "Type 'yes' to confirm: " confirm
+if [[ "$confirm" != "yes" ]]; then
+    print_info "Operation cancelled."
+    exit 0
+fi
+
+# Attach and rename disks
+attached_count=0
+for disk in "${DISKS_TO_ATTACH[@]}"; do
+    detached_path="$DETACHED_DIR/$disk"
+    
+    # Get next available target
+    next_target=$(get_next_disk_target)
+    if [[ -z "$next_target" ]]; then
+        print_error "No more available disk targets. Maximum disks reached."
+        break
+    fi
+    
+    # Generate new disk name based on VM hostname
+    new_disk_name="${qemu_kvm_hostname}-${next_target}.qcow2"
+    new_disk_path="$VM_DIR/$new_disk_name"
+    
+    # Move and rename disk to VM directory
+    print_task "Moving $disk to VM directory as $new_disk_name..." nskip
+    if error_msg=$(sudo mv "$detached_path" "$new_disk_path" 2>&1); then
+        print_task_done
+    else
+        print_task_fail
+        print_error "$error_msg"
+        continue
+    fi
+    
+    # Attach disk to VM
+    print_task "Attaching $new_disk_name to VM \"$qemu_kvm_hostname\" as $next_target..." nskip
+    if error_msg=$(sudo virsh attach-disk "$qemu_kvm_hostname" "$new_disk_path" "$next_target" \
+        --subdriver qcow2 --persistent 2>&1); then
+        print_task_done
+        USED_TARGETS+=("$next_target")
+        ((attached_count++))
+    else
+        print_task_fail
+        print_error "$error_msg"
+        # Try to move disk back to detached directory
+        sudo mv "$new_disk_path" "$detached_path" 2>/dev/null
+        continue
+    fi
+done
+
+if [[ $attached_count -eq 0 ]]; then
+    print_error "Failed to attach any disks."
+    exit 1
+fi
 
 print_task "Starting VM \"$qemu_kvm_hostname\"..." nskip
 
 if error_msg=$(sudo virsh start "$qemu_kvm_hostname" 2>&1); then
     print_task_done
-    print_success "Added $DISK_COUNT ${DISK_SIZE_GB}GB disk(s) to VM \"$qemu_kvm_hostname\" and started successfully."
+    print_success "Attached $attached_count disk(s) to VM \"$qemu_kvm_hostname\" and started successfully."
 else
     print_task_fail
     print_error "Could not start VM \"$qemu_kvm_hostname\"."

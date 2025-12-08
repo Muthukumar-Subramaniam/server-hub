@@ -9,27 +9,29 @@ source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/defaults.sh
 
 # Function to show help
 fn_show_help() {
-    print_cyan "Usage: qlabvmctl detach-disk [OPTIONS] [hostname]
+    print_cyan "Usage: qlabvmctl disk-add [OPTIONS] [hostname]
 Options:
   -f, --force          Force power-off without prompt if VM is running
-  -d, --disks <list>   Comma-separated list of disk targets to detach (e.g., vdb,vdc)
+  -n, --count <num>    Number of disks to add (1-10, default: prompt)
+  -s, --size <size>    Disk size in GB (multiple of 5, range: 5-50, default: prompt)
   -h, --help           Show this help message
 
 Arguments:
-  hostname             Name of the VM to detach disks from (optional, will prompt if not given)
+  hostname             Name of the VM to add disks to (optional, will prompt if not given)
 
 Examples:
-  qlabvmctl detach-disk vm1                     # Interactive mode - select disks
-  qlabvmctl detach-disk -f vm1                  # Force power-off if running
-  qlabvmctl detach-disk -d vdb,vdc vm1          # Detach specific disks
-  qlabvmctl detach-disk -f -d vdb,vdc vm1       # Fully automated
+  qlabvmctl disk-add vm1                        # Interactive mode with prompts
+  qlabvmctl disk-add -f vm1                     # Force power-off if running
+  qlabvmctl disk-add -n 2 -s 10 vm1             # Add 2x10GB disks with prompts
+  qlabvmctl disk-add -f -n 3 -s 20 vm1          # Fully automated: 3x20GB disks
 "
 }
 
 # Parse arguments
 force_poweroff=false
 vm_hostname_arg=""
-disks_arg=""
+disk_count_arg=""
+disk_size_arg=""
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -41,12 +43,20 @@ while [[ $# -gt 0 ]]; do
             force_poweroff=true
             shift
             ;;
-        -d|--disks)
+        -n|--count)
             if [[ -z "$2" || "$2" == -* ]]; then
-                print_error "Option -d/--disks requires a value."
+                print_error "Option -n/--count requires a value."
                 exit 1
             fi
-            disks_arg="$2"
+            disk_count_arg="$2"
+            shift 2
+            ;;
+        -s|--size)
+            if [[ -z "$2" || "$2" == -* ]]; then
+                print_error "Option -s/--size requires a value."
+                exit 1
+            fi
+            disk_size_arg="$2"
             shift 2
             ;;
         -*)
@@ -125,7 +135,7 @@ fn_shutdown_or_poweroff() {
             print_info "Waiting for VM \"${qemu_kvm_hostname}\" to shut down (timeout: 60s)..."
             TIMEOUT=60
             ELAPSED=0
-            while sudo virsh list | awk '{print $2}' | grep -Fxq "$qemu_kvm_hostname"; then
+            while sudo virsh list | awk '{print $2}' | grep -Fxq "$qemu_kvm_hostname"; do
                 if (( ELAPSED >= TIMEOUT )); then
                     print_warning "VM did not shut down within ${TIMEOUT}s."
                     print_info "You may want to force power off instead."
@@ -160,6 +170,53 @@ else
     fn_shutdown_or_poweroff
 fi
 
+# Get disk count (from argument or prompt)
+if [[ -n "$disk_count_arg" ]]; then
+    # Validate provided disk count
+    if [[ ! "$disk_count_arg" =~ ^[1-9][0-9]*$ ]] || (( disk_count_arg > 10 )); then
+        print_error "Invalid disk count: $disk_count_arg. Must be between 1 and 10."
+        exit 1
+    fi
+    DISK_COUNT="$disk_count_arg"
+    print_info "Using disk count: $DISK_COUNT"
+else
+    # Prompt for disk count
+    print_notify "Select number of disks to add (1-10):"
+    while true; do
+        read -rp "Enter disk count: " DISK_COUNT
+        if [[ "$DISK_COUNT" =~ ^[1-9][0-9]*$ ]] && (( DISK_COUNT <= 10 )); then
+            print_info "Selected $DISK_COUNT disk(s)."
+            break
+        else
+            print_error "Invalid input! Enter a number between 1 and 10."
+        fi
+    done
+fi
+
+# Get disk size (from argument or prompt)
+if [[ -n "$disk_size_arg" ]]; then
+    # Validate provided disk size
+    if [[ ! "$disk_size_arg" =~ ^[0-9]+$ ]] || (( disk_size_arg < 5 || disk_size_arg % 5 != 0 || disk_size_arg > 50 )); then
+        print_error "Invalid disk size: $disk_size_arg. Must be a multiple of 5 between 5 and 50."
+        exit 1
+    fi
+    DISK_SIZE_GB="$disk_size_arg"
+    print_info "Using disk size: ${DISK_SIZE_GB}GB"
+else
+    # Prompt for disk size
+    print_info "Allowed disk size: Steps of 5GB (5, 10, 15 ... up to 50GB)"
+    while true; do
+        read -rp "Enter disk size in GB (default 5): " DISK_SIZE_GB
+        DISK_SIZE_GB=${DISK_SIZE_GB:-5}
+        if [[ "$DISK_SIZE_GB" =~ ^[0-9]+$ ]] && (( DISK_SIZE_GB >= 5 && DISK_SIZE_GB % 5 == 0 && DISK_SIZE_GB <= 50 )); then
+            print_info "Selected ${DISK_SIZE_GB}GB disk size."
+            break
+        else
+            print_error "Invalid size! Enter a multiple of 5 between 5 and 50."
+        fi
+    done
+fi
+
 VM_DIR="/kvm-hub/vms/${qemu_kvm_hostname}"
 
 # Verify VM directory exists
@@ -168,146 +225,65 @@ if [[ ! -d "$VM_DIR" ]]; then
     exit 1
 fi
 
-# Get list of attached disks (excluding vda which is OS disk)
-print_info "Scanning attached disks..."
-declare -a ATTACHED_DISKS
-while IFS= read -r disk_target; do
-    [[ "$disk_target" != "vda" ]] && ATTACHED_DISKS+=("$disk_target")
-done < <(sudo virsh domblklist "$qemu_kvm_hostname" --details | awk '$2 == "disk" {print $3}')
-
-if [[ ${#ATTACHED_DISKS[@]} -eq 0 ]]; then
-    print_warning "No additional disks found to detach (only OS disk vda is present)."
-    exit 0
-fi
-
-# Get disks to detach (from argument or prompt)
-declare -a DISKS_TO_DETACH
-
-if [[ -n "$disks_arg" ]]; then
-    # Parse comma-separated disk list
-    IFS=',' read -ra DISKS_TO_DETACH <<< "$disks_arg"
-    
-    # Validate each disk
-    for disk in "${DISKS_TO_DETACH[@]}"; do
-        # Remove whitespace
-        disk=$(echo "$disk" | xargs)
-        
-        if [[ "$disk" == "vda" ]]; then
-            print_error "Cannot detach OS disk vda."
-            exit 1
-        fi
-        
-        # Check if disk is actually attached
-        if ! printf '%s\n' "${ATTACHED_DISKS[@]}" | grep -Fxq "$disk"; then
-            print_error "Disk $disk is not attached to VM \"$qemu_kvm_hostname\"."
-            exit 1
-        fi
-    done
-    print_info "Using specified disks: ${DISKS_TO_DETACH[*]}"
-else
-    # Interactive mode - show available disks
-    print_notify "Available disks to detach:"
-    for i in "${!ATTACHED_DISKS[@]}"; do
-        disk="${ATTACHED_DISKS[$i]}"
-        # Get disk size
-        disk_path=$(sudo virsh domblklist "$qemu_kvm_hostname" | awk -v target="$disk" '$1 == target {print $2}')
-        if [[ -f "$disk_path" ]]; then
-            disk_size=$(du -h "$disk_path" | awk '{print $1}')
-            echo "  $((i+1))) $disk ($disk_size)"
-        else
-            echo "  $((i+1))) $disk"
-        fi
-    done
-    echo "  q) Quit"
-    
-    print_info "Enter disk numbers to detach (space-separated, e.g., '1 3' or 'all' for all disks):"
-    read -rp "Selection: " selection
-    
-    if [[ "$selection" == "q" || "$selection" == "Q" ]]; then
-        print_info "Quitting without any action."
-        exit 0
-    fi
-    
-    if [[ "$selection" == "all" || "$selection" == "ALL" ]]; then
-        DISKS_TO_DETACH=("${ATTACHED_DISKS[@]}")
-        print_info "Selected all disks: ${DISKS_TO_DETACH[*]}"
-    else
-        # Parse space-separated numbers
-        for num in $selection; do
-            if [[ ! "$num" =~ ^[0-9]+$ ]]; then
-                print_error "Invalid selection: $num"
-                exit 1
-            fi
-            idx=$((num - 1))
-            if (( idx < 0 || idx >= ${#ATTACHED_DISKS[@]} )); then
-                print_error "Invalid disk number: $num"
-                exit 1
-            fi
-            DISKS_TO_DETACH+=("${ATTACHED_DISKS[$idx]}")
-        done
-        print_info "Selected disks: ${DISKS_TO_DETACH[*]}"
-    fi
-fi
-
-# Confirm detachment
-print_warning "The following disk(s) will be detached and moved to detached storage:"
-for disk in "${DISKS_TO_DETACH[@]}"; do
-    disk_path=$(sudo virsh domblklist "$qemu_kvm_hostname" | awk -v target="$disk" '$1 == target {print $2}')
-    if [[ -f "$disk_path" ]]; then
-        disk_size=$(du -h "$disk_path" | awk '{print $1}')
-        echo "  - $disk ($disk_size) at $disk_path"
-    else
-        echo "  - $disk at $disk_path"
-    fi
+# Determine existing disks using associative array for O(1) lookup
+declare -A EXISTING_DISKS
+for disk_file in "$VM_DIR"/*.qcow2; do
+    [[ -e "$disk_file" ]] || continue
+    BASENAME=$(basename "$disk_file")
+    EXISTING_DISKS["$BASENAME"]=1
 done
 
-read -rp "Type 'yes' to confirm: " confirm
-if [[ "$confirm" != "yes" ]]; then
-    print_info "Operation cancelled."
-    exit 0
-fi
+# Function to get next available disk letter
+get_next_disk_letter() {
+    local letter
+    for letter in {b..z}; do
+        if [[ -z "${EXISTING_DISKS[${qemu_kvm_hostname}_vd${letter}.qcow2]}" ]]; then
+            echo "$letter"
+            return 0
+        fi
+    done
+    return 1
+}
 
-# Ensure detached disks directory exists
-DETACHED_DIR="/kvm-hub/detached-data-disks"
-sudo mkdir -p "$DETACHED_DIR"
-sudo chown "${mgmt_super_user}:${mgmt_super_user}" "$DETACHED_DIR"
+for ((i=1; i<=DISK_COUNT; i++)); do
+    # Get next available letter
+    if ! NEXT_DISK_LETTER=$(get_next_disk_letter); then
+        print_error "Maximum disk letters reached (vdb-vdz)."
+        exit 1
+    fi
 
-# Detach and move disks
-for disk in "${DISKS_TO_DETACH[@]}"; do
-    disk_path=$(sudo virsh domblklist "$qemu_kvm_hostname" | awk -v target="$disk" '$1 == target {print $2}')
-    disk_name=$(basename "$disk_path")
-    detached_path="${DETACHED_DIR}/${disk_name}"
-    
-    # Detach disk
-    print_task "Detaching $disk from VM \"$qemu_kvm_hostname\"..." nskip
-    if error_msg=$(sudo virsh detach-disk "$qemu_kvm_hostname" "$disk" --persistent 2>&1); then
+    DISK_NAME="${qemu_kvm_hostname}_vd${NEXT_DISK_LETTER}.qcow2"
+    DISK_PATH="$VM_DIR/$DISK_NAME"
+
+    # Create disk
+    print_task "Creating disk vd${NEXT_DISK_LETTER} (${DISK_SIZE_GB}GB)..." nskip
+    if error_msg=$(qemu-img create -f qcow2 "$DISK_PATH" "${DISK_SIZE_GB}G" 2>&1); then
         print_task_done
     else
         print_task_fail
         print_error "$error_msg"
-        continue
+        exit 1
     fi
-    
-    # Move disk file to detached storage
-    if [[ -f "$disk_path" ]]; then
-        print_task "Moving $disk to detached storage..." nskip
-        if error_msg=$(sudo mv "$disk_path" "$detached_path" 2>&1); then
-            print_task_done
-            print_info "Disk saved to: $detached_path"
-        else
-            print_task_fail
-            print_error "$error_msg"
-            print_warning "Disk was detached from VM but failed to move to detached storage."
-        fi
+
+    # Attach disk
+    print_task "Attaching vd${NEXT_DISK_LETTER} (${DISK_SIZE_GB}GB) to VM \"$qemu_kvm_hostname\"..." nskip
+    if error_msg=$(sudo virsh attach-disk "$qemu_kvm_hostname" "$DISK_PATH" "vd$NEXT_DISK_LETTER" --subdriver qcow2 --persistent 2>&1); then
+        print_task_done
+    else
+        print_task_fail
+        print_error "$error_msg"
+        exit 1
     fi
+
+    # Mark disk as used
+    EXISTING_DISKS["$DISK_NAME"]=1
 done
 
 print_task "Starting VM \"$qemu_kvm_hostname\"..." nskip
 
 if error_msg=$(sudo virsh start "$qemu_kvm_hostname" 2>&1); then
     print_task_done
-    print_success "Detached ${#DISKS_TO_DETACH[@]} disk(s) from VM \"$qemu_kvm_hostname\" and started successfully."
-    print_info "Detached disks are stored in: $DETACHED_DIR"
+    print_success "Added $DISK_COUNT ${DISK_SIZE_GB}GB disk(s) to VM \"$qemu_kvm_hostname\" and started successfully."
 else
     print_task_fail
     print_error "Could not start VM \"$qemu_kvm_hostname\"."
