@@ -175,7 +175,16 @@ cleanup_distro() {
   sudo rm -f $iso_path
 
   if [[ -n "$mount_dir" && -d "$mount_dir" ]]; then
-    sudo umount -l "$mount_dir" || true
+    if mountpoint -q "$mount_dir"; then
+      print_task "Unmounting $mount_dir..."
+      if sudo umount "$mount_dir"; then
+        print_task_done
+      else
+        print_task_fail
+        print_error "Failed to unmount $mount_dir. Please check if it's in use."
+        exit 1
+      fi
+    fi
     sudo rm -rf "$mount_dir"
   fi
 
