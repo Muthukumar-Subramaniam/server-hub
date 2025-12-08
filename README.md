@@ -72,7 +72,7 @@ cd /server-hub/qemu-kvm-manage/
 
 > 📦 **Using Latest Release**: This downloads the latest stable release directly from GitHub.
 
-**Alternative - Clone from Repository:**
+**Alternative - Clone from the Repository:**
 
 If you prefer to use the latest code from the repository:
 
