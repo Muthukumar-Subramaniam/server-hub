@@ -40,7 +40,7 @@ done
 # -------------------------------------------------------------
 # Header
 # -------------------------------------------------------------
-print_info "-------------------------------------------------------------
+print_cyan "-------------------------------------------------------------
 KVM Lab Infra Health Check
 Lab Infra Server : ${lab_infra_server_hostname} ( ${lab_infra_server_ipv4_address} )
 -------------------------------------------------------------"
@@ -73,7 +73,7 @@ done
 # Summary
 # -------------------------------------------------------------
 total_services=${#services_to_check[@]}
-print_info "-------------------------------------------------------------
+print_cyan "-------------------------------------------------------------
 Health Check Summary of KVM Lab Infra:
 Total Services    : $total_services
 Active Services   : $active_services
@@ -86,4 +86,4 @@ elif [[ $total_services -eq $active_services ]]; then
 else
     print_warning "KVM Lab Infra health is DEGRADED."
 fi
-print_info "-------------------------------------------------------------"
+print_cyan "-------------------------------------------------------------"
