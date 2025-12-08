@@ -39,8 +39,8 @@ run_ksmanager() {
         fi
     fi
 
-    # Check if user cancelled (exit code 130)
-    if [[ $ksmanager_exit_code -eq 130 ]]; then
+    # Check if user cancelled (exit code 130 or cancellation message in log)
+    if [[ $ksmanager_exit_code -eq 130 ]] || grep -q "Operation cancelled by user" "$log_file"; then
         rm -f "$log_file"
         return 1
     fi
