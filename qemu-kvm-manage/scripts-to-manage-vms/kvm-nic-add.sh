@@ -32,6 +32,7 @@ Examples:
 force_poweroff=false
 vm_hostname_arg=""
 nic_count=1
+nic_count_provided=false
 network_name="default"
 
 while [[ $# -gt 0 ]]; do
@@ -50,6 +51,7 @@ while [[ $# -gt 0 ]]; do
                 exit 1
             fi
             nic_count="$2"
+            nic_count_provided=true
             shift 2
             ;;
         -n|--network)
@@ -77,18 +79,27 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
-# Validate NIC count
-if ! [[ "$nic_count" =~ ^[0-9]+$ ]] || (( nic_count < 1 || nic_count > 10 )); then
-    print_error "NIC count must be a number between 1 and 10."
-    exit 1
-fi
-
 # Use argument or prompt for hostname
 source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/input-hostname.sh "$vm_hostname_arg"
 
 # Check if VM exists
 if ! sudo virsh list --all | awk '{print $2}' | grep -Fxq "$qemu_kvm_hostname"; then
     print_error "VM \"$qemu_kvm_hostname\" does not exist."
+    exit 1
+fi
+
+# Prompt for NIC count if not provided via -c flag
+if [[ "$nic_count_provided" == false ]]; then
+    print_info "How many NICs do you want to add? (1-10, default: 1)"
+    read -rp "Enter count: " user_nic_count
+    if [[ -n "$user_nic_count" ]]; then
+        nic_count="$user_nic_count"
+    fi
+fi
+
+# Validate NIC count
+if ! [[ "$nic_count" =~ ^[0-9]+$ ]] || (( nic_count < 1 || nic_count > 10 )); then
+    print_error "NIC count must be a number between 1 and 10."
     exit 1
 fi
 
