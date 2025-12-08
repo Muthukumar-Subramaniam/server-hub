@@ -151,7 +151,7 @@ for disk in "${DISKS_TO_DELETE[@]}"; do
     fi
 done
 
-print_error "This action CANNOT be undone!"
+print_warning "This action CANNOT be undone!"
 read -rp "Type 'DELETE' in uppercase to confirm permanent deletion: " confirm
 if [[ "$confirm" != "DELETE" ]]; then
     print_info "Operation cancelled."
