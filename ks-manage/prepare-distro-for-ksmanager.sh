@@ -192,13 +192,13 @@ prepare_iso() {
 
 prepare_rhel() {
   local distro="rhel"
-  local iso_file="rhel-10.0-x86_64-dvd.iso"
+  local iso_file="rhel-10-latest-x86_64-dvd.iso"
   local mount_dir="/${dnsbinder_server_fqdn}/${distro}-latest"
   local web_image_dir="/${dnsbinder_server_fqdn}/ipxe/images/${distro}-latest"
   local iso_path="${ISO_DIR}/${iso_file}"
 
   print_info "Login from a browser with your Red Hat Developer Subscription!"
-  read -rp "Enter the link to download RHEL 10 ISO : " iso_url
+  read -rp "Enter the link to download latest version of RHEL 10 ISO : " iso_url
 
   prepare_iso "$distro" "$iso_file" "$iso_url" "images/pxeboot/vmlinuz" "images/pxeboot/initrd.img"
 }
@@ -355,7 +355,7 @@ case "$MODE" in
       rocky)           cleanup_distro "rocky" "Rocky-10-latest-x86_64-dvd.iso" ;;
       oraclelinux)     cleanup_distro "oraclelinux" "OracleLinux-*-x86_64-dvd.iso" ;;
       centos-stream)   cleanup_distro "centos-stream" "CentOS-Stream-10-latest-x86_64-dvd.iso" ;;
-      rhel)            cleanup_distro "rhel" "rhel-*-x86_64-dvd.iso" ;;
+      rhel)            cleanup_distro "rhel" "rhel-10-latest-x86_64-dvd.iso" ;;
       fedora)          cleanup_distro "fedora" "Fedora-Server-dvd-x86_64*.iso" ;;
       ubuntu-lts)      cleanup_distro "ubuntu-lts" "ubuntu-*-live-server-amd64.iso" ;;
       opensuse-leap)   cleanup_distro "opensuse-leap" "openSUSE-Leap-*-DVD-x86_64-Media.iso" ;;
