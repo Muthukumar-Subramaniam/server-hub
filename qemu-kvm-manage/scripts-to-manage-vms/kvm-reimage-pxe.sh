@@ -75,7 +75,7 @@ for qemu_kvm_hostname in "${HOSTNAMES[@]}"; do
     source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/confirm-reimage-operation.sh
     confirm_reimage_operation "$qemu_kvm_hostname" "PXE boot"
 
-    print_info "[INFO] Creating PXE environment for '${qemu_kvm_hostname}' using ksmanager..."
+    print_info "Creating PXE environment for '${qemu_kvm_hostname}' using ksmanager..."
 
     # Run ksmanager and extract VM details
     source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/run-ksmanager.sh
@@ -99,7 +99,7 @@ for qemu_kvm_hostname in "${HOSTNAMES[@]}"; do
 
     # If --clean-install is specified, destroy and reinstall VM with default specs
     if [[ "$CLEAN_INSTALL" == "yes" ]]; then
-        print_info "[INFO] Using --clean-install: VM will be destroyed and reinstalled with default specs (2 vCPUs, 2 GiB RAM, 20 GiB disk)."
+        print_info "Using --clean-install: VM will be destroyed and reinstalled with default specs (2 vCPUs, 2 GiB RAM, 20 GiB disk)."
         
         # Destroy VM and delete directory
         source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/destroy-vm-for-clean-install.sh
@@ -123,7 +123,7 @@ for qemu_kvm_hostname in "${HOSTNAMES[@]}"; do
         fi
         
         # Install VM with default specs using default-vm-install function
-        print_info "[INFO] Starting VM installation of \"$qemu_kvm_hostname\" with default specs via PXE boot..."
+        print_info "Starting VM installation of \"$qemu_kvm_hostname\" with default specs via PXE boot..."
         source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/select-ovmf.sh
         source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/start-vm-installation.sh
         if ! start_vm_installation "$qemu_kvm_hostname" "PXE boot with default specs"; then
@@ -132,7 +132,7 @@ for qemu_kvm_hostname in "${HOSTNAMES[@]}"; do
         fi
     else
         # Default path: preserve disk size
-        print_info "[INFO] Reimaging VM \"$qemu_kvm_hostname\" by replacing its qcow2 disk with a new one..."
+        print_info "Reimaging VM \"$qemu_kvm_hostname\" by replacing its qcow2 disk with a new one..."
         
         vm_qcow2_disk_path="/kvm-hub/vms/${qemu_kvm_hostname}/${qemu_kvm_hostname}.qcow2"
         
@@ -145,7 +145,7 @@ for qemu_kvm_hostname in "${HOSTNAMES[@]}"; do
         delete_vm_disk "$qemu_kvm_hostname"
         
         if ! sudo qemu-img create -f qcow2 "${vm_qcow2_disk_path}" "20G" >/dev/null 2>&1; then
-            print_error "[ERROR] Failed to create qcow2 disk for \"$qemu_kvm_hostname\"."
+            print_error "Failed to create qcow2 disk for \"$qemu_kvm_hostname\"."
             FAILED_VMS+=("$qemu_kvm_hostname")
             continue
         fi
