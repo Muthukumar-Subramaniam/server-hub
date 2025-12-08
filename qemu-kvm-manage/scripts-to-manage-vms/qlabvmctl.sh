@@ -20,7 +20,7 @@ VERSION="1.0.0"
 
 # Display usage information
 show_usage() {
-    print_info "qlabvmctl - KVM Lab VM Control Interface
+    print_cyan "qlabvmctl - QEMU/KVM Lab VM Control Interface
 
 USAGE:
     qlabvmctl <subcommand> [options] [arguments]
@@ -51,16 +51,16 @@ OPTIONS:
     -v, --version           Show version information
 
 NOTES:
+    - Use 'qlabvmctl <subcommand> --help' to see help for a specific subcommand
     - Use 'qlabstart' to start the lab infrastructure
     - Use 'qlabhealth' to check lab infrastructure health
-    - Use 'qlabdnsbinder' to manage DNS records for lab infrastructure
-    - For subcommand help: qlabvmctl <subcommand> --help"
+    - Use 'qlabdnsbinder' to manage DNS records for lab infrastructure"
 }
 
 # Show version
 show_version() {
-    print_info "qlabvmctl version $VERSION"
-    print_info "KVM Lab VM Management Tool"
+    print_cyan "qlabvmctl version $VERSION"
+    print_cyan "KVM Lab VM Management Tool"
 }
 
 # Main logic
