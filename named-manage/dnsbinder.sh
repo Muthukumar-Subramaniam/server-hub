@@ -865,13 +865,22 @@ fn_create_host_record() {
 			if [[ -z "${v_existing_ips[$v_num_ptr]+isset}" ]]
 			then
 				v_host_part_of_current_ip="${v_num_ptr}"
-				v_host_part_of_previous_ip=$((v_num_ptr - 1))
 				v_current_ip_of_host_record="${v_subnet}.${v_host_part_of_current_ip}"
-				v_previous_ip="${v_subnet}.${v_host_part_of_previous_ip}"
 				v_ptr_zone="${v_file_ptr_zone}"
+				
+				if [[ ${v_num_ptr} -eq 0 ]]
+				then
+					v_previous_ip=';PTR-Records'
+				else
+					v_host_part_of_previous_ip=$((v_num_ptr - 1))
+					v_previous_ip="${v_subnet}.${v_host_part_of_previous_ip}"
+				fi
 				return 0
 			fi
 		done
+		
+		# No free IP found in this zone
+		return 1
 	}	
 	
 	
@@ -940,8 +949,21 @@ fn_create_host_record() {
 
 			if [[ ${v_total_ips_in_current_zone} -ne 256 ]]
 			then
-				fn_check_free_ip "${v_current_ptr_zone_file}" "0" "255" "${v_current_subnet}"
-				break
+				if fn_check_free_ip "${v_current_ptr_zone_file}" "0" "255" "${v_current_subnet}"
+				then
+					# Found a free IP in this zone
+					break
+				else
+					# This zone is exhausted even though it has < 256 records (sparse allocation)
+					((count_houseful_ptr_zones++))
+					if [[ "${count_houseful_ptr_zones}" -eq "${v_total_ptr_zones}" ]]
+					then
+						${v_if_autorun_false} && print_error "No more IP addresses are available in the ${dnsbinder_network} network of ${v_domain_name} domain ! "
+						return 255
+					else
+						continue
+					fi
+				fi
 			else
 				((count_houseful_ptr_zones++))
 				if [[ "${count_houseful_ptr_zones}" -eq "${v_total_ptr_zones}" ]]
