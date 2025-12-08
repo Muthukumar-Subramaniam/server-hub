@@ -13,7 +13,7 @@ fn_show_help() {
 Options:
   -f, --force          Force power-off without prompt if VM is running
   -c, --count <num>    Number of NICs to add (1-10, default: 1)
-  -n, --network <name> Network/bridge to attach to (default: labbr0)
+  -n, --network <name> Network/bridge to attach to (default: default)
   -h, --help           Show this help message
 
 Arguments:
@@ -24,7 +24,7 @@ Examples:
   qlabvmctl nic-add -f vm1                      # Force power-off if running
   qlabvmctl nic-add -c 2 vm1                    # Add 2 NICs
   qlabvmctl nic-add -n br0 vm1                  # Add NIC to specific bridge
-  qlabvmctl nic-add -f -c 3 -n labbr0 vm2       # Fully automated
+  qlabvmctl nic-add -f -c 3 -n default vm2       # Fully automated
 "
 }
 
@@ -32,7 +32,7 @@ Examples:
 force_poweroff=false
 vm_hostname_arg=""
 nic_count=1
-network_name="labbr0"
+network_name="default"
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -92,11 +92,21 @@ if ! sudo virsh list --all | awk '{print $2}' | grep -Fxq "$qemu_kvm_hostname"; 
     exit 1
 fi
 
-# Check if network exists
-if ! sudo virsh net-list --all | awk '{print $1}' | grep -Fxq "$network_name"; then
-    print_error "Network \"$network_name\" does not exist."
-    print_info "Available networks:"
-    sudo virsh net-list --all | tail -n +3 | awk '{print "  - " $1}'
+# Check if network/bridge exists (check both libvirt networks and system bridges)
+network_exists=false
+if sudo virsh net-list --all | awk '{print $1}' | grep -Fxq "$network_name"; then
+    network_exists=true
+elif ip link show "$network_name" &>/dev/null; then
+    # It's a system bridge
+    network_exists=true
+fi
+
+if [[ "$network_exists" == false ]]; then
+    print_error "Network/bridge \"$network_name\" does not exist."
+    print_info "Available libvirt networks:"
+    sudo virsh net-list --all | tail -n +3 | awk 'NF>0 {print "  - " $1}'
+    print_info "Available bridge interfaces:"
+    ip link show type bridge | grep -oP '^\d+: \K[^:]+' | awk '{print "  - " $1}'
     exit 1
 fi
 
@@ -237,8 +247,15 @@ for ((i=1; i<=nic_count; i++)); do
         fi
     done
     
-    print_task "Adding NIC #$i with MAC $mac to network \"$network_name\"..." nskip
-    if error_msg=$(sudo virsh attach-interface "$qemu_kvm_hostname" network "$network_name" \
+    # Determine interface type (network or bridge)
+    interface_type="network"
+    if ! sudo virsh net-list --all | awk '{print $1}' | grep -Fxq "$network_name"; then
+        # Not a libvirt network, must be a bridge
+        interface_type="bridge"
+    fi
+    
+    print_task "Adding NIC #$i with MAC $mac to $interface_type \"$network_name\"..." nskip
+    if error_msg=$(sudo virsh attach-interface "$qemu_kvm_hostname" "$interface_type" "$network_name" \
         --mac "$mac" --model virtio --config 2>&1); then
         print_task_done
         USED_MACS+=("$mac")
