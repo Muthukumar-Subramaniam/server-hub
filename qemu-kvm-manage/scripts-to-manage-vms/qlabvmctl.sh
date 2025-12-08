@@ -15,8 +15,8 @@ source /server-hub/common-utils/color-functions.sh
 # Script directory - same directory as this script
 SCRIPT_DIR="/server-hub/qemu-kvm-manage/scripts-to-manage-vms"
 
-# Version
-VERSION="1.0.0"
+# Version - read from project_version.json
+VERSION=$(grep -o '"message": *"[^"]*"' /server-hub/project_version.json | cut -d'"' -f4)
 
 # Display usage information
 show_usage() {
