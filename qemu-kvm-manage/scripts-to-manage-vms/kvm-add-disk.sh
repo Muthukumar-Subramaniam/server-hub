@@ -117,10 +117,10 @@ fn_shutdown_or_poweroff() {
     fi
     
     print_warning "VM \"$qemu_kvm_hostname\" is still running!"
-    print_info "Select an option to proceed:\n"
-    echo "	1) Try Graceful Shutdown"
-    echo "	2) Force Power Off"
-    echo -e "	q) Quit\n"
+    print_notify "Select an option to proceed:
+	1) Try Graceful Shutdown
+	2) Force Power Off
+	q) Quit"
 
     read -rp "Enter your choice: " selected_choice
 
@@ -182,7 +182,7 @@ if [[ -n "$disk_count_arg" ]]; then
     print_info "Using disk count: $DISK_COUNT"
 else
     # Prompt for disk count
-    print_info "Select number of disks to add (1-10):"
+    print_notify "Select number of disks to add (1-10):"
     while true; do
         read -rp "Enter disk count: " DISK_COUNT
         if [[ "$DISK_COUNT" =~ ^[1-9][0-9]*$ ]] && (( DISK_COUNT <= 10 )); then
