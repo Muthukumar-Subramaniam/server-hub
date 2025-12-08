@@ -125,7 +125,7 @@ fn_shutdown_or_poweroff() {
             print_info "Waiting for VM \"${qemu_kvm_hostname}\" to shut down (timeout: 60s)..."
             TIMEOUT=60
             ELAPSED=0
-            while sudo virsh list | awk '{print $2}' | grep -Fxq "$qemu_kvm_hostname"; then
+            while sudo virsh list | awk '{print $2}' | grep -Fxq "$qemu_kvm_hostname"; do
                 if (( ELAPSED >= TIMEOUT )); then
                     print_warning "VM did not shut down within ${TIMEOUT}s."
                     print_info "You may want to force power off instead."
