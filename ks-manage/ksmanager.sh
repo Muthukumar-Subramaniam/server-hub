@@ -146,7 +146,7 @@ fn_check_and_create_host_record() {
 			done
 		fi
 	else
-		print_success "DNS record found for \"${kickstart_hostname}\"."
+		print_info "DNS record found for \"${kickstart_hostname}\"."
 		print_info "$(host ${kickstart_hostname} ${dnsbinder_server_ipv4_address} | grep 'has address')"
 	fi
 }
@@ -440,7 +440,7 @@ if grep ^"${kickstart_hostname} " "${ksmanager_hub_dir}"/mac-address-cache &>/de
 then
 	mac_address_of_host=$(grep ^"${kickstart_hostname} " "${ksmanager_hub_dir}"/mac-address-cache | cut -d " " -f 2 )
 
-	print_success "MAC Address ${mac_address_of_host} found for ${kickstart_hostname} in cache."
+	print_info "MAC Address ${mac_address_of_host} found for ${kickstart_hostname} in cache."
 	while :
 	do
 		if $invoked_with_qemu_kvm; then
