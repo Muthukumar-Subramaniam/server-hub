@@ -84,10 +84,11 @@ if [ -f "${golden_image_path}" ]; then
     echo -ne "\033[1A\033[2K"  # Move up one line and clear it
     case "$answer" in
         yes|YES)
-            print_info "Deleting existing golden image..."
+            print_task "Deleting existing golden image..." nskip
             if sudo rm -f "${golden_image_path}"; then
-                print_success "Existing golden image deleted."
+                print_task_done
             else
+                print_task_fail
                 print_error "Could not delete existing golden image."
                 exit 1
             fi
@@ -100,17 +101,18 @@ if [ -f "${golden_image_path}" ]; then
 fi
 
 print_info "Starting installation of VM \"${qemu_kvm_hostname}\" to create golden image disk..."
+print_info "Console will attach automatically. Press Ctrl+] to disconnect when installation completes."
 
 # Set custom paths for golden image creation
-DISK_PATH="${golden_image_path}"
-NVRAM_PATH="/kvm-hub/golden-images-disk-store/${qemu_kvm_hostname}_VARS.fd"
-CONSOLE_MODE="--console pty,target_type=serial"
+export DISK_PATH="${golden_image_path}"
+export NVRAM_PATH="/kvm-hub/golden-images-disk-store/${qemu_kvm_hostname}_VARS.fd"
 
-if ! virt_install_output=$(source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/default-vm-install.sh 2>&1); then
+# Override console mode to attach serial console for monitoring
+export CONSOLE_MODE="--console pty,target_type=serial"
+
+# Start VM installation using the default function
+if ! source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/default-vm-install.sh; then
     print_error "VM installation failed."
-    if [[ -n "$virt_install_output" ]]; then
-        print_error "$virt_install_output"
-    fi
     exit 1
 fi
 
