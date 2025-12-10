@@ -50,6 +50,17 @@ Version (optional, defaults to 'latest'):
     previous - Setup/cleanup the previous major version"
 }
 
+fn_get_version_number() {
+  local os_distribution="$1"
+  local version="${2:-latest}"
+  
+  if [[ "$version" == "latest" ]]; then
+    echo "${DISTRO_LATEST_VERSIONS[$os_distribution]}"
+  else
+    echo "${DISTRO_PREVIOUS_VERSIONS[$os_distribution]}"
+  fi
+}
+
 fn_is_distro_ready() {
   local os_distribution="$1"
   local version="${2:-latest}"  # Default to 'latest' if not specified
@@ -67,47 +78,39 @@ fn_is_distro_ready() {
 
 fn_get_distro_status_display() {
   local os_distribution="$1"
-  # Check both latest and previous versions for status display
-  local latest_ready=false
-  local previous_ready=false
+  local version="${2:-latest}"  # Default to 'latest' if not specified
   
-  if fn_is_distro_ready "$os_distribution" "latest"; then
-    latest_ready=true
-  fi
-  if fn_is_distro_ready "$os_distribution" "previous"; then
-    previous_ready=true
-  fi
-  
-  if [[ "$latest_ready" == true && "$previous_ready" == true ]]; then
-    print_success "[Latest+Previous Ready]" nskip
-  elif [[ "$latest_ready" == true ]]; then
-    print_success "[Latest Ready]" nskip
-  elif [[ "$previous_ready" == true ]]; then
-    print_warning "[Previous Ready]" nskip
+  if fn_is_distro_ready "$os_distribution" "$version"; then
+    print_green "[Ready]" nskip
   else
-    print_warning "[Not-Ready]" nskip
+    print_yellow "[Not-Ready]" nskip
   fi
 }
 
-almalinux_os_availability=$(fn_get_distro_status_display "almalinux")
-rocky_os_availability=$(fn_get_distro_status_display "rocky")
-oraclelinux_os_availability=$(fn_get_distro_status_display "oraclelinux")
-centos_stream_os_availability=$(fn_get_distro_status_display "centos-stream")
-rhel_os_availability=$(fn_get_distro_status_display "rhel")
-ubuntu_lts_os_availability=$(fn_get_distro_status_display "ubuntu-lts")
-opensuse_leap_os_availability=$(fn_get_distro_status_display "opensuse-leap")
+# Status will be computed after version selection in interactive mode
+# For now, these are placeholders
 
 fn_select_os_distro() {
   local action_title="$1"
-  print_notify "Please select the OS distribution to ${action_title}:
-  1)  AlmaLinux                ${almalinux_os_availability}
-  2)  Rocky Linux              ${rocky_os_availability}
-  3)  OracleLinux              ${oraclelinux_os_availability}
-  4)  CentOS Stream            ${centos_stream_os_availability}
-  5)  Red Hat Enterprise Linux ${rhel_os_availability}
-  6)  Ubuntu Server LTS        ${ubuntu_lts_os_availability}
-  7)  openSUSE Leap Latest     ${opensuse_leap_os_availability}
-  q)  Quit"
+  local version="${2:-latest}"
+  
+  # Define distro list with keys and display names
+  local -a distro_keys=("almalinux" "rocky" "oraclelinux" "centos-stream" "rhel" "ubuntu-lts" "opensuse-leap")
+  local -a distro_names=("AlmaLinux" "Rocky Linux" "OracleLinux" "CentOS Stream" "Red Hat Enterprise Linux" "Ubuntu Server LTS" "openSUSE Leap")
+  
+  # Build menu
+  local menu="Please select the OS distribution to ${action_title}:\n"
+  for i in "${!distro_keys[@]}"; do
+    local key="${distro_keys[$i]}"
+    local name="${distro_names[$i]}"
+    local ver=$(fn_get_version_number "$key" "$version")
+    local status=$(fn_get_distro_status_display "$key" "$version")
+    printf -v line "  %d)  %-32s %s\n" $((i+1)) "${name} ${ver}" "${status}"
+    menu+="${line}"
+  done
+  menu+="  q)  Quit"
+  
+  print_notify "$menu"
   read -p "Enter option number (default: AlmaLinux): " os_distribution
   case "$os_distribution" in
     1 | "" ) DISTRO="almalinux" ;;
@@ -286,9 +289,8 @@ What would you like to do?
     q | Q ) print_notify "Exiting the utility $(basename $0) !\n"; exit 0 ;;
     * ) print_error "Invalid choice. Exiting."; exit 1 ;;
   esac
-  fn_select_os_distro "$MENU_TITLE"
   
-  # Ask for version in interactive mode
+  # Ask for version FIRST in interactive mode
   print_info "Which version do you want to ${MENU_TITLE}?
   1) Latest (default)
   2) Previous"
@@ -298,6 +300,17 @@ What would you like to do?
     2 ) VERSION_VARIANT="previous" ;;
     * ) print_error "Invalid choice. Using 'latest'."; VERSION_VARIANT="latest" ;;
   esac
+  
+  # Select version-aware arrays based on VERSION_VARIANT before displaying menu
+  if [[ "${VERSION_VARIANT}" == "previous" ]]; then
+    declare -n ISO_FILENAMES=ISO_FILENAMES_PREVIOUS
+    declare -n ISO_URLS=ISO_URLS_PREVIOUS
+  else
+    declare -n ISO_FILENAMES=ISO_FILENAMES_LATEST
+    declare -n ISO_URLS=ISO_URLS_LATEST
+  fi
+  
+  fn_select_os_distro "$MENU_TITLE" "$VERSION_VARIANT"
 else
   MODE="$1"
   DISTRO="${2:-}"
@@ -338,7 +351,7 @@ else
   fi
 fi
 
-# Select version-aware arrays based on VERSION_VARIANT
+# Select version-aware arrays based on VERSION_VARIANT (for CLI mode)
 if [[ "${VERSION_VARIANT}" == "previous" ]]; then
   declare -n ISO_FILENAMES=ISO_FILENAMES_PREVIOUS
   declare -n ISO_URLS=ISO_URLS_PREVIOUS

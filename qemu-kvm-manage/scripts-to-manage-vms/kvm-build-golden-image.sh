@@ -9,7 +9,7 @@ source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/defaults.sh
 source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/select-ovmf.sh
 
 OS_DISTRO=""
-VERSION_TYPE="latest"
+VERSION_TYPE=""
 
 # Function to show help
 fn_show_help() {
@@ -76,10 +76,15 @@ while [[ $# -gt 0 ]]; do
 done
 
 # Validate: --version requires --distro for golden image creation
-if [[ "$VERSION_TYPE" != "latest" && -z "$OS_DISTRO" ]]; then
+if [[ -n "$VERSION_TYPE" && -z "$OS_DISTRO" ]]; then
     print_error "The --version option requires --distro to be specified for golden image creation."
     fn_show_help
     exit 1
+fi
+
+# Default VERSION_TYPE to "latest" if --distro is provided but --version is not
+if [[ -n "$OS_DISTRO" && -z "$VERSION_TYPE" ]]; then
+    VERSION_TYPE="latest"
 fi
 
 print_info "Invoking ksmanager to create PXE environment for golden image..."

@@ -5,6 +5,7 @@
 #----------------------------------------------------------------------------------------#
 
 source /server-hub/common-utils/color-functions.sh
+source /server-hub/ks-manage/distro-versions.conf
 
 if [[ "$EUID" -ne 0 ]]; then
 	if [[ "$USER" == "$mgmt_super_user" ]]; then
@@ -495,43 +496,35 @@ if $golden_image_creation_not_requested; then
 	fn_check_and_create_mac_if_required
 fi
 
+fn_get_version_number() {
+	local os_distribution="$1"
+	local version="${2:-latest}"
+	
+	if [[ "$version" == "latest" ]]; then
+		echo "${DISTRO_LATEST_VERSIONS[$os_distribution]}"
+	else
+		echo "${DISTRO_PREVIOUS_VERSIONS[$os_distribution]}"
+	fi
+}
+
 fn_check_distro_availability() {
 	local os_distribution="${1}"
+	local version="${2:-latest}"
+	
 	if [[ "${os_distribution}" == "opensuse-leap" ]]; then
 		kernel_file_name="linux"
 	else
 		kernel_file_name="vmlinuz"
 	fi
-
-	# Check both latest and previous versions
-	local latest_ready=false
-	local previous_ready=false
 	
-	if [[ -f "${ipxe_web_dir}/images/${os_distribution}-latest/${kernel_file_name}" ]]; then
-		latest_ready=true
-	fi
-	if [[ -f "${ipxe_web_dir}/images/${os_distribution}-previous/${kernel_file_name}" ]]; then
-		previous_ready=true
-	fi
-	
-	if [[ "$latest_ready" == true && "$previous_ready" == true ]]; then
-		print_green '[Latest+Previous Ready]'
-	elif [[ "$latest_ready" == true ]]; then
-		print_green '[Latest Ready]'
-	elif [[ "$previous_ready" == true ]]; then
-		print_yellow '[Previous Ready]'
+	if [[ -f "${ipxe_web_dir}/images/${os_distribution}-${version}/${kernel_file_name}" ]]; then
+		print_green '[Ready]'
 	else
 		print_yellow '[Not-Ready]'
 	fi
 }
 
-almalinux_os_availability=$(fn_check_distro_availability "almalinux")
-rocky_os_availability=$(fn_check_distro_availability "rocky")
-oraclelinux_os_availability=$(fn_check_distro_availability "oraclelinux")
-centos_stream_os_availability=$(fn_check_distro_availability "centos-stream")
-rhel_os_availability=$(fn_check_distro_availability "rhel")
-ubuntu_lts_os_availability=$(fn_check_distro_availability "ubuntu-lts")
-opensuse_leap_os_availability=$(fn_check_distro_availability "opensuse-leap")
+# Status will be computed dynamically in menu based on selected version
 
 fn_auto_detect_os_from_hostname() {
     local hostname_lower=$(echo "${kickstart_short_hostname}" | tr '[:upper:]' '[:lower:]')
@@ -673,14 +666,14 @@ fn_select_os_distro() {
         print_notify "Please select the OS version to install:
   1)  Latest  (AlmaLinux 10, Rocky 10, Ubuntu 24.04, openSUSE 15.6, etc.)
   2)  Previous (AlmaLinux 9, Rocky 9, Ubuntu 22.04, openSUSE 15.5, etc.)
-  3)  Quit"
+  q)  Quit"
 
         read -p "Enter option number (default: Latest): " version_choice
 
         case "${version_choice}" in
             1 | "" ) version_type="latest" ;;
             2 )      version_type="previous" ;;
-            3 )      print_info "Operation cancelled by user."; exit 130 ;;
+            q | Q )  print_info "Operation cancelled by user."; exit 130 ;;
             * )      print_error "Invalid option. Please try again."; fn_select_os_distro; return ;;
         esac
         
@@ -688,15 +681,22 @@ fn_select_os_distro() {
     fi
     
     # Step 2: Select distribution
-    print_notify "Please select the OS distribution to install:
-  1)  AlmaLinux                ${almalinux_os_availability}
-  2)  Rocky Linux              ${rocky_os_availability}
-  3)  OracleLinux              ${oraclelinux_os_availability}
-  4)  CentOS Stream            ${centos_stream_os_availability}
-  5)  Red Hat Enterprise Linux ${rhel_os_availability}
-  6)  Ubuntu Server LTS        ${ubuntu_lts_os_availability}
-  7)  openSUSE Leap            ${opensuse_leap_os_availability}
-  8)  Quit"
+    local -a distro_keys=("almalinux" "rocky" "oraclelinux" "centos-stream" "rhel" "ubuntu-lts" "opensuse-leap")
+    local -a distro_names=("AlmaLinux" "Rocky Linux" "OracleLinux" "CentOS Stream" "Red Hat Enterprise Linux" "Ubuntu Server LTS" "openSUSE Leap")
+    
+    # Build menu
+    local menu="Please select the OS distribution to install:\n"
+    for i in "${!distro_keys[@]}"; do
+        local key="${distro_keys[$i]}"
+        local name="${distro_names[$i]}"
+        local ver=$(fn_get_version_number "$key" "$version_type")
+        local status=$(fn_check_distro_availability "$key" "$version_type")
+        printf -v line "  %d)  %-32s %s\n" $((i+1)) "${name} ${ver}" "${status}"
+        menu+="${line}"
+    done
+    menu+="  q)  Quit"
+    
+    print_notify "$menu"
 
     read -p "Enter option number (default: AlmaLinux): " os_distribution
 
@@ -708,7 +708,7 @@ fn_select_os_distro() {
         5 )      os_distribution="rhel" ;;
         6 )      os_distribution="ubuntu-lts" ;;
         7 )      os_distribution="opensuse-leap" ;;
-        8 )      print_info "Operation cancelled by user."; exit 130 ;;
+        q | Q )  print_info "Operation cancelled by user."; exit 130 ;;
 	* ) print_error "Invalid option. Please try again."; fn_select_os_distro ;;
     esac
     
