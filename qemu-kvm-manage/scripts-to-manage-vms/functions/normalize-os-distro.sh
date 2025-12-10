@@ -17,7 +17,7 @@ normalize_os_distro() {
     fi
 
     # Extract version suffix if present (-latest or -previous)
-    VERSION_TYPE="latest"  # Default to latest
+    # Only set VERSION_TYPE if suffix is found in distro name
     local base_distro="${os_distro}"
     
     if [[ "$os_distro" =~ -latest$ ]]; then
@@ -26,6 +26,11 @@ normalize_os_distro() {
     elif [[ "$os_distro" =~ -previous$ ]]; then
         VERSION_TYPE="previous"
         base_distro="${os_distro%-previous}"
+    fi
+    
+    # If VERSION_TYPE is still empty at this point, default to "latest"
+    if [[ -z "$VERSION_TYPE" ]]; then
+        VERSION_TYPE="latest"
     fi
 
     # Normalize OS distro names (case-insensitive exact match or known aliases)

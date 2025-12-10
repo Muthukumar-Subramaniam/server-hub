@@ -12,7 +12,7 @@ ATTACH_CONSOLE="no"
 CLEAN_INSTALL="no"
 FORCE_REIMAGE="false"
 OS_DISTRO=""
-VERSION_TYPE="latest"
+VERSION_TYPE=""
 HOSTNAMES=()
 SUPPORTS_CLEAN_INSTALL="yes"
 SUPPORTS_FORCE="yes"
@@ -52,7 +52,7 @@ source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/parse-vm-comm
 parse_vm_command_args "$@"
 
 # Validate: if --version is specified without --distro, warn user
-if [[ "$VERSION_TYPE" != "latest" && -z "$OS_DISTRO" ]]; then
+if [[ -n "$VERSION_TYPE" && "$VERSION_TYPE" != "latest" && -z "$OS_DISTRO" ]]; then
     print_warning "The --version option is specified without --distro."
     print_info "The version will be applied if OS is auto-detected from hostname pattern."
     print_info "If auto-detection fails, you'll be prompted to select OS distribution interactively."
@@ -113,7 +113,7 @@ for qemu_kvm_hostname in "${HOSTNAMES[@]}"; do
             print_error "Golden image not found for '${OS_DISTRO}' (${VERSION_TYPE})"
             print_info "Available golden images:"
             if ls /kvm-hub/golden-images-disk-store/*.qcow2 &>/dev/null; then
-                ls -1 /kvm-hub/golden-images-disk-store/*.qcow2 | xargs -n1 basename | sed 's/-golden-image.*//' | sort -u | sed 's/^/  - /'
+                ls -1 /kvm-hub/golden-images-disk-store/*.qcow2 | xargs -n1 basename | sed -E 's/^([^-]+)-golden-image.*-(latest|previous)\..*$/\1 (\2)/' | sort -u | sed 's/^/  - /'
             else
                 echo "  (none)"
             fi

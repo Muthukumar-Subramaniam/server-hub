@@ -98,7 +98,7 @@ parse_vm_command_args() {
                     fn_show_help
                     exit 1
                 fi
-                if [[ -n "$VERSION_TYPE" && "$VERSION_TYPE" != "latest" ]]; then
+                if [[ -n "$VERSION_TYPE" ]]; then
                     print_error "Duplicate --version/-v option."
                     fn_show_help
                     exit 1

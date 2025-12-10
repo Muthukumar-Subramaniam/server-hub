@@ -10,7 +10,7 @@ source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/select-ovmf.s
 
 ATTACH_CONSOLE="no"
 OS_DISTRO=""
-VERSION_TYPE="latest"
+VERSION_TYPE=""
 HOSTNAMES=()
 SUPPORTS_DISTRO="yes"
 SUPPORTS_VERSION="yes"
