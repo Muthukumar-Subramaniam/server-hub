@@ -73,7 +73,6 @@ rocky_os_availability=$(fn_get_distro_status_display "rocky")
 oraclelinux_os_availability=$(fn_get_distro_status_display "oraclelinux")
 centos_stream_os_availability=$(fn_get_distro_status_display "centos-stream")
 rhel_os_availability=$(fn_get_distro_status_display "rhel")
-fedora_os_availability=$(fn_get_distro_status_display "fedora")
 ubuntu_lts_os_availability=$(fn_get_distro_status_display "ubuntu-lts")
 opensuse_leap_os_availability=$(fn_get_distro_status_display "opensuse-leap")
 
@@ -85,9 +84,8 @@ fn_select_os_distro() {
   3)  OracleLinux              ${oraclelinux_os_availability}
   4)  CentOS Stream            ${centos_stream_os_availability}
   5)  Red Hat Enterprise Linux ${rhel_os_availability}
-  6)  Fedora Linux             ${fedora_os_availability}
-  7)  Ubuntu Server LTS        ${ubuntu_lts_os_availability}
-  8)  openSUSE Leap Latest     ${opensuse_leap_os_availability}
+  6)  Ubuntu Server LTS        ${ubuntu_lts_os_availability}
+  7)  openSUSE Leap Latest     ${opensuse_leap_os_availability}
   q)  Quit"
   read -p "Enter option number (default: AlmaLinux): " os_distribution
   case "$os_distribution" in
@@ -96,9 +94,8 @@ fn_select_os_distro() {
     3 ) DISTRO="oraclelinux" ;;
     4 ) DISTRO="centos-stream" ;;
     5 ) DISTRO="rhel" ;;
-    6 ) DISTRO="fedora" ;;
-    7 ) DISTRO="ubuntu-lts" ;;
-    8 ) DISTRO="opensuse-leap" ;;
+    6 ) DISTRO="ubuntu-lts" ;;
+    7 ) DISTRO="opensuse-leap" ;;
     q | Q ) print_notify "Exiting the utility $(basename $0) !\n"; exit 0 ;;
     * ) print_error "Invalid option! Please try again."; fn_select_os_distro "$action_title" ;;
   esac
@@ -334,11 +331,6 @@ case "$MODE" in
           "https://dl.rockylinux.org/pub/rocky/10/isos/x86_64/Rocky-10-latest-x86_64-dvd.iso" \
           "images/pxeboot/vmlinuz" "images/pxeboot/initrd.img"
         ;;
-      fedora)
-        prepare_iso "fedora" "Fedora-Server-dvd-x86_64-42-1.1.iso" \
-          "https://download.fedoraproject.org/pub/fedora/linux/releases/42/Server/x86_64/iso/Fedora-Server-dvd-x86_64-42-1.1.iso" \
-          "images/pxeboot/vmlinuz" "images/pxeboot/initrd.img"
-        ;;
       oraclelinux)
         prepare_oraclelinux
         ;;
@@ -371,7 +363,6 @@ case "$MODE" in
       oraclelinux)     cleanup_distro "oraclelinux" "OracleLinux-10*-x86_64-dvd.iso" ;;
       centos-stream)   cleanup_distro "centos-stream" "CentOS-Stream-10-latest-x86_64-dvd.iso" ;;
       rhel)            cleanup_distro "rhel" "rhel-10-latest-x86_64-dvd.iso" ;;
-      fedora)          cleanup_distro "fedora" "Fedora-Server-dvd-x86_64*.iso" ;;
       ubuntu-lts)      cleanup_distro "ubuntu-lts" "ubuntu-24*-live-server-amd64.iso" ;;
       opensuse-leap)   cleanup_distro "opensuse-leap" "openSUSE-Leap-15*-DVD-x86_64-Media.iso" ;;
       *)

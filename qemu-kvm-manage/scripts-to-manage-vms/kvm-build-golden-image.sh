@@ -19,7 +19,7 @@ Description:
 
 Options:
   -d, --distro         Specify OS distribution
-                       (almalinux, rocky, oraclelinux, centos-stream, rhel, fedora, ubuntu-lts, opensuse-leap)
+                       (almalinux, rocky, oraclelinux, centos-stream, rhel, ubuntu-lts, opensuse-leap)
   -h, --help           Show this help message
 
 Examples:

@@ -19,7 +19,7 @@ fn_show_help() {
 Options:
   -c, --console        Attach console during installation (single VM only)
   -d, --distro         Specify OS distribution
-                       (almalinux, rocky, oraclelinux, centos-stream, rhel, fedora, ubuntu-lts, opensuse-leap)
+                       (almalinux, rocky, oraclelinux, centos-stream, rhel, ubuntu-lts, opensuse-leap)
   -H, --hosts          Specify multiple hostnames (comma-separated)
   -h, --help           Show this help message
 

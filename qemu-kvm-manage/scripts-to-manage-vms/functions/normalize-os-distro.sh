@@ -33,9 +33,6 @@ normalize_os_distro() {
         rhel|redhat)
             NORMALIZED_OS_DISTRO="rhel"
             ;;
-        fedora)
-            NORMALIZED_OS_DISTRO="fedora"
-            ;;
         ubuntu-lts|ubuntu)
             NORMALIZED_OS_DISTRO="ubuntu-lts"
             ;;
@@ -44,7 +41,7 @@ normalize_os_distro() {
             ;;
         *)
             print_error "Unrecognized OS distro: $os_distro"
-            print_info "Supported distros: almalinux, rocky, oraclelinux, centos-stream, rhel, fedora, ubuntu-lts, opensuse-leap"
+            print_info "Supported distros: almalinux, rocky, oraclelinux, centos-stream, rhel, ubuntu-lts, opensuse-leap"
             return 1
             ;;
     esac

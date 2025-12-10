@@ -509,7 +509,6 @@ rocky_os_availability=$(fn_check_distro_availability "rocky")
 oraclelinux_os_availability=$(fn_check_distro_availability "oraclelinux")
 centos_stream_os_availability=$(fn_check_distro_availability "centos-stream")
 rhel_os_availability=$(fn_check_distro_availability "rhel")
-fedora_os_availability=$(fn_check_distro_availability "fedora")
 ubuntu_lts_os_availability=$(fn_check_distro_availability "ubuntu-lts")
 opensuse_leap_os_availability=$(fn_check_distro_availability "opensuse-leap")
 
@@ -527,8 +526,6 @@ fn_auto_detect_os_from_hostname() {
         echo "centos-stream"
     elif [[ "${hostname_lower}" == *"rhel"* ]]; then
         echo "rhel"
-    elif [[ "${hostname_lower}" == *"fedora"* ]]; then
-        echo "fedora"
     elif [[ "${hostname_lower}" == *"ubuntu"* ]]; then
         echo "ubuntu-lts"
     elif [[ "${hostname_lower}" == *"opensuse"* || "${hostname_lower}" == *"suse"* ]]; then
@@ -567,11 +564,6 @@ fn_select_os_distro() {
                 print_info "OS distribution selected via --distro flag: ${os_distribution}"
                 return
                 ;;
-            fedora) 
-                os_distribution="fedora"
-                print_info "OS distribution selected via --distro flag: ${os_distribution}"
-                return
-                ;;
             ubuntu-lts|ubuntu) 
                 os_distribution="ubuntu-lts"
                 print_info "OS distribution selected via --distro flag: ${os_distribution}"
@@ -584,7 +576,7 @@ fn_select_os_distro() {
                 ;;
             *)
                 print_error "Invalid distro specified with --distro flag: ${distro_from_flag}"
-                print_info "Valid options: almalinux, rocky, oraclelinux, centos-stream, rhel, fedora, ubuntu-lts, opensuse-leap"
+                print_info "Valid options: almalinux, rocky, oraclelinux, centos-stream, rhel, ubuntu-lts, opensuse-leap"
                 exit 1
                 ;;
         esac
@@ -604,10 +596,9 @@ fn_select_os_distro() {
   3)  OracleLinux              ${oraclelinux_os_availability}
   4)  CentOS Stream            ${centos_stream_os_availability}
   5)  Red Hat Enterprise Linux ${rhel_os_availability}
-  6)  Fedora Linux             ${fedora_os_availability}
-  7)  Ubuntu Server LTS        ${ubuntu_lts_os_availability}
-  8)  openSUSE Leap Latest     ${opensuse_leap_os_availability}
-  9)  Quit"
+  6)  Ubuntu Server LTS        ${ubuntu_lts_os_availability}
+  7)  openSUSE Leap Latest     ${opensuse_leap_os_availability}
+  8)  Quit"
 
     read -p "Enter option number (default: AlmaLinux): " os_distribution
 
@@ -617,10 +608,9 @@ fn_select_os_distro() {
         3 )      os_distribution="oraclelinux" ;;
         4 )      os_distribution="centos-stream" ;;
         5 )      os_distribution="rhel" ;;
-        6 )      os_distribution="fedora" ;;
-        7 )      os_distribution="ubuntu-lts" ;;
-        8 )      os_distribution="opensuse-leap" ;;
-        9 )      print_info "Operation cancelled by user."; exit 130 ;;
+        6 )      os_distribution="ubuntu-lts" ;;
+        7 )      os_distribution="opensuse-leap" ;;
+        8 )      print_info "Operation cancelled by user."; exit 130 ;;
 	* ) print_error "Invalid option. Please try again."; fn_select_os_distro ;;
     esac
     
@@ -710,11 +700,7 @@ if ! $invoked_with_golden_image; then
 	elif [[ "${os_distribution}" == "ubuntu-lts" ]]; then 
 		rsync -a -q --delete "${ksmanager_main_dir}/ks-templates/${os_distribution}-latest-ks" "${host_kickstart_dir}"/
 	else
-		if [[ "${os_distribution}" == "fedora" ]]; then
-			rsync -a -q "${ksmanager_main_dir}/ks-templates/fedora-latest-ks.cfg" "${host_kickstart_dir}"/ 
-		else
-			rsync -a -q "${ksmanager_main_dir}/ks-templates/redhat-based-latest-ks.cfg" "${host_kickstart_dir}"/ 
-		fi
+		rsync -a -q "${ksmanager_main_dir}/ks-templates/redhat-based-latest-ks.cfg" "${host_kickstart_dir}"/ 
 	fi
 	if ! $golden_image_creation_not_requested; then
 		if [[ -z "${redhat_based_distro_name}" ]]; then
@@ -822,9 +808,6 @@ if ! $invoked_with_golden_image; then
             rsync -a -q "${ksmanager_main_dir}/ipxe-templates/ipxe-template-${os_distribution}-auto.ipxe"  "${mac_based_ipxe_cfg_file}"
 	else
 	    rsync -a -q "${ksmanager_main_dir}/ipxe-templates/ipxe-template-redhat-based-auto.ipxe"  "${mac_based_ipxe_cfg_file}"
-	    if [[ "${os_distribution}" == "fedora" ]]; then
-		    sed -i "s/redhat-based/fedora/g" "${mac_based_ipxe_cfg_file}"
-	    fi
 	fi
 
 	fn_set_environment "${mac_based_ipxe_cfg_file}"
