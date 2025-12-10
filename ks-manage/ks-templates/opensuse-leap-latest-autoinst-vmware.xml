@@ -5,14 +5,14 @@
     <add_on_products t="list">
       <listentry t="map">
         <alias>lab-repo-oss</alias>
-        <media_url>http://get_web_server_name.get_ipv4_domain/opensuse-leap-latest/</media_url>
+        <media_url>http://get_web_server_name.get_ipv4_domain/opensuse-leap-get_version_type/</media_url>
         <name>Lab OSS Repository</name>
         <priority t="integer">99</priority>
         <product_dir>/</product_dir>
       </listentry>
       <listentry t="map">
         <alias>online-repo-non-oss</alias>
-        <media_url>http://download.opensuse.org/distribution/leap/15.6/repo/non-oss/</media_url>
+        <media_url>http://download.opensuse.org/distribution/leap/get_opensuse_version_number/repo/non-oss/</media_url>
         <name>Online Non-OSS Repository</name>
         <priority t="integer">99</priority>
         <product_dir>/</product_dir>

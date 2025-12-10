@@ -12,10 +12,12 @@ ATTACH_CONSOLE="no"
 CLEAN_INSTALL="no"
 FORCE_REIMAGE="false"
 OS_DISTRO=""
+VERSION_TYPE="latest"
 HOSTNAMES=()
 SUPPORTS_CLEAN_INSTALL="yes"
 SUPPORTS_FORCE="yes"
 SUPPORTS_DISTRO="yes"
+SUPPORTS_VERSION="yes"
 
 # Function to show help
 fn_show_help() {
@@ -25,6 +27,7 @@ Options:
   -C, --clean-install  Destroy VM and reinstall with default specs (2 vCPUs, 2 GiB RAM, 20 GiB disk)
   -d, --distro         Specify OS distribution
                        (almalinux, rocky, oraclelinux, centos-stream, rhel, ubuntu-lts, opensuse-leap)
+  -v, --version        Specify OS version: latest (default) or previous
   -f, --force          Skip confirmation prompt
   -H, --hosts          Specify multiple hostnames (comma-separated)
   -h, --help           Show this help message
@@ -36,7 +39,8 @@ Examples:
   qlabvmctl reimage-golden vm1                                   # Reimage single VM
   qlabvmctl reimage-golden vm1 --console                         # Reimage and attach console
   qlabvmctl reimage-golden vm1 --clean-install                   # Reimage with default specs
-  qlabvmctl reimage-golden vm1 --distro almalinux                # Reimage with AlmaLinux
+  qlabvmctl reimage-golden vm1 --distro almalinux                # Reimage with AlmaLinux (latest)
+  qlabvmctl reimage-golden vm1 -d ubuntu-lts -v previous         # Reimage with Ubuntu 22.04
   qlabvmctl reimage-golden -f vm1                                # Reimage without confirmation
   qlabvmctl reimage-golden --hosts vm1,vm2,vm3 -d ubuntu-lts     # Reimage multiple with Ubuntu LTS
   qlabvmctl reimage-golden -H vm1,vm2,vm3 --clean-install       # Reimage multiple with defaults
@@ -47,8 +51,17 @@ Examples:
 source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/parse-vm-command-args.sh
 parse_vm_command_args "$@"
 
-# Save command-line distro if specified
+# Validate: if --version is specified without --distro, warn user
+if [[ "$VERSION_TYPE" != "latest" && -z "$OS_DISTRO" ]]; then
+    print_warning "The --version option is specified without --distro."
+    print_info "The version will be applied if OS is auto-detected from hostname pattern."
+    print_info "If auto-detection fails, you'll be prompted to select OS distribution interactively."
+    echo ""
+fi
+
+# Save command-line distro and version if specified
 CMDLINE_OS_DISTRO="$OS_DISTRO"
+CMDLINE_VERSION_TYPE="$VERSION_TYPE"
 
 # Main reimage loop
 CURRENT_VM=0
@@ -56,8 +69,9 @@ FAILED_VMS=()
 SUCCESSFUL_VMS=()
 
 for qemu_kvm_hostname in "${HOSTNAMES[@]}"; do
-    # Reset OS_DISTRO to command-line value for each VM
+    # Reset OS_DISTRO and VERSION_TYPE to command-line values for each VM
     OS_DISTRO="$CMDLINE_OS_DISTRO"
+    VERSION_TYPE="$CMDLINE_VERSION_TYPE"
     
     source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/show-multi-vm-progress.sh
     show_multi_vm_progress "$qemu_kvm_hostname"
@@ -93,17 +107,17 @@ for qemu_kvm_hostname in "${HOSTNAMES[@]}"; do
         fi
         NORMALIZED_DISTRO="$NORMALIZED_OS_DISTRO"
         
-        # Golden images follow pattern: {distro}-golden-image.*.qcow2
-        golden_image_pattern="${NORMALIZED_DISTRO}-golden-image.*.qcow2"
+        # Golden images follow pattern: {distro}-golden-image.*-{version}.qcow2
+        golden_image_pattern="${NORMALIZED_DISTRO}-golden-image.*-${VERSION_TYPE}.qcow2"
         if ! ls /kvm-hub/golden-images-disk-store/${golden_image_pattern} &>/dev/null; then
-            print_error "Golden image not found for '${OS_DISTRO}'"
+            print_error "Golden image not found for '${OS_DISTRO}' (${VERSION_TYPE})"
             print_info "Available golden images:"
             if ls /kvm-hub/golden-images-disk-store/*.qcow2 &>/dev/null; then
                 ls -1 /kvm-hub/golden-images-disk-store/*.qcow2 | xargs -n1 basename | sed 's/-golden-image.*//' | sort -u | sed 's/^/  - /'
             else
                 echo "  (none)"
             fi
-            print_info "Use 'qlabvmctl build-golden-image --distro ${OS_DISTRO}' to create it"
+            print_info "Use 'qlabvmctl build-golden-image --distro ${OS_DISTRO} --version ${VERSION_TYPE}' to create it"
             FAILED_VMS+=("$qemu_kvm_hostname")
             continue
         fi
@@ -113,6 +127,7 @@ for qemu_kvm_hostname in "${HOSTNAMES[@]}"; do
     source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/run-ksmanager.sh
     ksmanager_opts="--qemu-kvm --golden-image"
     [[ -n "$OS_DISTRO" ]] && ksmanager_opts="$ksmanager_opts --distro $OS_DISTRO"
+    [[ -n "$VERSION_TYPE" ]] && ksmanager_opts="$ksmanager_opts --version $VERSION_TYPE"
     if ! run_ksmanager "${qemu_kvm_hostname}" "$ksmanager_opts"; then
         FAILED_VMS+=("$qemu_kvm_hostname")
         continue
@@ -140,12 +155,14 @@ for qemu_kvm_hostname in "${HOSTNAMES[@]}"; do
     fi
 
     source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/validate-golden-image-exists.sh
-    if ! validate_golden_image_exists "$qemu_kvm_hostname" "${OS_DISTRO}"; then
+    if ! validate_golden_image_exists "$qemu_kvm_hostname" "${OS_DISTRO}" "${VERSION_TYPE}"; then
         FAILED_VMS+=("$qemu_kvm_hostname")
         continue
     fi
 
-    golden_qcow2_disk_path="/kvm-hub/golden-images-disk-store/${OS_DISTRO}-golden-image.${lab_infra_domain_name}.qcow2"
+    # Construct golden image FQDN matching ksmanager's format
+    golden_image_fqdn="${OS_DISTRO}-golden-image-${VERSION_TYPE}.${lab_infra_domain_name}"
+    golden_qcow2_disk_path="/kvm-hub/golden-images-disk-store/${golden_image_fqdn}.qcow2"
 
     # Shut down VM if running
     source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/poweroff-vm.sh

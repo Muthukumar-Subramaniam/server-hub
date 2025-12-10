@@ -1,7 +1,7 @@
 # parse-vm-command-args.sh
 # 
 # Reusable argument parsing function for VM management commands
-# Handles common flags: -c/--console, -f/--force, -H/--hosts, -h/--help, -C/--clean-install
+# Handles common flags: -c/--console, -f/--force, -H/--hosts, -h/--help, -C/--clean-install, -v/--version
 #
 # Usage:
 #   source /path/to/parse-vm-command-args.sh
@@ -12,6 +12,7 @@
 #   CLEAN_INSTALL   - "yes" or "no" (if supported)
 #   FORCE_REIMAGE   - "true" or "false" (if supported)
 #   OS_DISTRO       - OS distribution name (if specified)
+#   VERSION_TYPE    - "latest" or "previous" (default: "latest")
 #   HOSTNAMES       - Array of validated hostnames
 #   TOTAL_VMS       - Number of VMs to process
 #
@@ -21,6 +22,7 @@ parse_vm_command_args() {
     local supports_clean_install="${SUPPORTS_CLEAN_INSTALL:-no}"
     local supports_force="${SUPPORTS_FORCE:-no}"
     local supports_distro="${SUPPORTS_DISTRO:-no}"
+    local supports_version="${SUPPORTS_VERSION:-no}"
     
     # Parse arguments
     while [[ $# -gt 0 ]]; do
@@ -83,6 +85,30 @@ parse_vm_command_args() {
                     exit 1
                 fi
                 OS_DISTRO="$2"
+                shift 2
+                ;;
+            -v|--version)
+                if [[ "$supports_version" != "yes" ]]; then
+                    print_error "No such option: $1"
+                    fn_show_help
+                    exit 1
+                fi
+                if [[ -z "$2" || "$2" == -* ]]; then
+                    print_error "--version/-v requires 'latest' or 'previous'."
+                    fn_show_help
+                    exit 1
+                fi
+                if [[ -n "$VERSION_TYPE" && "$VERSION_TYPE" != "latest" ]]; then
+                    print_error "Duplicate --version/-v option."
+                    fn_show_help
+                    exit 1
+                fi
+                if [[ "$2" != "latest" && "$2" != "previous" ]]; then
+                    print_error "--version/-v must be 'latest' or 'previous'."
+                    fn_show_help
+                    exit 1
+                fi
+                VERSION_TYPE="$2"
                 shift 2
                 ;;
             -H|--hosts)

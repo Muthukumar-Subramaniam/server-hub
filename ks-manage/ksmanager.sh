@@ -418,15 +418,21 @@ for input_arguement in "$@"; do
     fi
 done
 
-# Parse --distro flag
+# Parse --distro and --version flags
 distro_from_flag=""
+version_from_flag=""
 for arg in "$@"; do
     if [[ "$prev_arg" == "--distro" ]]; then
         distro_from_flag="$arg"
-        break
+    fi
+    if [[ "$prev_arg" == "--version" ]]; then
+        version_from_flag="$arg"
     fi
     prev_arg="$arg"
 done
+
+# Set default version type
+version_type="${version_from_flag:-latest}"
 
 fn_check_and_create_mac_if_required() {
 
@@ -497,10 +503,25 @@ fn_check_distro_availability() {
 		kernel_file_name="vmlinuz"
 	fi
 
-	if [[ ! -f "${ipxe_web_dir}/images/${os_distribution}-latest/${kernel_file_name}" ]]; then
-		print_yellow '[Not-Ready]'
+	# Check both latest and previous versions
+	local latest_ready=false
+	local previous_ready=false
+	
+	if [[ -f "${ipxe_web_dir}/images/${os_distribution}-latest/${kernel_file_name}" ]]; then
+		latest_ready=true
+	fi
+	if [[ -f "${ipxe_web_dir}/images/${os_distribution}-previous/${kernel_file_name}" ]]; then
+		previous_ready=true
+	fi
+	
+	if [[ "$latest_ready" == true && "$previous_ready" == true ]]; then
+		print_green '[Latest+Previous Ready]'
+	elif [[ "$latest_ready" == true ]]; then
+		print_green '[Latest Ready]'
+	elif [[ "$previous_ready" == true ]]; then
+		print_yellow '[Previous Ready]'
 	else
-		print_green '[Ready]'
+		print_yellow '[Not-Ready]'
 	fi
 }
 
@@ -515,19 +536,62 @@ opensuse_leap_os_availability=$(fn_check_distro_availability "opensuse-leap")
 fn_auto_detect_os_from_hostname() {
     local hostname_lower=$(echo "${kickstart_short_hostname}" | tr '[:upper:]' '[:lower:]')
     
-    # Check for OS distribution keywords in hostname
-    if [[ "${hostname_lower}" == *"almalinux"* ]]; then
+    # Check for OS distribution keywords in hostname with version detection
+    # Version patterns: alma9, alma10, rocky9, rocky10, ubuntu22, ubuntu24, opensuse155, opensuse156
+    
+    # AlmaLinux patterns
+    if [[ "${hostname_lower}" == *"alma10"* || "${hostname_lower}" == *"almalinux10"* ]]; then
+        echo "almalinux:latest"
+    elif [[ "${hostname_lower}" == *"alma9"* || "${hostname_lower}" == *"almalinux9"* ]]; then
+        echo "almalinux:previous"
+    elif [[ "${hostname_lower}" == *"almalinux"* || "${hostname_lower}" == *"alma"* ]]; then
         echo "almalinux"
+        
+    # Rocky Linux patterns
+    elif [[ "${hostname_lower}" == *"rocky10"* ]]; then
+        echo "rocky:latest"
+    elif [[ "${hostname_lower}" == *"rocky9"* ]]; then
+        echo "rocky:previous"
     elif [[ "${hostname_lower}" == *"rocky"* ]]; then
         echo "rocky"
-    elif [[ "${hostname_lower}" == *"oraclelinux"* ]]; then
+        
+    # OracleLinux patterns
+    elif [[ "${hostname_lower}" == *"oracle10"* || "${hostname_lower}" == *"oraclelinux10"* ]]; then
+        echo "oraclelinux:latest"
+    elif [[ "${hostname_lower}" == *"oracle9"* || "${hostname_lower}" == *"oraclelinux9"* ]]; then
+        echo "oraclelinux:previous"
+    elif [[ "${hostname_lower}" == *"oraclelinux"* || "${hostname_lower}" == *"oracle"* ]]; then
         echo "oraclelinux"
+        
+    # CentOS Stream patterns
+    elif [[ "${hostname_lower}" == *"centos10"* || "${hostname_lower}" == *"centosstream10"* ]]; then
+        echo "centos-stream:latest"
+    elif [[ "${hostname_lower}" == *"centos9"* || "${hostname_lower}" == *"centosstream9"* ]]; then
+        echo "centos-stream:previous"
     elif [[ "${hostname_lower}" == *"centos"* ]]; then
         echo "centos-stream"
+        
+    # RHEL patterns
+    elif [[ "${hostname_lower}" == *"rhel10"* ]]; then
+        echo "rhel:latest"
+    elif [[ "${hostname_lower}" == *"rhel9"* ]]; then
+        echo "rhel:previous"
     elif [[ "${hostname_lower}" == *"rhel"* ]]; then
         echo "rhel"
+        
+    # Ubuntu patterns
+    elif [[ "${hostname_lower}" == *"ubuntu24"* ]]; then
+        echo "ubuntu-lts:latest"
+    elif [[ "${hostname_lower}" == *"ubuntu22"* ]]; then
+        echo "ubuntu-lts:previous"
     elif [[ "${hostname_lower}" == *"ubuntu"* ]]; then
         echo "ubuntu-lts"
+        
+    # openSUSE patterns
+    elif [[ "${hostname_lower}" == *"opensuse156"* || "${hostname_lower}" == *"suse156"* ]]; then
+        echo "opensuse-leap:latest"
+    elif [[ "${hostname_lower}" == *"opensuse155"* || "${hostname_lower}" == *"suse155"* ]]; then
+        echo "opensuse-leap:previous"
     elif [[ "${hostname_lower}" == *"opensuse"* || "${hostname_lower}" == *"suse"* ]]; then
         echo "opensuse-leap"
     else
@@ -585,11 +649,45 @@ fn_select_os_distro() {
     local auto_detected_os=$(fn_auto_detect_os_from_hostname)
     
     if [[ -n "${auto_detected_os}" ]]; then
-        print_info "Auto-detected OS distribution from hostname: ${auto_detected_os}"
-        os_distribution="${auto_detected_os}"
+        # Check if version was auto-detected (format: distro:version)
+        if [[ "${auto_detected_os}" == *":"* ]]; then
+            os_distribution="${auto_detected_os%%:*}"
+            local detected_version="${auto_detected_os##*:}"
+            # Only set version if not already set via --version flag
+            if [[ -z "${version_from_flag}" ]]; then
+                version_type="${detected_version}"
+                print_info "Auto-detected OS distribution from hostname: ${os_distribution} (${version_type})"
+            else
+                print_info "Auto-detected OS distribution from hostname: ${os_distribution} (using --version ${version_type} override)"
+            fi
+        else
+            print_info "Auto-detected OS distribution from hostname: ${auto_detected_os}"
+            os_distribution="${auto_detected_os}"
+        fi
         return
     fi
     
+    # Two-step menu: First select version, then select distribution
+    # Step 1: Select version (only if not already set via --version flag)
+    if [[ -z "${version_from_flag}" ]]; then
+        print_notify "Please select the OS version to install:
+  1)  Latest  (AlmaLinux 10, Rocky 10, Ubuntu 24.04, openSUSE 15.6, etc.)
+  2)  Previous (AlmaLinux 9, Rocky 9, Ubuntu 22.04, openSUSE 15.5, etc.)
+  3)  Quit"
+
+        read -p "Enter option number (default: Latest): " version_choice
+
+        case "${version_choice}" in
+            1 | "" ) version_type="latest" ;;
+            2 )      version_type="previous" ;;
+            3 )      print_info "Operation cancelled by user."; exit 130 ;;
+            * )      print_error "Invalid option. Please try again."; fn_select_os_distro; return ;;
+        esac
+        
+        print_info "Version selected: ${version_type}"
+    fi
+    
+    # Step 2: Select distribution
     print_notify "Please select the OS distribution to install:
   1)  AlmaLinux                ${almalinux_os_availability}
   2)  Rocky Linux              ${rocky_os_availability}
@@ -597,7 +695,7 @@ fn_select_os_distro() {
   4)  CentOS Stream            ${centos_stream_os_availability}
   5)  Red Hat Enterprise Linux ${rhel_os_availability}
   6)  Ubuntu Server LTS        ${ubuntu_lts_os_availability}
-  7)  openSUSE Leap Latest     ${opensuse_leap_os_availability}
+  7)  openSUSE Leap            ${opensuse_leap_os_availability}
   8)  Quit"
 
     read -p "Enter option number (default: AlmaLinux): " os_distribution
@@ -614,7 +712,7 @@ fn_select_os_distro() {
 	* ) print_error "Invalid option. Please try again."; fn_select_os_distro ;;
     esac
     
-    print_info "OS distribution selected: ${os_distribution}"
+    print_info "OS distribution selected: ${os_distribution} (${version_type})"
 }
 
 fn_select_os_distro
@@ -656,7 +754,7 @@ else
 	kernel_file_name="vmlinuz"
 fi
 
-while [ ! -f "${ipxe_web_dir}/images/${os_distribution}-latest/${kernel_file_name}" ]; do
+while [ ! -f "${ipxe_web_dir}/images/${os_distribution}-${version_type}/${kernel_file_name}" ]; do
 	print_warning "${os_distribution} is not yet prepared for PXE-boot environment."
 	print_info "Please use 'prepare-distro-for-ksmanager' tool to prepare ${os_distribution} for PXE-boot."
 	if $invoked_with_qemu_kvm; then
@@ -667,24 +765,26 @@ while [ ! -f "${ipxe_web_dir}/images/${os_distribution}-latest/${kernel_file_nam
 done
 
 if [[ "${os_distribution}" == "ubuntu-lts" ]]; then
-	os_name_and_version=$(awk -F'LTS' '{print $1 "LTS"}' "/${web_server_name}.${ipv4_domain}/${os_distribution}-latest/.disk/info")
+	os_name_and_version=$(awk -F'LTS' '{print $1 "LTS"}' "/${web_server_name}.${ipv4_domain}/${os_distribution}-${version_type}/.disk/info")
 elif [[ "${os_distribution}" == "opensuse-leap" ]]; then
-	os_name_and_version=$(awk -F ' = ' '/^\[release\]/{f=1; next} /^\[/{f=0} f && /^(name|version)/ {gsub(/^[ \t]+/, "", $2); printf "%s ", $2} END{print ""}' "/${web_server_name}.${ipv4_domain}/${os_distribution}-latest/.treeinfo")
+	os_name_and_version=$(awk -F ' = ' '/^\[release\]/{f=1; next} /^\[/{f=0} f && /^(name|version)/ {gsub(/^[ \t]+/, "", $2); printf "%s ", $2} END{print ""}' "/${web_server_name}.${ipv4_domain}/${os_distribution}-${version_type}/.treeinfo")
+	# Extract just the version number (e.g., "15.6" from "openSUSE Leap 15.6")
+	opensuse_version_number=$(echo "$os_name_and_version" | grep -oP '\d+\.\d+')
 else
 	redhat_based_distro_name="${os_distribution}"
 	if [[ "${os_distribution}" == "centos-stream" ]]; then
-		os_name_and_version=$(grep -i "centos" "/${web_server_name}.${ipv4_domain}/${os_distribution}-latest/.discinfo")
+		os_name_and_version=$(grep -i "centos" "/${web_server_name}.${ipv4_domain}/${os_distribution}-${version_type}/.discinfo")
 	elif [[ "${os_distribution}" == "oraclelinux" ]]; then
-		os_name_and_version=$(grep -i "oracle" "/${web_server_name}.${ipv4_domain}/${os_distribution}-latest/.discinfo")
+		os_name_and_version=$(grep -i "oracle" "/${web_server_name}.${ipv4_domain}/${os_distribution}-${version_type}/.discinfo")
 	elif [[ "${os_distribution}" == "rhel" ]]; then
-		os_name_and_version=$(grep -i "Red Hat" "/${web_server_name}.${ipv4_domain}/${os_distribution}-latest/.discinfo")
+		os_name_and_version=$(grep -i "Red Hat" "/${web_server_name}.${ipv4_domain}/${os_distribution}-${version_type}/.discinfo")
 	else
-		os_name_and_version=$(grep -i "${os_distribution}" "/${web_server_name}.${ipv4_domain}/${os_distribution}-latest/.discinfo")
+		os_name_and_version=$(grep -i "${os_distribution}" "/${web_server_name}.${ipv4_domain}/${os_distribution}-${version_type}/.discinfo")
 	fi
 fi
 
 if ! $golden_image_creation_not_requested; then
-	fn_check_and_create_host_record "${os_distribution}-golden-image"
+	fn_check_and_create_host_record "${os_distribution}-golden-image-${version_type}"
 	ipv4_address=$(host "${kickstart_hostname}" "${dnsbinder_server_ipv4_address}" | grep 'has address' | cut -d " " -f 4 | tr -d '[[:space:]]')
 	fn_check_and_create_mac_if_required
 	fn_create_host_kickstart_dir
@@ -693,14 +793,14 @@ fi
 if ! $invoked_with_golden_image; then
 	if [[ "${os_distribution}" == "opensuse-leap" ]]; then
 		if [[ ! -z "${whether_vga_console_is_required}" ]]; then
-			rsync -a -q "${ksmanager_main_dir}/ks-templates/${os_distribution}-latest-autoinst-vmware.xml" "${host_kickstart_dir}/${os_distribution}-latest-autoinst.xml" 
+			rsync -a -q "${ksmanager_main_dir}/ks-templates/${os_distribution}-${version_type}-autoinst-vmware.xml" "${host_kickstart_dir}/${os_distribution}-${version_type}-autoinst.xml" 
 		else
-			rsync -a -q "${ksmanager_main_dir}/ks-templates/${os_distribution}-latest-autoinst.xml" "${host_kickstart_dir}/${os_distribution}-latest-autoinst.xml" 
+			rsync -a -q "${ksmanager_main_dir}/ks-templates/${os_distribution}-${version_type}-autoinst.xml" "${host_kickstart_dir}/${os_distribution}-${version_type}-autoinst.xml" 
 		fi
 	elif [[ "${os_distribution}" == "ubuntu-lts" ]]; then 
-		rsync -a -q --delete "${ksmanager_main_dir}/ks-templates/${os_distribution}-latest-ks" "${host_kickstart_dir}"/
+		rsync -a -q --delete "${ksmanager_main_dir}/ks-templates/${os_distribution}-${version_type}-ks" "${host_kickstart_dir}"/
 	else
-		rsync -a -q "${ksmanager_main_dir}/ks-templates/redhat-based-latest-ks.cfg" "${host_kickstart_dir}"/ 
+		rsync -a -q "${ksmanager_main_dir}/ks-templates/redhat-based-${version_type}-ks.cfg" "${host_kickstart_dir}"/ 
 	fi
 	if ! $golden_image_creation_not_requested; then
 		if [[ -z "${redhat_based_distro_name}" ]]; then
@@ -775,6 +875,8 @@ fn_set_environment() {
 		sed -i "s/get_whether_vga_console_is_required/${whether_vga_console_is_required}/g" "${working_file}"
 	 	sed -i "s/get_golden_image_creation_not_requested/$golden_image_creation_not_requested/g" "${working_file}"
 	 	sed -i "s/get_redhat_based_distro_name/$redhat_based_distro_name/g" "${working_file}"
+	 	sed -i "s/get_version_type/$version_type/g" "${working_file}"
+	 	sed -i "s/get_opensuse_version_number/$opensuse_version_number/g" "${working_file}"
 	 	sed -i "s/get_subnets_to_allow_ssh_pub_access/${subnets_to_allow_ssh_pub_access}/g" "${working_file}"
 
 		awk -v val="$shadow_password_super_mgmt_user" '
@@ -805,9 +907,9 @@ if ! $invoked_with_golden_image; then
 	mac_based_ipxe_cfg_file="${ipxe_web_dir}/${ipxe_cfg_mac_address}.ipxe"
 
 	if [[ -z "${redhat_based_distro_name}" ]]; then
-            rsync -a -q "${ksmanager_main_dir}/ipxe-templates/ipxe-template-${os_distribution}-auto.ipxe"  "${mac_based_ipxe_cfg_file}"
+            rsync -a -q "${ksmanager_main_dir}/ipxe-templates/ipxe-template-${os_distribution}-auto-${version_type}.ipxe"  "${mac_based_ipxe_cfg_file}"
 	else
-	    rsync -a -q "${ksmanager_main_dir}/ipxe-templates/ipxe-template-redhat-based-auto.ipxe"  "${mac_based_ipxe_cfg_file}"
+	    rsync -a -q "${ksmanager_main_dir}/ipxe-templates/ipxe-template-redhat-based-auto-${version_type}.ipxe"  "${mac_based_ipxe_cfg_file}"
 	fi
 
 	fn_set_environment "${mac_based_ipxe_cfg_file}"

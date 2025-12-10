@@ -9,6 +9,7 @@ source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/defaults.sh
 source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/select-ovmf.sh
 
 OS_DISTRO=""
+VERSION_TYPE="latest"
 
 # Function to show help
 fn_show_help() {
@@ -20,12 +21,14 @@ Description:
 Options:
   -d, --distro         Specify OS distribution
                        (almalinux, rocky, oraclelinux, centos-stream, rhel, ubuntu-lts, opensuse-leap)
+  -v, --version        Specify OS version: latest (default) or previous
   -h, --help           Show this help message
 
 Examples:
   qlabvmctl build-golden-image                       # Build golden image (will prompt for distro)
-  qlabvmctl build-golden-image -d almalinux          # Build AlmaLinux golden image
-  qlabvmctl build-golden-image --distro ubuntu-lts   # Build Ubuntu LTS golden image
+  qlabvmctl build-golden-image -d almalinux          # Build AlmaLinux 10 (latest) golden image
+  qlabvmctl build-golden-image -d rocky -v previous  # Build Rocky Linux 9 (previous) golden image
+  qlabvmctl build-golden-image --distro ubuntu-lts   # Build Ubuntu LTS 24.04 (latest) golden image
 "
 }
 
@@ -45,6 +48,20 @@ while [[ $# -gt 0 ]]; do
             OS_DISTRO="$2"
             shift 2
             ;;
+        -v|--version)
+            if [[ -z "$2" || "$2" == -* ]]; then
+                print_error "--version/-v requires 'latest' or 'previous'."
+                fn_show_help
+                exit 1
+            fi
+            if [[ "$2" != "latest" && "$2" != "previous" ]]; then
+                print_error "--version/-v must be 'latest' or 'previous'."
+                fn_show_help
+                exit 1
+            fi
+            VERSION_TYPE="$2"
+            shift 2
+            ;;
         -*)
             print_error "No such option: $1"
             fn_show_help
@@ -58,12 +75,20 @@ while [[ $# -gt 0 ]]; do
     esac
 done
 
+# Validate: --version requires --distro for golden image creation
+if [[ "$VERSION_TYPE" != "latest" && -z "$OS_DISTRO" ]]; then
+    print_error "The --version option requires --distro to be specified for golden image creation."
+    fn_show_help
+    exit 1
+fi
+
 print_info "Invoking ksmanager to create PXE environment for golden image..."
 
 # Run ksmanager for golden image creation
 source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/run-ksmanager.sh
 ksmanager_opts="--qemu-kvm --create-golden-image"
 [[ -n "$OS_DISTRO" ]] && ksmanager_opts="$ksmanager_opts --distro $OS_DISTRO"
+[[ -n "$VERSION_TYPE" ]] && ksmanager_opts="$ksmanager_opts --version $VERSION_TYPE"
 if ! run_ksmanager "" "$ksmanager_opts"; then
     print_error "Something went wrong while executing ksmanager!"
     print_info "Please check your Lab Infra Server for the root cause."
@@ -74,6 +99,9 @@ qemu_kvm_hostname="$EXTRACTED_HOSTNAME"
 
 mkdir -p /kvm-hub/golden-images-disk-store
 
+# Golden image filename format: {hostname-fqdn}.qcow2
+# Example: almalinux-golden-image-latest.lab.local.qcow2
+# The hostname from ksmanager already includes the version
 golden_image_path="/kvm-hub/golden-images-disk-store/${qemu_kvm_hostname}.qcow2"
 
 # Check if golden image already exists

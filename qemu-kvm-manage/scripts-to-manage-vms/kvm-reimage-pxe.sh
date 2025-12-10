@@ -12,10 +12,12 @@ ATTACH_CONSOLE="no"
 CLEAN_INSTALL="no"
 FORCE_REIMAGE="false"
 OS_DISTRO=""
+VERSION_TYPE="latest"
 HOSTNAMES=()
 SUPPORTS_CLEAN_INSTALL="yes"
 SUPPORTS_FORCE="yes"
 SUPPORTS_DISTRO="yes"
+SUPPORTS_VERSION="yes"
 
 # Function to show help
 fn_show_help() {
@@ -25,6 +27,7 @@ Options:
   -C, --clean-install  Destroy VM and reinstall with default specs (2 vCPUs, 2 GiB RAM, 20 GiB disk)
   -d, --distro         Specify OS distribution
                        (almalinux, rocky, oraclelinux, centos-stream, rhel, ubuntu-lts, opensuse-leap)
+  -v, --version        Specify OS version: latest (default) or previous
   -f, --force          Skip confirmation prompt
   -H, --hosts          Specify multiple hostnames (comma-separated)
   -h, --help           Show this help message
@@ -36,7 +39,8 @@ Examples:
   qlabvmctl reimage-pxe vm1                                   # Reimage single VM
   qlabvmctl reimage-pxe vm1 --console                         # Reimage and attach console
   qlabvmctl reimage-pxe vm1 --clean-install                   # Reimage with default specs
-  qlabvmctl reimage-pxe vm1 --distro almalinux                # Reimage with AlmaLinux
+  qlabvmctl reimage-pxe vm1 --distro almalinux                # Reimage with AlmaLinux (latest)
+  qlabvmctl reimage-pxe vm1 -d rocky -v previous              # Reimage with Rocky Linux 9
   qlabvmctl reimage-pxe -f vm1                                # Reimage without confirmation
   qlabvmctl reimage-pxe --hosts vm1,vm2,vm3 -d ubuntu-lts     # Reimage multiple with Ubuntu LTS
   qlabvmctl reimage-pxe -H vm1,vm2,vm3 --clean-install       # Reimage multiple with defaults
@@ -80,6 +84,7 @@ for qemu_kvm_hostname in "${HOSTNAMES[@]}"; do
     source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/run-ksmanager.sh
     ksmanager_opts="--qemu-kvm"
     [[ -n "$OS_DISTRO" ]] && ksmanager_opts="$ksmanager_opts --distro $OS_DISTRO"
+    [[ -n "$VERSION_TYPE" ]] && ksmanager_opts="$ksmanager_opts --version $VERSION_TYPE"
     if ! run_ksmanager "${qemu_kvm_hostname}" "$ksmanager_opts"; then
         FAILED_VMS+=("$qemu_kvm_hostname")
         continue

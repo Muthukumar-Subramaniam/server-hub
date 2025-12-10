@@ -10,8 +10,10 @@ source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/select-ovmf.s
 
 ATTACH_CONSOLE="no"
 OS_DISTRO=""
+VERSION_TYPE="latest"
 HOSTNAMES=()
 SUPPORTS_DISTRO="yes"
+SUPPORTS_VERSION="yes"
 
 # Function to show help
 fn_show_help() {
@@ -20,6 +22,7 @@ Options:
   -c, --console        Attach console during installation (single VM only)
   -d, --distro         Specify OS distribution
                        (almalinux, rocky, oraclelinux, centos-stream, rhel, ubuntu-lts, opensuse-leap)
+  -v, --version        Specify OS version: latest (default) or previous
   -H, --hosts          Specify multiple hostnames (comma-separated)
   -h, --help           Show this help message
 
@@ -27,11 +30,12 @@ Arguments:
   hostname             Name of the VM to install via PXE boot (optional, will prompt if not given)
 
 Examples:
-  qlabvmctl install-pxe vm1                              # Install single VM
+  qlabvmctl install-pxe vm1                              # Install single VM (latest)
   qlabvmctl install-pxe vm1 --console                    # Install and attach console
-  qlabvmctl install-pxe vm1 --distro almalinux           # Install with AlmaLinux
+  qlabvmctl install-pxe vm1 --distro almalinux           # Install with AlmaLinux (latest)
+  qlabvmctl install-pxe vm1 -d almalinux -v previous     # Install with AlmaLinux 9
   qlabvmctl install-pxe --hosts vm1,vm2,vm3              # Install multiple VMs
-  qlabvmctl install-pxe -H vm1,vm2,vm3 -d ubuntu-lts     # Install multiple with Ubuntu LTS
+  qlabvmctl install-pxe -H vm1,vm2,vm3 -d ubuntu-lts     # Install multiple with Ubuntu LTS (latest)
 "
 }
 
@@ -39,8 +43,9 @@ Examples:
 source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/parse-vm-command-args.sh
 parse_vm_command_args "$@"
 
-# Save command-line distro if specified
+# Save command-line distro and version if specified
 CMDLINE_OS_DISTRO="$OS_DISTRO"
+CMDLINE_VERSION_TYPE="$VERSION_TYPE"
 
 # Main installation loop
 CURRENT_VM=0
@@ -48,8 +53,9 @@ FAILED_VMS=()
 SUCCESSFUL_VMS=()
 
 for qemu_kvm_hostname in "${HOSTNAMES[@]}"; do
-    # Reset OS_DISTRO to command-line value for each VM
+    # Reset OS_DISTRO and VERSION_TYPE to command-line values for each VM
     OS_DISTRO="$CMDLINE_OS_DISTRO"
+    VERSION_TYPE="$CMDLINE_VERSION_TYPE"
     
     source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/show-multi-vm-progress.sh
     show_multi_vm_progress "$qemu_kvm_hostname"
@@ -67,6 +73,7 @@ for qemu_kvm_hostname in "${HOSTNAMES[@]}"; do
     source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/run-ksmanager.sh
     ksmanager_opts="--qemu-kvm"
     [[ -n "$OS_DISTRO" ]] && ksmanager_opts="$ksmanager_opts --distro $OS_DISTRO"
+    [[ -n "$VERSION_TYPE" ]] && ksmanager_opts="$ksmanager_opts --version $VERSION_TYPE"
     if ! run_ksmanager "${qemu_kvm_hostname}" "$ksmanager_opts"; then
         FAILED_VMS+=("$qemu_kvm_hostname")
         continue

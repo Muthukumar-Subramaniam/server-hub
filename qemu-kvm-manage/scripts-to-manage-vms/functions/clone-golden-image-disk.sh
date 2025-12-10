@@ -4,7 +4,7 @@
 #
 # Usage:
 #   source /path/to/clone-golden-image-disk.sh
-#   clone_golden_image_disk "vm-hostname" "os-distro"
+#   clone_golden_image_disk "vm-hostname" "os-distro" "version-type"
 #
 # Returns:
 #   0 - Disk cloned successfully
@@ -13,13 +13,16 @@
 clone_golden_image_disk() {
     local vm_hostname="$1"
     local os_distro="$2"
+    local version_type="${3:-latest}"  # Default to 'latest' if not provided
     
     if [[ -z "$vm_hostname" || -z "$os_distro" ]]; then
         print_error "clone_golden_image_disk: Missing required parameters."
         return 1
     fi
     
-    local golden_image_path="/kvm-hub/golden-images-disk-store/${os_distro}-golden-image.${lab_infra_domain_name}.qcow2"
+    # Construct golden image FQDN matching ksmanager's format
+    local golden_image_fqdn="${os_distro}-golden-image-${version_type}.${lab_infra_domain_name}"
+    local golden_image_path="/kvm-hub/golden-images-disk-store/${golden_image_fqdn}.qcow2"
     local vm_disk_path="/kvm-hub/vms/${vm_hostname}/${vm_hostname}.qcow2"
     
     print_task "Cloning golden image disk for '${vm_hostname}'..."

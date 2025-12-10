@@ -5,6 +5,7 @@
 #----------------------------------------------------------------------------------------#
 
 source /server-hub/common-utils/color-functions.sh
+source /server-hub/ks-manage/distro-versions.conf
 
 if [[ "$USER" != "$mgmt_super_user" ]]; then
 	print_error "Access denied. Only infra management super user '${mgmt_super_user}' is authorized to run this tool."
@@ -38,21 +39,26 @@ FSTAB="/etc/fstab"
 
 print_usage() {
   print_info "Usage:
-    $(basename $0) --setup <distro>
-    $(basename $0) --cleanup <distro>
+    $(basename $0) --setup <distro> [--version latest|previous]
+    $(basename $0) --cleanup <distro> [--version latest|previous]
 
 Supported distros:
-    almalinux, rocky, oraclelinux, centos-stream, rhel, ubuntu-lts, opensuse-leap"
+    almalinux, rocky, oraclelinux, centos-stream, rhel, ubuntu-lts, opensuse-leap
+
+Version (optional, defaults to 'latest'):
+    latest   - Setup/cleanup the latest major version
+    previous - Setup/cleanup the previous major version"
 }
 
 fn_is_distro_ready() {
   local os_distribution="$1"
+  local version="${2:-latest}"  # Default to 'latest' if not specified
   if [[ "$os_distribution" == "opensuse-leap" ]]; then
     kernel_file_name="linux"
   else
     kernel_file_name="vmlinuz"
   fi
-  if [[ -f "/${dnsbinder_server_fqdn}/ipxe/images/${os_distribution}-latest/${kernel_file_name}" ]]; then
+  if [[ -f "/${dnsbinder_server_fqdn}/ipxe/images/${os_distribution}-${version}/${kernel_file_name}" ]]; then
     return 0  # Ready
   else
     return 1  # Not Ready
@@ -61,8 +67,23 @@ fn_is_distro_ready() {
 
 fn_get_distro_status_display() {
   local os_distribution="$1"
-  if fn_is_distro_ready "$os_distribution"; then
-    print_success "[Ready]" nskip
+  # Check both latest and previous versions for status display
+  local latest_ready=false
+  local previous_ready=false
+  
+  if fn_is_distro_ready "$os_distribution" "latest"; then
+    latest_ready=true
+  fi
+  if fn_is_distro_ready "$os_distribution" "previous"; then
+    previous_ready=true
+  fi
+  
+  if [[ "$latest_ready" == true && "$previous_ready" == true ]]; then
+    print_success "[Latest+Previous Ready]" nskip
+  elif [[ "$latest_ready" == true ]]; then
+    print_success "[Latest Ready]" nskip
+  elif [[ "$previous_ready" == true ]]; then
+    print_warning "[Previous Ready]" nskip
   else
     print_warning "[Not-Ready]" nskip
   fi
@@ -103,8 +124,8 @@ fn_select_os_distro() {
 
 prepare_iso() {
   local distro="$1" iso_file="$2" iso_url="$3" kernel_path="$4" initrd_path="$5"
-  local mount_dir="/${dnsbinder_server_fqdn}/${distro}-latest"
-  local web_image_dir="/${dnsbinder_server_fqdn}/ipxe/images/${distro}-latest"
+  local mount_dir="/${dnsbinder_server_fqdn}/${distro}-${VERSION_VARIANT}"
+  local web_image_dir="/${dnsbinder_server_fqdn}/ipxe/images/${distro}-${VERSION_VARIANT}"
   local iso_path="${ISO_DIR}/${iso_file}"
 
   print_info "Ensuring ISO directory exists..."
@@ -189,55 +210,33 @@ prepare_iso() {
 
 prepare_rhel() {
   local distro="rhel"
-  local iso_file="rhel-10-latest-x86_64-dvd.iso"
-  local mount_dir="/${dnsbinder_server_fqdn}/${distro}-latest"
-  local web_image_dir="/${dnsbinder_server_fqdn}/ipxe/images/${distro}-latest"
-  local iso_path="${ISO_DIR}/${iso_file}"
-
+  local rhel_version="10"
+  if [[ "${VERSION_VARIANT}" == "previous" ]]; then
+    rhel_version="9"
+  fi
+  
   print_info "Login from a browser with your Red Hat Developer Subscription!"
-  read -rp "Enter the link to download latest version of RHEL 10 ISO : " iso_url
+  read -rp "Enter the link to download RHEL ${rhel_version} ISO : " iso_url
 
-  prepare_iso "$distro" "$iso_file" "$iso_url" "images/pxeboot/vmlinuz" "images/pxeboot/initrd.img"
+  prepare_iso "$distro" "${ISO_FILENAMES[rhel]}" "$iso_url" "${REDHAT_BASED_BOOT_VMLINUZ}" "${REDHAT_BASED_BOOT_INITRD}"
 }
 
 prepare_ubuntu() {
   local distro="ubuntu-lts"
-  # Fetch latest 24.04.x point release
-  local latest_24_04=$(curl -s https://releases.ubuntu.com/24.04/ | sed -n 's/.*href="ubuntu-\(24\.04\.[0-9]*\)-live-server-amd64\.iso".*/\1/p' | sort -V | tail -n1)
-  
-  # Fallback to 24.04 if no point release found
-  if [[ -z "$latest_24_04" ]]; then
-    latest_24_04="24.04"
-  fi
-  
-  local iso_file="ubuntu-${latest_24_04}-live-server-amd64.iso"
-  local iso_url="https://releases.ubuntu.com/24.04/${iso_file}"
-  prepare_iso "$distro" "$iso_file" "$iso_url" "casper/vmlinuz" "casper/initrd"
+  prepare_iso "$distro" "${ISO_FILENAMES[ubuntu-lts]}" "${ISO_URLS[ubuntu-lts]}" "${UBUNTU_BOOT_VMLINUZ}" "${UBUNTU_BOOT_INITRD}"
 }
 
 prepare_oraclelinux() {
   local distro="oraclelinux"
-  # Fetch latest Oracle Linux 10 ISO
-  local latest_ol10_iso=$(curl -s https://yum.oracle.com/oracle-linux-isos.html | grep -oP 'OracleLinux-R10-U\d+-x86_64-dvd\.iso' | sort -V | tail -n1)
-  
-  if [[ -z "$latest_ol10_iso" ]]; then
-    print_error "Failed to detect latest Oracle Linux 10 ISO"
-    exit 1
-  fi
-  
-  # Extract update number (e.g., U1 -> u1)
-  local update_num=$(echo "$latest_ol10_iso" | grep -oP 'U\d+' | tr '[:upper:]' '[:lower:]')
-  local iso_url="https://yum.oracle.com/ISOS/OracleLinux/OL10/${update_num}/x86_64/${latest_ol10_iso}"
-  
-  prepare_iso "$distro" "$latest_ol10_iso" "$iso_url" "images/pxeboot/vmlinuz" "images/pxeboot/initrd.img"
+  prepare_iso "$distro" "${ISO_FILENAMES[oraclelinux]}" "${ISO_URLS[oraclelinux]}" "${REDHAT_BASED_BOOT_VMLINUZ}" "${REDHAT_BASED_BOOT_INITRD}"
 }
 
 cleanup_distro() {
   local distro="$1"
   local iso_file="$2"
   local iso_path="${ISO_DIR}/${iso_file}"
-  local mount_dir="/${dnsbinder_server_fqdn}/${distro}-latest"
-  local web_image_dir="/${dnsbinder_server_fqdn}/ipxe/images/${distro}-latest"
+  local mount_dir="/${dnsbinder_server_fqdn}/${distro}-${VERSION_VARIANT}"
+  local web_image_dir="/${dnsbinder_server_fqdn}/ipxe/images/${distro}-${VERSION_VARIANT}"
 
   print_warning "This will delete ISO, mount point and boot image files for $distro."
   read -p "Are you sure you want to continue? (yes/no): " confirm
@@ -266,8 +265,8 @@ cleanup_distro() {
     sudo rm -rf "$web_image_dir"
   fi
 
-  print_info "Cleaning up /etc/fstab entries containing '${distro}-latest'"
-  sudo sed -i "/${distro}-latest/d" "$FSTAB"
+  print_info "Cleaning up /etc/fstab entries containing '${distro}-${VERSION_VARIANT}'"
+  sudo sed -i "/${distro}-${VERSION_VARIANT}/d" "$FSTAB"
   sudo systemctl daemon-reexec
 
   print_success "Cleanup completed for $distro.\n"
@@ -288,6 +287,17 @@ What would you like to do?
     * ) print_error "Invalid choice. Exiting."; exit 1 ;;
   esac
   fn_select_os_distro "$MENU_TITLE"
+  
+  # Ask for version in interactive mode
+  print_info "Which version do you want to ${MENU_TITLE}?
+  1) Latest (default)
+  2) Previous"
+  read -p "Enter option: " version_choice
+  case "$version_choice" in
+    1 | "" ) VERSION_VARIANT="latest" ;;
+    2 ) VERSION_VARIANT="previous" ;;
+    * ) print_error "Invalid choice. Using 'latest'."; VERSION_VARIANT="latest" ;;
+  esac
 else
   MODE="$1"
   DISTRO="${2:-}"
@@ -308,13 +318,40 @@ else
     print_usage
     exit 1
   fi
+
+  # Parse --version parameter (optional, defaults to 'latest')
+  VERSION_VARIANT="latest"
+  if [[ $# -ge 3 ]]; then
+    if [[ "$3" == "--version" && -n "${4:-}" ]]; then
+      if [[ "$4" == "latest" || "$4" == "previous" ]]; then
+        VERSION_VARIANT="$4"
+      else
+        print_error "Invalid version: $4. Must be 'latest' or 'previous'."
+        print_usage
+        exit 1
+      fi
+    else
+      print_error "Invalid parameter: $3"
+      print_usage
+      exit 1
+    fi
+  fi
+fi
+
+# Select version-aware arrays based on VERSION_VARIANT
+if [[ "${VERSION_VARIANT}" == "previous" ]]; then
+  declare -n ISO_FILENAMES=ISO_FILENAMES_PREVIOUS
+  declare -n ISO_URLS=ISO_URLS_PREVIOUS
+else
+  declare -n ISO_FILENAMES=ISO_FILENAMES_LATEST
+  declare -n ISO_URLS=ISO_URLS_LATEST
 fi
 
 # Main logic
 case "$MODE" in
   --setup)
     # Check if distro is already prepared (DRY - check once)
-    if fn_is_distro_ready "$DISTRO"; then
+    if fn_is_distro_ready "$DISTRO" "$VERSION_VARIANT"; then
       print_warning "Distro '${DISTRO}' already appears to be prepared."
       print_info "Please cleanup first using: $(basename $0) --cleanup ${DISTRO}"
       exit 1
@@ -322,33 +359,37 @@ case "$MODE" in
 
     case "$DISTRO" in
       almalinux)
-        prepare_iso "almalinux" "AlmaLinux-10-latest-x86_64-dvd.iso" \
-          "https://repo.almalinux.org/almalinux/10/isos/x86_64/AlmaLinux-10-latest-x86_64-dvd.iso" \
-          "images/pxeboot/vmlinuz" "images/pxeboot/initrd.img"
+        prepare_iso "almalinux" "${ISO_FILENAMES[almalinux]}" \
+          "${ISO_URLS[almalinux]}" \
+          "${REDHAT_BASED_BOOT_VMLINUZ}" "${REDHAT_BASED_BOOT_INITRD}"
         ;;
       rocky)
-        prepare_iso "rocky" "Rocky-10-latest-x86_64-dvd.iso" \
-          "https://dl.rockylinux.org/pub/rocky/10/isos/x86_64/Rocky-10-latest-x86_64-dvd.iso" \
-          "images/pxeboot/vmlinuz" "images/pxeboot/initrd.img"
+        prepare_iso "rocky" "${ISO_FILENAMES[rocky]}" \
+          "${ISO_URLS[rocky]}" \
+          "${REDHAT_BASED_BOOT_VMLINUZ}" "${REDHAT_BASED_BOOT_INITRD}"
         ;;
       oraclelinux)
-        prepare_oraclelinux
+        prepare_iso "oraclelinux" "${ISO_FILENAMES[oraclelinux]}" \
+          "${ISO_URLS[oraclelinux]}" \
+          "${REDHAT_BASED_BOOT_VMLINUZ}" "${REDHAT_BASED_BOOT_INITRD}"
         ;;
       centos-stream)
-        prepare_iso "centos-stream" "CentOS-Stream-10-latest-x86_64-dvd.iso" \
-          "https://mirrors.centos.org/mirrorlist?path=/10-stream/BaseOS/x86_64/iso/CentOS-Stream-10-latest-x86_64-dvd1.iso&redirect=1&protocol=https" \
-          "images/pxeboot/vmlinuz" "images/pxeboot/initrd.img"
+        prepare_iso "centos-stream" "${ISO_FILENAMES[centos-stream]}" \
+          "${ISO_URLS[centos-stream]}" \
+          "${REDHAT_BASED_BOOT_VMLINUZ}" "${REDHAT_BASED_BOOT_INITRD}"
         ;;
       rhel)
         prepare_rhel
         ;;
       ubuntu-lts)
-        prepare_ubuntu
+        prepare_iso "ubuntu-lts" "${ISO_FILENAMES[ubuntu-lts]}" \
+          "${ISO_URLS[ubuntu-lts]}" \
+          "${UBUNTU_BOOT_VMLINUZ}" "${UBUNTU_BOOT_INITRD}"
         ;;
       opensuse-leap)
-        prepare_iso "opensuse-leap" "openSUSE-Leap-15.6-DVD-x86_64-Media.iso" \
-          "https://download.opensuse.org/distribution/leap/15.6/iso/openSUSE-Leap-15.6-DVD-x86_64-Media.iso" \
-          "boot/x86_64/loader/linux" "boot/x86_64/loader/initrd"
+        prepare_iso "opensuse-leap" "${ISO_FILENAMES[opensuse-leap]}" \
+          "${ISO_URLS[opensuse-leap]}" \
+          "${OPENSUSE_BOOT_VMLINUZ}" "${OPENSUSE_BOOT_INITRD}"
         ;;
       *)
         print_error "Unknown distro: $DISTRO"
@@ -358,13 +399,13 @@ case "$MODE" in
     ;;
   --cleanup)
     case "$DISTRO" in
-      almalinux)       cleanup_distro "almalinux" "AlmaLinux-10-latest-x86_64-dvd.iso" ;;
-      rocky)           cleanup_distro "rocky" "Rocky-10-latest-x86_64-dvd.iso" ;;
-      oraclelinux)     cleanup_distro "oraclelinux" "OracleLinux-10*-x86_64-dvd.iso" ;;
-      centos-stream)   cleanup_distro "centos-stream" "CentOS-Stream-10-latest-x86_64-dvd.iso" ;;
-      rhel)            cleanup_distro "rhel" "rhel-10-latest-x86_64-dvd.iso" ;;
-      ubuntu-lts)      cleanup_distro "ubuntu-lts" "ubuntu-24*-live-server-amd64.iso" ;;
-      opensuse-leap)   cleanup_distro "opensuse-leap" "openSUSE-Leap-15*-DVD-x86_64-Media.iso" ;;
+      almalinux)       cleanup_distro "almalinux" "${ISO_FILENAMES[almalinux]}" ;;
+      rocky)           cleanup_distro "rocky" "${ISO_FILENAMES[rocky]}" ;;
+      oraclelinux)     cleanup_distro "oraclelinux" "${ISO_FILENAMES[oraclelinux]}" ;;
+      centos-stream)   cleanup_distro "centos-stream" "${ISO_FILENAMES[centos-stream]}" ;;
+      rhel)            cleanup_distro "rhel" "${ISO_FILENAMES[rhel]}" ;;
+      ubuntu-lts)      cleanup_distro "ubuntu-lts" "${ISO_FILENAMES[ubuntu-lts]}" ;;
+      opensuse-leap)   cleanup_distro "opensuse-leap" "${ISO_FILENAMES[opensuse-leap]}" ;;
       *)
         print_error "Unknown distro: $DISTRO"
         exit 1
