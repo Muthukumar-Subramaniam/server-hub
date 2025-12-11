@@ -272,7 +272,9 @@ if $remove_host_requested; then
                   \"command\": \"lease4-del\",
                   \"service\": [ \"dhcp4\" ],
                   \"arguments\": {
-                    \"hw-address\": \"${cached_mac}\"
+                    \"identifier-type\": \"hw-address\",
+                    \"identifier\": \"${cached_mac}\",
+                    \"subnet-id\": 1
                   }
                 }" \
             "$kea_api_url" &>/dev/null
@@ -285,7 +287,8 @@ if $remove_host_requested; then
                       \"command\": \"lease4-del\",
                       \"service\": [ \"dhcp4\" ],
                       \"arguments\": {
-                        \"ip-address\": \"${cached_ip}\"
+                        \"ip-address\": \"${cached_ip}\",
+                        \"subnet-id\": 1
                       }
                     }" \
                 "$kea_api_url" &>/dev/null
@@ -979,7 +982,9 @@ EOF
           \"command\": \"lease4-del\",
           \"service\": [ \"dhcp4\" ],
           \"arguments\": {
-            \"hw-address\": \"${mac_address_of_host}\"
+            \"identifier-type\": \"hw-address\",
+            \"identifier\": \"${mac_address_of_host}\",
+            \"subnet-id\": 1
           }
         }" \
   "$kea_api_url" &>/dev/null
@@ -991,7 +996,8 @@ EOF
           \"command\": \"lease4-del\",
           \"service\": [ \"dhcp4\" ],
           \"arguments\": {
-            \"ip-address\": \"${ipv4_address}\"
+            \"ip-address\": \"${ipv4_address}\",
+            \"subnet-id\": 1
           }
         }" \
    "$kea_api_url" &>/dev/null
