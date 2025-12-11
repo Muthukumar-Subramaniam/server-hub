@@ -92,7 +92,8 @@ if [[ "$ROOT_DEV" =~ ^/dev/mapper/ ]]; then
 
     # Get disk and partition number from lsblk
     DISK="/dev/$(lsblk -no pkname "$PV_PATH" | sort | head -n1 | tr -d '[:space:]')"
-    PART_NUM=$(lsblk -no partn "$PV_PATH" | tr -d '[:space:]')
+    # Extract partition number from device name (e.g., /dev/vda3 -> 3, /dev/nvme0n1p3 -> 3)
+    PART_NUM=$(echo "$PV_PATH" | grep -o '[0-9]*$')
 
     if fn_get_growpart; then
         print_task "Growing partition $PV_PATH..."
@@ -130,7 +131,8 @@ else
 
     # Get disk and partition number from lsblk
     DISK="/dev/$(lsblk -no pkname "$ROOT_DEV" | sort | head -n1 | tr -d '[:space:]')"
-    PART_NUM=$(lsblk -no partn "$ROOT_DEV" | tr -d '[:space:]')
+    # Extract partition number from device name (e.g., /dev/vda3 -> 3, /dev/nvme0n1p3 -> 3)
+    PART_NUM=$(echo "$ROOT_DEV" | grep -o '[0-9]*$')
 
     print_info "Disk: $DISK, Partition: $PART_NUM"
 
