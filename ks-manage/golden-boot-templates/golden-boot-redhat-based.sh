@@ -198,11 +198,13 @@ if ! curl -fsSL "http://get_web_server_name.get_ipv4_domain/server-hub/common-ut
 	log "WARNING: Lab rootfs extender failed, continuing anyway"
 fi
 
+log "Restarting SSH service to ensure it picks up new host keys"
+systemctl restart sshd || systemctl restart ssh
+
 log "Marking golden boot as completed"
 touch /root/golden-boot-redhat-based-completed
 
-log "Disabling and masking golden-boot-redhat-based.service to prevent future execution"
+log "Disabling golden-boot-redhat-based.service to prevent future execution"
 systemctl disable golden-boot-redhat-based.service 2>/dev/null || true
-systemctl mask golden-boot-redhat-based.service
 
 log "Golden boot configuration completed successfully"
