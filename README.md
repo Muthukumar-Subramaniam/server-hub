@@ -191,7 +191,6 @@ qlabdnsbinder                       # 🌐 Manage local DNS records
 
 **Pro tips:** 
 - Use `qlabvmctl --help` or `qlabvmctl <subcommand> --help` for VM management help
-- Use `qlabstart --help`, `qlabhealth --help`, and `qlabdnsbinder --help` for infrastructure tools
 
 ---
 
