@@ -385,10 +385,7 @@ EOF
 
   print_info "Saving Lab Environment variables to: $LAB_ENV_VARS_FILE..."
 
-sudo tee "$LAB_ENV_VARS_FILE" &>/dev/null <<EOF || {
-  print_error "Failed to write lab environment file"
-  exit 1
-}
+sudo tee "$LAB_ENV_VARS_FILE" &>/dev/null <<EOF
 lab_infra_server_hostname="${lab_infra_server_hostname}"
 lab_infra_domain_name="${lab_infra_domain_name}"
 lab_infra_admin_username="${lab_infra_admin_username}"
@@ -399,6 +396,11 @@ lab_infra_server_ipv4_gateway="${lab_infra_server_ipv4_gateway}"
 lab_infra_server_ipv4_netmask="${lab_infra_server_ipv4_netmask}"
 lab_infra_server_ipv4_address="${lab_infra_server_ipv4_address}"
 EOF
+
+  if [[ $? -ne 0 ]]; then
+    print_error "Failed to write lab environment file"
+    exit 1
+  fi
 
   sudo chmod 600 "$LAB_ENV_VARS_FILE"
 
@@ -473,22 +475,13 @@ deploy_lab_infra_server_vm() {
   sed -i "s/get_subnets_to_allow_ssh_pub_access/${subnets_to_allow_ssh_pub_access}/g" "${KS_FILE}"
 
   awk -v val="$lab_admin_shadow_password" '{ gsub(/get_shadow_password_super_mgmt_user/, val) } 1' \
-      "${KS_FILE}" > "${KS_FILE}"_tmp_ksmanager && mv "${KS_FILE}"_tmp_ksmanager "${KS_FILE}" || {
-        print_error "Failed to update shadow password in kickstart"
-        exit 1
-      }
+      "${KS_FILE}" > "${KS_FILE}"_tmp_ksmanager && mv "${KS_FILE}"_tmp_ksmanager "${KS_FILE}" || { print_error "Failed to update shadow password in kickstart"; exit 1; }
 
   awk -v val="$lab_infra_ssh_public_key" '{ gsub(/get_ssh_public_key_of_qemu_host_machine/, val) } 1' \
-      "${KS_FILE}" > "${KS_FILE}"_tmp_ksmanager && mv "${KS_FILE}"_tmp_ksmanager "${KS_FILE}" || {
-        print_error "Failed to update SSH public key in kickstart"
-        exit 1
-      }
+      "${KS_FILE}" > "${KS_FILE}"_tmp_ksmanager && mv "${KS_FILE}"_tmp_ksmanager "${KS_FILE}" || { print_error "Failed to update SSH public key in kickstart"; exit 1; }
 
   awk -v val="$lab_infra_ssh_private_key" '{ gsub(/get_ssh_private_key_of_qemu_host_machine/, val) } 1' \
-      "${KS_FILE}" > "${KS_FILE}"_tmp_ksmanager && mv "${KS_FILE}"_tmp_ksmanager "${KS_FILE}" || {
-        print_error "Failed to update SSH private key in kickstart"
-        exit 1
-      }
+      "${KS_FILE}" > "${KS_FILE}"_tmp_ksmanager && mv "${KS_FILE}"_tmp_ksmanager "${KS_FILE}" || { print_error "Failed to update SSH private key in kickstart"; exit 1; }
 
   print_success "Kickstart file prepared at ${KS_FILE}"
   # -------------------------
