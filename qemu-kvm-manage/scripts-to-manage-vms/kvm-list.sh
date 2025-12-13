@@ -16,11 +16,7 @@ mapfile -t vm_list < <(sudo virsh list --all | awk 'NR>2 && $2 != "" {print $2}'
 ssh_options="-o StrictHostKeyChecking=no \
              -o UserKnownHostsFile=/dev/null \
              -o LogLevel=QUIET \
-             -o ConnectTimeout=5 \
-             -o ConnectionAttempts=1 \
-             -o ServerAliveInterval=5 \
-             -o PreferredAuthentications=publickey \
-             -o ServerAliveCountMax=1"
+             -o ConnectTimeout=2"
 
 COLOR_GREEN=$'\033[0;32m'
 COLOR_YELLOW=$'\033[0;33m'
@@ -28,38 +24,42 @@ COLOR_RED=$'\033[0;31m'
 COLOR_RESET=$'\033[0m'
 
 declare -a results=()
+declare -A vm_states
+
+# Get all VM states in one call instead of multiple domstate calls
+while read -r vm_name state _; do
+    vm_states["$vm_name"]="$state"
+done < <(sudo virsh list --all | awk 'NR>2 && $2 != "" {print $2, $3}')
 
 # ────────────────────────────────────────────────────────────────
-# Collect data
+# Collect data (parallel)
 # ────────────────────────────────────────────────────────────────
-for vm_name in "${vm_list[@]}"; do
-    current_vm_state="[ N/A ]"
-    current_os_state="[ N/A ]"
-    os_distro="[ N/A ]"
+tmp_dir=$(mktemp -d)
+trap "rm -rf $tmp_dir" EXIT
 
-    current_vm_state=$(sudo virsh domstate "$vm_name" 2>/dev/null || echo "[ N/A ]")
+check_vm() {
+    local vm_name=$1
+    local tmp_file=$2
+    local current_vm_state="${vm_states[$vm_name]:-[ N/A ]}"
+    local current_os_state="[ N/A ]"
+    local os_distro="[ N/A ]"
 
     if [[ "$current_vm_state" == "running" ]]; then
-        # Test network connectivity with ping first
-        if ping -c 1 -W 2 "$vm_name" &>/dev/null; then
-            # Test SSH port availability with netcat
-            if nc -z -w 2 "$vm_name" 22 &>/dev/null; then
-                ssh_output=$(ssh $ssh_options "${lab_infra_admin_username}@${vm_name}" \
-                    'systemctl is-system-running; \
-                     source /etc/os-release 2>/dev/null && echo "$PRETTY_NAME" || echo "[ N/A ]"' \
-                    2>/dev/null </dev/null || true)
+        # Test SSH port availability with netcat
+        if nc -z -w 1 "$vm_name" 22 &>/dev/null; then
+            ssh_output=$(ssh $ssh_options "${lab_infra_admin_username}@${vm_name}" \
+                'systemctl is-system-running; \
+                 source /etc/os-release 2>/dev/null && echo "$PRETTY_NAME" || echo "[ N/A ]"' \
+                2>/dev/null </dev/null || true)
 
-                if [[ -n "$ssh_output" ]]; then
-                    current_os_state=$(echo "$ssh_output" | sed -n '1p')
-                    os_distro=$(echo "$ssh_output" | sed -n '2p')
-                else
-                    current_os_state="SSH-Not-Ready"
-                fi
+            if [[ -n "$ssh_output" ]]; then
+                current_os_state=$(echo "$ssh_output" | sed -n '1p')
+                os_distro=$(echo "$ssh_output" | sed -n '2p')
             else
                 current_os_state="SSH-Not-Ready"
             fi
         else
-            current_os_state="Network-Not-Ready"
+            current_os_state="SSH-Not-Ready"
         fi
     fi
 
@@ -70,7 +70,26 @@ for vm_name in "${vm_list[@]}"; do
         *) color="$COLOR_YELLOW" ;;
     esac
 
-    results+=("${color}${vm_name}|${current_vm_state}|${current_os_state}|${os_distro}${COLOR_RESET}")
+    echo "${color}${vm_name}|${current_vm_state}|${current_os_state}|${os_distro}${COLOR_RESET}" > "$tmp_file"
+}
+
+export -f check_vm
+export lab_infra_admin_username ssh_options COLOR_GREEN COLOR_YELLOW COLOR_RED COLOR_RESET
+export -A vm_states
+
+# Launch parallel checks
+for vm_name in "${vm_list[@]}"; do
+    check_vm "$vm_name" "$tmp_dir/$vm_name" &
+done
+
+# Wait for all to complete
+wait
+
+# Collect results in original order
+for vm_name in "${vm_list[@]}"; do
+    if [[ -f "$tmp_dir/$vm_name" ]]; then
+        results+=("$(cat "$tmp_dir/$vm_name")")
+    fi
 done
 
 # ────────────────────────────────────────────────────────────────
