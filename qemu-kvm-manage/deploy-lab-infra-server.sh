@@ -307,9 +307,18 @@ prepare_lab_infra_config() {
   # Capture network info from QEMU-KVM default bridge
   print_task "Capturing network info from QEMU-KVM default network bridge"
 
-  qemu_kvm_default_net_info=$(sudo virsh net-dumpxml default)
+  qemu_kvm_default_net_info=$(sudo virsh net-dumpxml default 2>/dev/null) || {
+    print_error "Failed to get network info from virsh"
+    exit 1
+  }
   lab_infra_server_ipv4_gateway=$(echo "$qemu_kvm_default_net_info" | awk -F"'" '/<ip address=/ {print $2}')
   lab_infra_server_ipv4_netmask=$(echo "$qemu_kvm_default_net_info" | awk -F"'" '/<ip address=/ {print $4}')
+  
+  if [[ -z "$lab_infra_server_ipv4_gateway" || -z "$lab_infra_server_ipv4_netmask" ]]; then
+    print_error "Failed to extract network information from virsh output"
+    exit 1
+  fi
+  
   lab_infra_server_ipv4_address=$(echo "$lab_infra_server_ipv4_gateway" | awk -F. '{ printf "%d.%d.%d.%d", $1, $2, $3, $4+1 }')
 
   print_task_done
@@ -376,7 +385,10 @@ EOF
 
   print_info "Saving Lab Environment variables to: $LAB_ENV_VARS_FILE..."
 
-cat > "$LAB_ENV_VARS_FILE" <<EOF
+sudo tee "$LAB_ENV_VARS_FILE" &>/dev/null <<EOF || {
+  print_error "Failed to write lab environment file"
+  exit 1
+}
 lab_infra_server_hostname="${lab_infra_server_hostname}"
 lab_infra_domain_name="${lab_infra_domain_name}"
 lab_infra_admin_username="${lab_infra_admin_username}"
@@ -388,7 +400,7 @@ lab_infra_server_ipv4_netmask="${lab_infra_server_ipv4_netmask}"
 lab_infra_server_ipv4_address="${lab_infra_server_ipv4_address}"
 EOF
 
-  chmod 600 "$LAB_ENV_VARS_FILE"
+  sudo chmod 600 "$LAB_ENV_VARS_FILE"
 
   print_success "Lab environment variables saved successfully."
 
@@ -461,13 +473,22 @@ deploy_lab_infra_server_vm() {
   sed -i "s/get_subnets_to_allow_ssh_pub_access/${subnets_to_allow_ssh_pub_access}/g" "${KS_FILE}"
 
   awk -v val="$lab_admin_shadow_password" '{ gsub(/get_shadow_password_super_mgmt_user/, val) } 1' \
-      "${KS_FILE}" > "${KS_FILE}"_tmp_ksmanager && mv "${KS_FILE}"_tmp_ksmanager "${KS_FILE}"
+      "${KS_FILE}" > "${KS_FILE}"_tmp_ksmanager && mv "${KS_FILE}"_tmp_ksmanager "${KS_FILE}" || {
+        print_error "Failed to update shadow password in kickstart"
+        exit 1
+      }
 
   awk -v val="$lab_infra_ssh_public_key" '{ gsub(/get_ssh_public_key_of_qemu_host_machine/, val) } 1' \
-      "${KS_FILE}" > "${KS_FILE}"_tmp_ksmanager && mv "${KS_FILE}"_tmp_ksmanager "${KS_FILE}"
+      "${KS_FILE}" > "${KS_FILE}"_tmp_ksmanager && mv "${KS_FILE}"_tmp_ksmanager "${KS_FILE}" || {
+        print_error "Failed to update SSH public key in kickstart"
+        exit 1
+      }
 
   awk -v val="$lab_infra_ssh_private_key" '{ gsub(/get_ssh_private_key_of_qemu_host_machine/, val) } 1' \
-      "${KS_FILE}" > "${KS_FILE}"_tmp_ksmanager && mv "${KS_FILE}"_tmp_ksmanager "${KS_FILE}"
+      "${KS_FILE}" > "${KS_FILE}"_tmp_ksmanager && mv "${KS_FILE}"_tmp_ksmanager "${KS_FILE}" || {
+        print_error "Failed to update SSH private key in kickstart"
+        exit 1
+      }
 
   print_success "Kickstart file prepared at ${KS_FILE}"
   # -------------------------
@@ -676,7 +697,10 @@ deploy_lab_infra_server_host() {
   # Lab Infra DNS configuration
   # ---------------------------
   print_info "Setting up Lab Infra DNS with custom utility dnsbinder..."
-  sudo bash /server-hub/named-manage/dnsbinder.sh --setup "${lab_infra_domain_name}"
+  if ! sudo bash /server-hub/named-manage/dnsbinder.sh --setup "${lab_infra_domain_name}"; then
+    print_error "Failed to setup DNS with dnsbinder"
+    exit 1
+  fi
 
   # Set mgmt_super_user in environment using lab_infra_admin_username
   if ! grep -q mgmt_super_user /etc/environment; then
@@ -694,7 +718,9 @@ deploy_lab_infra_server_host() {
   fi
 
   # Backup environment file
-  sudo cp -p /etc/environment /root/environment_bkp_$(date +%F)
+  sudo cp -p /etc/environment "/root/environment_bkp_$(date +%F)" || {
+    print_warning "Failed to backup /etc/environment"
+  }
 
   # Reload environment to include new variables
   # Export all variables from /etc/environment
@@ -713,7 +739,9 @@ deploy_lab_infra_server_host() {
 
   # Loop through IPs 201–254 to create DHCP lease DNS entries
   for IPOCTET in $(seq 201 254); do
-    sudo bash /server-hub/named-manage/dnsbinder.sh -ci dhcp-lease${IPOCTET} ${dnsbinder_last24_subnet}.${IPOCTET}
+    if ! sudo bash /server-hub/named-manage/dnsbinder.sh -ci "dhcp-lease${IPOCTET}" "${dnsbinder_last24_subnet}.${IPOCTET}"; then
+      print_warning "Failed to create DNS record for dhcp-lease${IPOCTET}"
+    fi
   done
 
   print_info "Checking SELinux status..."
@@ -740,7 +768,10 @@ deploy_lab_infra_server_host() {
   ANSIBLE_HOME="/server-hub/build-almalinux-server/"
 
   # Run ansible-playbook that congigures the essential services
-  ansible-playbook /server-hub/build-almalinux-server/build-server.yaml
+  if ! ansible-playbook /server-hub/build-almalinux-server/build-server.yaml; then
+    print_error "Ansible playbook execution failed"
+    exit 1
+  fi
 
   print_success "Successfully deployed Lab Infra Server ${lab_infra_server_hostname} on your machine!"
   
