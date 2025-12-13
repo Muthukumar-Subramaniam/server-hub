@@ -529,72 +529,6 @@ fn_check_distro_availability() {
 
 # Status will be computed dynamically in menu based on selected version
 
-fn_auto_detect_os_from_hostname() {
-    local hostname_lower=$(echo "${kickstart_short_hostname}" | tr '[:upper:]' '[:lower:]')
-    
-    # Check for OS distribution keywords in hostname with version detection
-    # Version patterns: alma9, alma10, rocky9, rocky10, ubuntu22, ubuntu24, opensuse155, opensuse156
-    
-    # AlmaLinux patterns
-    if [[ "${hostname_lower}" == *"alma10"* || "${hostname_lower}" == *"almalinux10"* ]]; then
-        echo "almalinux:latest"
-    elif [[ "${hostname_lower}" == *"alma9"* || "${hostname_lower}" == *"almalinux9"* ]]; then
-        echo "almalinux:previous"
-    elif [[ "${hostname_lower}" == *"almalinux"* || "${hostname_lower}" == *"alma"* ]]; then
-        echo "almalinux"
-        
-    # Rocky Linux patterns
-    elif [[ "${hostname_lower}" == *"rocky10"* ]]; then
-        echo "rocky:latest"
-    elif [[ "${hostname_lower}" == *"rocky9"* ]]; then
-        echo "rocky:previous"
-    elif [[ "${hostname_lower}" == *"rocky"* ]]; then
-        echo "rocky"
-        
-    # OracleLinux patterns
-    elif [[ "${hostname_lower}" == *"oracle10"* || "${hostname_lower}" == *"oraclelinux10"* ]]; then
-        echo "oraclelinux:latest"
-    elif [[ "${hostname_lower}" == *"oracle9"* || "${hostname_lower}" == *"oraclelinux9"* ]]; then
-        echo "oraclelinux:previous"
-    elif [[ "${hostname_lower}" == *"oraclelinux"* || "${hostname_lower}" == *"oracle"* ]]; then
-        echo "oraclelinux"
-        
-    # CentOS Stream patterns
-    elif [[ "${hostname_lower}" == *"centos10"* || "${hostname_lower}" == *"centosstream10"* ]]; then
-        echo "centos-stream:latest"
-    elif [[ "${hostname_lower}" == *"centos9"* || "${hostname_lower}" == *"centosstream9"* ]]; then
-        echo "centos-stream:previous"
-    elif [[ "${hostname_lower}" == *"centos"* ]]; then
-        echo "centos-stream"
-        
-    # RHEL patterns
-    elif [[ "${hostname_lower}" == *"rhel10"* ]]; then
-        echo "rhel:latest"
-    elif [[ "${hostname_lower}" == *"rhel9"* ]]; then
-        echo "rhel:previous"
-    elif [[ "${hostname_lower}" == *"rhel"* ]]; then
-        echo "rhel"
-        
-    # Ubuntu patterns
-    elif [[ "${hostname_lower}" == *"ubuntu24"* ]]; then
-        echo "ubuntu-lts:latest"
-    elif [[ "${hostname_lower}" == *"ubuntu22"* ]]; then
-        echo "ubuntu-lts:previous"
-    elif [[ "${hostname_lower}" == *"ubuntu"* ]]; then
-        echo "ubuntu-lts"
-        
-    # openSUSE patterns
-    elif [[ "${hostname_lower}" == *"opensuse156"* || "${hostname_lower}" == *"suse156"* ]]; then
-        echo "opensuse-leap:latest"
-    elif [[ "${hostname_lower}" == *"opensuse155"* || "${hostname_lower}" == *"suse155"* ]]; then
-        echo "opensuse-leap:previous"
-    elif [[ "${hostname_lower}" == *"opensuse"* || "${hostname_lower}" == *"suse"* ]]; then
-        echo "opensuse-leap"
-    else
-        echo ""
-    fi
-}
-
 fn_select_os_distro() {
     # Check if --distro flag was provided
     if [[ -n "${distro_from_flag}" ]]; then
@@ -640,27 +574,6 @@ fn_select_os_distro() {
                 exit 1
                 ;;
         esac
-    fi
-    
-    local auto_detected_os=$(fn_auto_detect_os_from_hostname)
-    
-    if [[ -n "${auto_detected_os}" ]]; then
-        # Check if version was auto-detected (format: distro:version)
-        if [[ "${auto_detected_os}" == *":"* ]]; then
-            os_distribution="${auto_detected_os%%:*}"
-            local detected_version="${auto_detected_os##*:}"
-            # Only set version if not already set via --version flag
-            if [[ -z "${version_from_flag}" ]]; then
-                version_type="${detected_version}"
-                print_info "Auto-detected OS distribution from hostname: ${os_distribution} (${version_type})"
-            else
-                print_info "Auto-detected OS distribution from hostname: ${os_distribution} (using --version ${version_type} override)"
-            fi
-        else
-            print_info "Auto-detected OS distribution from hostname: ${auto_detected_os}"
-            os_distribution="${auto_detected_os}"
-        fi
-        return
     fi
     
     # Two-step menu: First select version, then select distribution
