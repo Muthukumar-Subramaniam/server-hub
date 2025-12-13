@@ -276,6 +276,7 @@
   /usr/bin/mkdir /etc/zypp/repos.d/original
   /usr/bin/mv /etc/zypp/repos.d/*-update.repo /etc/zypp/repos.d/openSUSE* /etc/zypp/repos.d/original/
 	/usr/bin/wget -O /etc/motd http://get_web_server_name.get_ipv4_domain/ksmanager-hub/addons-for-kickstarts/motd.txt
+  /usr/bin/date '+%Y-%m-%d %H:%M:%S %Z' > /etc/bigbang
 	/usr/bin/mkdir -p /home/get_mgmt_super_user/.ssh /root/.ssh
 	/usr/bin/chmod 0700 /home/get_mgmt_super_user/.ssh /root/.ssh
 	/usr/bin/wget -O /home/get_mgmt_super_user/.ssh/authorized_keys http://get_web_server_name.get_ipv4_domain/ksmanager-hub/addons-for-kickstarts/authorized_keys

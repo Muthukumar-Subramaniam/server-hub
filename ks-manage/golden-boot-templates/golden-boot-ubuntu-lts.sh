@@ -123,6 +123,10 @@ do
 	ip link set $v_interface down
 done
 
+log "Creating system installation timestamp in /etc/bigbang"
+date '+%Y-%m-%d %H:%M:%S %Z' > /etc/bigbang
+log "Installation timestamp: $(cat /etc/bigbang)"
+
 log "Reloading udev rules for interface renaming"
 udevadm control --reload-rules
 udevadm trigger --action=add --subsystem-match=net

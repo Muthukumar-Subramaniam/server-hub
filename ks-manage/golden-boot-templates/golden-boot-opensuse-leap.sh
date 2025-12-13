@@ -153,6 +153,10 @@ if ! ping -c 3 get_web_server_name.get_ipv4_domain; then
 fi
 log "Network connectivity to lab infrastructure server confirmed with new IP configuration"
 
+log "Creating system installation timestamp in /etc/bigbang"
+date '+%Y-%m-%d %H:%M:%S %Z' > /etc/bigbang
+log "Installation timestamp: $(cat /etc/bigbang)"
+
 log "Running lab rootfs extender"
 if ! curl -fsSL "http://get_web_server_name.get_ipv4_domain/server-hub/common-utils/lab-rootfs-extender" | bash -s -- localhost; then
 	log "WARNING: Lab rootfs extender failed, continuing anyway"

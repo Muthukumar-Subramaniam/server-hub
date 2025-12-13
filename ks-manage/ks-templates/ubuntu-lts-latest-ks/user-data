@@ -168,3 +168,4 @@ autoinstall:
     - rm -rf /target/etc/netplan/auto-create-int.yaml
     - /target/usr/bin/sed -i 's/^GRUB_CMDLINE_LINUX_DEFAULT=.*/GRUB_CMDLINE_LINUX_DEFAULT="console=ttyS0,115200n8 get_whether_vga_console_is_required nomodeset"/' /target/etc/default/grub
     - curtin in-target --target=/target -- update-grub
+    - date '+%Y-%m-%d %H:%M:%S %Z' > /target/etc/bigbang
