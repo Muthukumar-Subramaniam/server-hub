@@ -109,7 +109,7 @@ Continuing may overwrite existing SSH keys or configuration."
     print_warning "Proceeding with deployment..."
     sleep 1
   else
-    print_success "No existing lab deployment detected. Safe to proceed."
+    print_info "No existing lab deployment detected. Safe to proceed."
   fi
 }
 
@@ -141,11 +141,11 @@ prepare_lab_infra_config() {
       exit 1
   fi
 
-  print_success "ISO file found: ${ISO_DIR}/${ISO_NAME}"
+  print_info "ISO file found: ${ISO_DIR}/${ISO_NAME}"
 
   default_linux_distro_iso_path="${ISO_DIR}/${ISO_NAME}"
 
-  print_success "Pre-flight checks passed: QEMU/KVM environment is ready."
+  print_info "Pre-flight checks passed: QEMU/KVM environment is ready."
 
   # Get Infra Server Name
   while true; do
@@ -668,7 +668,7 @@ deploy_lab_infra_server_host() {
   # Install Ansible if not already installed
   # -----------------------------
   if command -v ansible &>/dev/null; then
-      print_success "Ansible is already installed. Proceeding further..."
+      print_info "Ansible is already installed. Proceeding further..."
   else
       print_info "Installing Ansible on the host..."
 
@@ -740,7 +740,7 @@ deploy_lab_infra_server_host() {
   print_info "Checking SELinux status..."
 
   if sestatus 2>/dev/null | grep -q "disabled"; then
-    print_success "SELinux is already disabled."
+    print_info "SELinux is already disabled."
   else
     print_info "Disabling SELinux for current boot and persistently..."
     # Disable for current boot
@@ -797,12 +797,12 @@ while true; do
   read -rp "Enter your choice (vm/host): " DEPLOY_TARGET
   case "$DEPLOY_TARGET" in
     vm)
-      print_success "Confirmed: Lab Infra Server Deployment Mode set to 'VM'."
+      print_info "Confirmed: Lab Infra Server Deployment Mode set to 'VM'."
       deploy_lab_infra_server_vm
       break
       ;;
     host)
-      print_success "Confirmed: Lab Infra Server Deployment Mode set to 'Host'."
+      print_info "Confirmed: Lab Infra Server Deployment Mode set to 'Host'."
       deploy_lab_infra_server_host
       break
       ;;
