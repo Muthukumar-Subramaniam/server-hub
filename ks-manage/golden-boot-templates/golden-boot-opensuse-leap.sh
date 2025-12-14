@@ -77,11 +77,6 @@ EOF
 log "Applying sysctl settings"
 sysctl --system > /dev/null 2>&1
 
-log "Generating SSH host keys"
-if ! ssh-keygen -A; then
-	log "WARNING: SSH host key generation failed, continuing anyway"
-fi
-
 log "Bringing down all network interfaces"
 for v_interface in $(ls /sys/class/net | grep -v lo)
 do
@@ -162,8 +157,26 @@ if ! curl -fsSL "http://get_web_server_name.get_ipv4_domain/server-hub/common-ut
 	log "WARNING: Lab rootfs extender failed, continuing anyway"
 fi
 
-log "Restarting SSH service to ensure it picks up new host keys"
-systemctl restart sshd || systemctl restart ssh
+log "Waiting for system to stabilize..."
+sleep 3
+
+log "Generating SSH host keys now that network is stable"
+if ! ssh-keygen -A; then
+	log "WARNING: SSH host key generation failed, continuing anyway"
+else
+	log "SSH host keys generated successfully"
+fi
+
+log "Restarting SSH service to pick up new host keys"
+if systemctl list-unit-files | grep -q '^sshd.service'; then
+	log "Found sshd.service, restarting..."
+	systemctl restart sshd && log "SSH service restarted successfully" || log "WARNING: SSH service restart failed"
+elif systemctl list-unit-files | grep -q '^ssh.service'; then
+	log "Found ssh.service, restarting..."
+	systemctl restart ssh && log "SSH service restarted successfully" || log "WARNING: SSH service restart failed"
+else
+	log "WARNING: No SSH service unit found (sshd.service or ssh.service)"
+fi
 
 log "Marking golden boot as completed"
 touch /root/golden-boot-opensuse-leap-completed
