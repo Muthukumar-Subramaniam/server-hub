@@ -147,10 +147,10 @@ prepare_lab_infra_config() {
 
   print_success "Pre-flight checks passed: QEMU/KVM environment is ready."
 
-  # Get Infra Server VM Name
+  # Get Infra Server Name
   while true; do
     echo
-    read -rp "Enter your local Infra Server VM name [default: lab-infra-server]: " lab_infra_server_shortname
+    read -rp "Enter your Lab Infra Server name [default: lab-infra-server]: " lab_infra_server_shortname
 
     if [[ -z "$lab_infra_server_shortname" ]]; then
       lab_infra_server_shortname="lab-infra-server"
@@ -172,7 +172,7 @@ prepare_lab_infra_config() {
     break
   done
 
-  print_success "Using Lab Infra Server name: \033[1m${lab_infra_server_shortname}\033[0m"
+  print_info "Using Lab Infra Server name: \033[1m${lab_infra_server_shortname}\033[0m"
   lab_infra_admin_username="$USER"
   print_info "Using current user '${lab_infra_admin_username}' as Lab Infra Global user."
 
@@ -210,7 +210,7 @@ prepare_lab_infra_config() {
   # Generate SHA-512 shadow-compatible hash
   lab_admin_shadow_password=$(openssl passwd -6 -salt "$lab_admin_password_salt" "$lab_admin_password_plain")
 
-  print_success "Infra Management user credentials are ready for user: \033[1m${lab_infra_admin_username}\033[0m"
+  print_info "Infra Management user credentials are ready for user: \033[1m${lab_infra_admin_username}\033[0m"
 
   # Function to instruct user on valid domain names
   fn_instruct_on_valid_domain_name() {
@@ -255,11 +255,11 @@ prepare_lab_infra_config() {
   done
 
   # Print the final validated domain name
-  print_success "Lab Infra Domain Name set to: \033[1m${lab_infra_domain_name}\033[0m"
+  print_info "Lab Infra Domain Name set to: \033[1m${lab_infra_domain_name}\033[0m"
 
   lab_infra_server_hostname="${lab_infra_server_shortname}.${lab_infra_domain_name}"
   
-  print_success "Lab Infra Server Hostname set to: \033[1m${lab_infra_server_hostname}\033[0m"
+  print_info "Lab Infra Server Hostname set to: \033[1m${lab_infra_server_hostname}\033[0m"
 
   # SSH public key logic
   print_info "Checking for SSH public key on local workstation..."
@@ -277,14 +277,14 @@ prepare_lab_infra_config() {
 
   # Check if SSH public key exists
   if [[ ! -f "$SSH_PUB_KEY_FILE" ]]; then
-      print_error "SSH keys for the kvm lab not found on this local workstation."
+      print_info "SSH keys for the kvm lab not found on this local workstation."
       print_info "Generating a new RSA key pair..."
       ssh-keygen -t rsa -b 4096 -N "" -f "$SSH_PRIVATE_KEY_FILE" -C "${lab_infra_domain_name}" &>/dev/null
       print_success "New SSH keys generated successfully:"
       print_info "Private Key: $SSH_PRIVATE_KEY_FILE" nskip
       print_info "Public Key : $SSH_PUB_KEY_FILE"
   else
-      print_success "SSH keys for the kvm lab found on this local workstation."
+      print_info "SSH keys for the kvm lab found on this local workstation."
   fi
   # Read the public key into an explanatory variable
   lab_infra_ssh_public_key=$(<"$SSH_PUB_KEY_FILE")
@@ -298,10 +298,10 @@ prepare_lab_infra_config() {
       echo "$lab_infra_ssh_public_key" >> "$AUTHORIZED_KEYS_FILE"
       print_success "KVM Lab Infra SSH public key added to authorized_keys."
   else
-      print_success "KVM Lab Infra SSH public key already present in authorized_keys."
+      print_info "KVM Lab Infra SSH public key already present in authorized_keys."
   fi
   # Print confirmation
-  print_success "Lab Infra SSH public key is ready for user \033[1m${lab_infra_admin_username}\033[0m on domain \033[1m${lab_infra_domain_name}\033[0m:"
+  print_info "Lab Infra SSH public key is ready for user \033[1m${lab_infra_admin_username}\033[0m on domain \033[1m${lab_infra_domain_name}\033[0m:"
   echo "\033[1m${lab_infra_ssh_public_key}\033[0m"
 
   # Capture network info from QEMU-KVM default bridge
@@ -385,7 +385,7 @@ EOF
 
   print_info "Saving Lab Environment variables to: $LAB_ENV_VARS_FILE..."
 
-sudo tee "$LAB_ENV_VARS_FILE" &>/dev/null <<EOF
+tee "$LAB_ENV_VARS_FILE" &>/dev/null <<EOF
 lab_infra_server_hostname="${lab_infra_server_hostname}"
 lab_infra_domain_name="${lab_infra_domain_name}"
 lab_infra_admin_username="${lab_infra_admin_username}"
@@ -402,7 +402,7 @@ EOF
     exit 1
   fi
 
-  sudo chmod 600 "$LAB_ENV_VARS_FILE"
+  chmod 600 "$LAB_ENV_VARS_FILE"
 
   print_success "Lab environment variables saved successfully."
 
@@ -436,7 +436,7 @@ deploy_lab_infra_server_vm() {
       exit 1
   fi
 
-  print_success "Lab Infra VM '${lab_infra_server_hostname}' does not exist. Ready to create."
+  print_info "Lab Infra VM '${lab_infra_server_hostname}' does not exist. Ready to create."
 
   lab_infra_server_mode_is_host=false
 
@@ -585,7 +585,7 @@ deploy_lab_infra_server_host() {
 
     # ====== Check and start libvirtd if needed ======
     if sudo systemctl is-active --quiet libvirtd; then
-        print_success "libvirtd is already running"
+        print_info "libvirtd is already running"
     else
         print_info "Starting libvirtd..."
         if ! sudo systemctl restart libvirtd; then
@@ -609,7 +609,7 @@ deploy_lab_infra_server_host() {
         bridge_creation_elapsed_seconds=$((bridge_creation_elapsed_seconds + 1))
     done
     echo
-    print_success "$lab_bridge_interface_name detected!"
+    print_info "$lab_bridge_interface_name detected!"
     
     # ====== Create dummy link if missing ======
     if ! ip link show "$lab_bridge_dummy_interface_name" &>/dev/null; then
@@ -636,7 +636,7 @@ deploy_lab_infra_server_host() {
         bridge_up_elapsed_seconds=$((bridge_up_elapsed_seconds + 1))
     done
     echo
-    print_success "$lab_bridge_interface_name is UP and running!"
+    print_info "$lab_bridge_interface_name is UP and running!"
     
     # ====== STEP 5: Assign IP address ======
     print_info "Configuring IP ${lab_infra_server_ipv4_address} netmask ${lab_infra_server_ipv4_netmask} on $lab_bridge_interface_name..."
