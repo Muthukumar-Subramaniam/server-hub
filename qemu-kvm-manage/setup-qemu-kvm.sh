@@ -65,7 +65,7 @@ print_task_done
 
 print_info "Cloning virt-manager git repo to /kvm-hub/virt-manager..."
 if [[ ! -d /kvm-hub/virt-manager/.git ]]; then
-    sudo mkdir -p /kvm-hub/virt-manager || {
+    mkdir -p /kvm-hub/virt-manager || {
         print_error "Failed to create /kvm-hub/virt-manager directory."
         exit 1
     }
