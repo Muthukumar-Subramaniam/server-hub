@@ -103,21 +103,21 @@
   become: true
   file:
     src: /server-hub/named-manage/dnsbinder.sh
-    dest: /usr/bin/dnsbinder
+    dest: /usr/local/bin/dnsbinder
     state: link
 
 - name: Create command sym-link ksmanager
   become: true
   file:
     src: /server-hub/ks-manage/ksmanager.sh
-    dest: /usr/bin/ksmanager
+    dest: /usr/local/bin/ksmanager
     state: link
 
 - name: Create command sym-link prepare-distro-for-ksmanager
   become: true
   file:
     src: /server-hub/ks-manage/prepare-distro-for-ksmanager.sh
-    dest: /usr/bin/prepare-distro-for-ksmanager
+    dest: /usr/local/bin/prepare-distro-for-ksmanager
     state: link
 
 ################################ EOF ##################################

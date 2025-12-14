@@ -123,10 +123,10 @@ fi
 
 print_task "Creating custom tools to manage QEMU/KVM"
 scripts_directory="/server-hub/qemu-kvm-manage/scripts-to-manage-vms"
-sudo ln -sf "$scripts_directory/qlabvmctl.sh" /usr/bin/qlabvmctl
-sudo ln -sf "$scripts_directory/qlabstart.sh" /usr/bin/qlabstart
-sudo ln -sf "$scripts_directory/qlabhealth.sh" /usr/bin/qlabhealth
-sudo ln -sf "$scripts_directory/qlabdnsbinder.sh" /usr/bin/qlabdnsbinder
+sudo ln -sf "$scripts_directory/qlabvmctl.sh" /usr/local/bin/qlabvmctl
+sudo ln -sf "$scripts_directory/qlabstart.sh" /usr/local/bin/qlabstart
+sudo ln -sf "$scripts_directory/qlabhealth.sh" /usr/local/bin/qlabhealth
+sudo ln -sf "$scripts_directory/qlabdnsbinder.sh" /usr/local/bin/qlabdnsbinder
 print_task_done
 
 print_task "Installing bash completion for qlabvmctl"

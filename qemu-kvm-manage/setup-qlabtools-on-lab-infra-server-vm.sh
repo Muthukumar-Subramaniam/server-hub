@@ -70,7 +70,7 @@ print_task_done
 
 print_task "Syncing wrapper scripts to infra server VM"
 rsync -az -e "ssh $SSH_OPTS" "${temp_dir_to_create_wrappers}/"* ${lab_infra_admin_username}@${lab_infra_server_ipv4_address}:
-ssh ${SSH_OPTS} ${lab_infra_admin_username}@${lab_infra_server_ipv4_address} "chmod +x qlabvmctl qlabhealth qlabdnsbinder && sudo mv qlabvmctl qlabhealth qlabdnsbinder /usr/bin/"
+ssh ${SSH_OPTS} ${lab_infra_admin_username}@${lab_infra_server_ipv4_address} "chmod +x qlabvmctl qlabhealth qlabdnsbinder && sudo mv qlabvmctl qlabhealth qlabdnsbinder /usr/local/bin/"
 rm -rf "$temp_dir_to_create_wrappers"
 print_task_done
 
