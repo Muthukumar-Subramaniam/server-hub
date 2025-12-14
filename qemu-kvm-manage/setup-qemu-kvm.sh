@@ -78,11 +78,11 @@ else
 fi
 
 print_task "Creating a wrapper binary for virt-install from /kvm-hub/virt-manager"
-cat <<EOF | sudo tee /bin/virt-install &>/dev/null
+cat <<EOF | sudo tee /usr/local/bin/virt-install &>/dev/null
 #!/bin/bash
 PYTHONPATH=/kvm-hub/virt-manager exec python3 /kvm-hub/virt-manager/virt-install "\$@"
 EOF
-sudo chmod +x /bin/virt-install
+sudo chmod +x /usr/local/bin/virt-install
 print_task_done
 
 virsh_network_name="default"
