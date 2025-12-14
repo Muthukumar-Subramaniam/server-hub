@@ -16,7 +16,11 @@ mapfile -t vm_list < <(sudo virsh list --all | awk 'NR>2 && $2 != "" {print $2}'
 ssh_options="-o StrictHostKeyChecking=no \
              -o UserKnownHostsFile=/dev/null \
              -o LogLevel=QUIET \
-             -o ConnectTimeout=2"
+             -o ConnectTimeout=2 \
+             -o PasswordAuthentication=no \
+             -o PubkeyAuthentication=yes \
+             -o PreferredAuthentications=publickey \
+             -o BatchMode=yes"
 
 COLOR_GREEN=$'\033[0;32m'
 COLOR_YELLOW=$'\033[0;33m'
