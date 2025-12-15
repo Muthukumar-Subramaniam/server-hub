@@ -37,7 +37,7 @@
     path: "/{{ ansible_env.dnsbinder_server_short_name }}.{{ ansible_env.dnsbinder_domain }}/almalinux-latest"
     src: "{{ ansible_env.default_linux_distro_iso_path }}"
     fstype: iso9660
-    opts: "norock,uid={{ ansible_env.mgmt_super_user }},gid={{ ansible_env.mgmt_super_user }}"
+    opts: "uid={{ ansible_env.mgmt_super_user }},gid={{ ansible_env.mgmt_super_user }}"
     state: mounted
 
 - name: Create /{{ ansible_env.dnsbinder_server_short_name }}.{{ ansible_env.dnsbinder_domain }}/ipxe to manage iPXE

@@ -152,7 +152,7 @@ prepare_iso() {
   print_info "Preparing mount point: $mount_dir"
   sudo mkdir -p "$mount_dir"
   sudo chown "${mgmt_super_user}:${mgmt_super_user}" "$mount_dir"
-  local fstab_entry="$iso_path $mount_dir iso9660 norock,uid=${mgmt_super_user},gid=${mgmt_super_user} 0 0"
+  local fstab_entry="$iso_path $mount_dir iso9660 uid=${mgmt_super_user},gid=${mgmt_super_user} 0 0"
   if ! grep -qF "$fstab_entry" "$FSTAB"; then
     print_info "Adding mount entry to /etc/fstab\n"
     if ! echo "$fstab_entry" | sudo tee -a "$FSTAB" > /dev/null; then
