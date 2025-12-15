@@ -458,7 +458,7 @@ EOF
 
 	print_task "Creating the command dnsbinder..."
 
-	ln -s /server-hub/named-manage/dnsbinder.sh /usr/local/bin/dnsbinder
+	ln -s /server-hub/named-manage/dnsbinder.sh /usr/local/sbin/dnsbinder
 
 	print_task_done
 

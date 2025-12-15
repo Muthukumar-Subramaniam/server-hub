@@ -122,11 +122,11 @@ remove_vm() {
         print_info "Skipping ksmanager cleanup (--ignore-ksmanager-cleanup flag)."
     else
         if $lab_infra_server_mode_is_host; then
-            if ! sudo ksmanager "$vm_name" --remove-host; then
+            if ! ksmanager "$vm_name" --remove-host; then
                 print_warning "Could not clean up ksmanager databases."
             fi
         else
-            if ! ssh -o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "${lab_infra_admin_username}@${lab_infra_server_ipv4_address}" "sudo ksmanager $vm_name --remove-host"; then
+            if ! ssh -o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "${lab_infra_admin_username}@${lab_infra_server_ipv4_address}" "ksmanager $vm_name --remove-host"; then
                 print_warning "Could not clean up ksmanager databases."
             fi
         fi

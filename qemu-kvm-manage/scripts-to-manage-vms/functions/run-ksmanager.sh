@@ -22,19 +22,19 @@ run_ksmanager() {
     if $lab_infra_server_mode_is_host; then
         if [[ -z "$hostname" ]]; then
             # For golden image creation without hostname
-            sudo ksmanager ${ksmanager_options} | tee -a "$log_file"
+            ksmanager ${ksmanager_options} | tee -a "$log_file"
             ksmanager_exit_code=$?
         else
-            sudo ksmanager "${hostname}" ${ksmanager_options} | tee -a "$log_file"
+            ksmanager "${hostname}" ${ksmanager_options} | tee -a "$log_file"
             ksmanager_exit_code=$?
         fi
     else
         if [[ -z "$hostname" ]]; then
             # For golden image creation without hostname
-            ssh -o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -t "${lab_infra_admin_username}@${lab_infra_server_ipv4_address}" "sudo ksmanager ${ksmanager_options}" | tee -a "$log_file"
+            ssh -o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -t "${lab_infra_admin_username}@${lab_infra_server_ipv4_address}" "ksmanager ${ksmanager_options}" | tee -a "$log_file"
             ksmanager_exit_code=$?
         else
-            ssh -o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -t "${lab_infra_admin_username}@${lab_infra_server_ipv4_address}" "sudo ksmanager ${hostname} ${ksmanager_options}" | tee -a "$log_file"
+            ssh -o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -t "${lab_infra_admin_username}@${lab_infra_server_ipv4_address}" "ksmanager ${hostname} ${ksmanager_options}" | tee -a "$log_file"
             ksmanager_exit_code=$?
         fi
     fi

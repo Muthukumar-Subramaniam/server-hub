@@ -103,7 +103,7 @@
   become: true
   file:
     src: /server-hub/named-manage/dnsbinder.sh
-    dest: /usr/local/bin/dnsbinder
+    dest: /usr/local/sbin/dnsbinder
     state: link
 
 - name: Create command sym-link ksmanager

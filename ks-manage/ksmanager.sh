@@ -7,25 +7,10 @@
 source /server-hub/common-utils/color-functions.sh
 source /server-hub/ks-manage/distro-versions.conf
 
-if [[ "$EUID" -ne 0 ]]; then
-	if [[ "$USER" == "$mgmt_super_user" ]]; then
-		print_error "Please run this tool using 'sudo' — direct execution is not allowed."
-	    	exit 1
-    	else
-		print_error "Access denied. Only infra management super user '${mgmt_super_user}' is authorized to run this tool."
-    		exit 1
-    	fi
-fi
-
-if [[ "$(id -un)" == "root" && "$SUDO_USER" != "${mgmt_super_user}" ]]; then
-	print_error "Access denied. Only infra management super user '${mgmt_super_user}' is authorized to run this tool with 'sudo'."
-	exit 1
-fi
-
-script_name="$(basename "$0")"
-if [[ "$SUDO_COMMAND" != *"$script_name"* ]]; then
-	print_error "Direct root execution is not allowed. Only infra management super user '${mgmt_super_user}' can run this tool with sudo."
-	exit 1
+if [[ "$USER" != "$mgmt_super_user" ]]; then
+	print_error "Access denied. Only infra management super user '${mgmt_super_user}' is authorized to run this tool."
+	print_error "Also if the user itself is ${mgmt_super_user}, Please do not elevate access again with sudo.\n"
+    	exit 1
 fi
 
 ipv4_domain="${dnsbinder_domain}"
@@ -45,7 +30,7 @@ dnsbinder_script='/server-hub/named-manage/dnsbinder.sh'
 ksmanager_main_dir='/server-hub/ks-manage'
 ksmanager_hub_dir="/${web_server_name}.${ipv4_domain}/ksmanager-hub"
 ipxe_web_dir="/${web_server_name}.${ipv4_domain}/ipxe"
-shadow_password_super_mgmt_user=$(grep "${mgmt_super_user}" /etc/shadow | cut -d ":" -f 2)
+shadow_password_super_mgmt_user=$(sudo grep "${mgmt_super_user}" /etc/shadow | cut -d ":" -f 2)
 if [ -d "/kvm-hub" ]; then
 	if [ -f "/kvm-hub/lab_environment_vars" ]; then
 		source /kvm-hub/lab_environment_vars
@@ -115,7 +100,7 @@ fn_check_and_create_host_record() {
 		print_info "No DNS record found for \"${kickstart_hostname}\"."
 		
 		if $invoked_with_qemu_kvm; then
-			"${dnsbinder_script}" -c "${kickstart_hostname}"
+			sudo "${dnsbinder_script}" -c "${kickstart_hostname}"
 
 			if ! host "${kickstart_hostname}" "${dnsbinder_server_ipv4_address}" &>/dev/null; then
 				print_error "Failed to create DNS record for \"${kickstart_hostname}\"."
@@ -128,7 +113,7 @@ fn_check_and_create_host_record() {
 
 				if [[ "${v_confirmation}" == "y" ]]
 				then
-					"${dnsbinder_script}" -c "${kickstart_hostname}"
+					sudo "${dnsbinder_script}" -c "${kickstart_hostname}"
 
 					if ! host "${kickstart_hostname}" "${dnsbinder_server_ipv4_address}" &>/dev/null; then
 						print_error "Failed to create DNS record for \"${kickstart_hostname}\"."
@@ -303,7 +288,7 @@ if $remove_host_requested; then
         
         mkdir -p "$kea_config_temp_dir"
         
-        kea_existing_config=$(cat "$kea_config_file")
+        kea_existing_config=$(sudo cat "$kea_config_file")
         
         kea_reservations_json=""
         while read -r kea_hostname kea_hw_address kea_ip_address; do
@@ -328,8 +313,6 @@ if $remove_host_requested; then
 }
 EOF
         
-        chown ${mgmt_super_user}:${mgmt_super_user} "${kea_tmp_config}"
-        
         curl -s -X POST -H "Content-Type: application/json" \
             -u "$kea_api_auth" \
             -d @"$kea_tmp_config" \
@@ -340,7 +323,7 @@ EOF
     
     # 6. Remove DNS record
     if host "${cleanup_hostname}" "${dnsbinder_server_ipv4_address}" &>/dev/null; then
-        "${dnsbinder_script}" -dy "${cleanup_hostname}"
+        sudo "${dnsbinder_script}" -dy "${cleanup_hostname}"
         if ! host "${cleanup_hostname}" "${dnsbinder_server_ipv4_address}" &>/dev/null; then
             print_info "Removed DNS record"
         else
@@ -634,7 +617,7 @@ fn_select_os_distro() {
 fn_select_os_distro
 
 # Detect VM platform
-manufacturer=$(dmidecode -t1 | awk -F: '/Manufacturer/ {
+manufacturer=$(sudo dmidecode -t1 | awk -F: '/Manufacturer/ {
     gsub(/^ +| +$/, "", $2);
     print tolower($2)
 }')
@@ -857,7 +840,7 @@ fn_update_kea_dhcp_reservations() {
 
   # Read existing Kea config
   local kea_existing_config
-  kea_existing_config=$(cat "$kea_config_file")
+  kea_existing_config=$(sudo cat "$kea_config_file")
 
   # Build JSON array of reservations from cache file
   local kea_reservations_json=""
@@ -885,8 +868,6 @@ fn_update_kea_dhcp_reservations() {
   "arguments": $kea_new_config
 }
 EOF
-
-  chown ${mgmt_super_user}:${mgmt_super_user}  "${kea_tmp_config}"
 
   # Delete old lease (safe if none exists)
   curl -s -X POST -H "Content-Type: application/json" \
