@@ -192,13 +192,17 @@ else
 	fi
 fi
 
-log "Restarting SSH service to pick up new host keys"
-if systemctl list-unit-files | grep -q '^sshd.service'; then
-	log "Found sshd.service, restarting..."
-	systemctl restart sshd && log "SSH service restarted successfully" || log "WARNING: SSH service restart failed"
-elif systemctl list-unit-files | grep -q '^ssh.service'; then
-	log "Found ssh.service, restarting..."
-	systemctl restart ssh && log "SSH service restarted successfully" || log "WARNING: SSH service restart failed"
+log "Starting SSH service with new host keys"
+if systemctl list-unit-files 2>/dev/null | grep -q '^sshd.service'; then
+	log "Found sshd.service, enabling and starting..."
+	systemctl enable sshd 2>/dev/null || true
+	systemctl enable sshd.socket 2>/dev/null || true
+	systemctl start sshd && log "SSH service started successfully" || log "WARNING: SSH service start failed"
+elif systemctl list-unit-files 2>/dev/null | grep -q '^ssh.service'; then
+	log "Found ssh.service, enabling and starting..."
+	systemctl enable ssh 2>/dev/null || true
+	systemctl enable ssh.socket 2>/dev/null || true
+	systemctl start ssh && log "SSH service started successfully" || log "WARNING: SSH service start failed"
 else
 	log "WARNING: No SSH service unit found (sshd.service or ssh.service)"
 fi

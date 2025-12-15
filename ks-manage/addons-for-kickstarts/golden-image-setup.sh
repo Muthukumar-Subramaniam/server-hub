@@ -11,9 +11,17 @@ echo -e "\nGolden Image Cleanup Started: $(date)\n" | tee -a "$LOG"
 echo "Clearing machine-id..." | tee -a "$LOG"
 truncate -s 0 /etc/machine-id
 
-# 2. Remove SSH host keys
+# 2. Remove SSH host keys and disable SSH service
 echo "Removing SSH host keys..." | tee -a "$LOG"
 rm -f /etc/ssh/ssh_host_* 2>>"$LOG"
+echo "Disabling SSH service and socket (will be re-enabled by golden-boot script)..." | tee -a "$LOG"
+if systemctl list-unit-files 2>/dev/null | grep -q '^sshd.service'; then
+	systemctl disable sshd 2>>"$LOG" || true
+	systemctl disable sshd.socket 2>>"$LOG" || true
+elif systemctl list-unit-files 2>/dev/null | grep -q '^ssh.service'; then
+	systemctl disable ssh 2>>"$LOG" || true
+	systemctl disable ssh.socket 2>>"$LOG" || true
+fi
 
 # 3. Truncate all log files under /var/log
 echo "Truncating all log files under /var/log..." | tee -a "$LOG"
