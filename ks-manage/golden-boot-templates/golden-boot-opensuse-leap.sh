@@ -157,14 +157,19 @@ if ! curl -fsSL "http://get_web_server_name.get_ipv4_domain/server-hub/common-ut
 	log "WARNING: Lab rootfs extender failed, continuing anyway"
 fi
 
-log "Waiting for system to stabilize..."
-sleep 3
-
-log "Generating SSH host keys now that network is stable"
+log "Generating SSH host keys"
 if ! ssh-keygen -A; then
 	log "WARNING: SSH host key generation failed, continuing anyway"
 else
 	log "SSH host keys generated successfully"
+	# Ensure keys are written to disk
+	sync
+	# Verify key files exist
+	if ls /etc/ssh/ssh_host_*_key >/dev/null 2>&1; then
+		log "SSH host key files verified on disk"
+	else
+		log "WARNING: SSH host key files not found after generation"
+	fi
 fi
 
 log "Restarting SSH service to pick up new host keys"
