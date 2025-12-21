@@ -121,12 +121,7 @@ fn_split_network_into_cidr24subnets() {
 
 	if [[ -z "${v_network_and_cidr}" ]];
 	then
-		if "${server_is_hosted_on_gcp}" ; then
-			gcp_subnet_mask=$(curl -sH "Metadata-Flavor: Google" http://169.254.169.254/computeMetadata/v1/instance/network-interfaces/0/subnetmask)
-			v_network_and_cidr=$(fn_calculate_network_cidr "${v_primary_ip}" "${gcp_subnet_mask}")
-		else
-			v_network_and_cidr=$(ip r | grep -v default | grep "${v_primary_interface}" | head -n 1 | awk '{ print $1 }')
-		fi
+		v_network_and_cidr=$(ip r | grep -v default | grep "${v_primary_interface}" | head -n 1 | awk '{ print $1 }')
 	fi
 
 	# Extract network and CIDR from input
@@ -176,13 +171,6 @@ fn_configure_named_dns_server() {
 	KVM_HOST_MODE_SET=false
 	if ip link show labbr0 &>/dev/null; then
         	KVM_HOST_MODE_SET=true
-	fi
-
-	server_is_hosted_on_gcp="false"
-
-	if grep -q -i google <<< $(sudo dmidecode -s system-manufacturer)
-	then
-		server_is_hosted_on_gcp="true"
 	fi
 
 	if [ ! -z "${v_domain_name}" ]
@@ -274,11 +262,7 @@ fn_configure_named_dns_server() {
 
 	sed -i '/dnssec-validation yes;/d' /etc/named.conf
 
-	if "${server_is_hosted_on_gcp}" ; then
-		sed -i '/recursion yes;/a # BEGIN google-dns-servers-as-forwarders\n\n        forwarders {\n                169.254.169.254;\n        };\n\n        dnssec-validation no;\n# END google-dns-servers-as-forwarders' /etc/named.conf
-	else
-		sed -i '/recursion yes;/a # BEGIN google-dns-servers-as-forwarders\n\n        forwarders {\n                8.8.8.8;\n                8.8.4.4;\n        };\n\n        dnssec-validation no;\n# END google-dns-servers-as-forwarders' /etc/named.conf
-	fi
+	sed -i '/recursion yes;/a # BEGIN public-dns-servers-as-forwarders\n\n        forwarders {\n                8.8.8.8;\n                8.8.4.4;\n        };\n\n        dnssec-validation no;\n# END public-dns-servers-as-forwarders' /etc/named.conf
 
 
 	tee -a /etc/named.conf > /dev/null << EOF
@@ -391,59 +375,57 @@ EOF
 
 	print_task_done
 
-    if ! "${server_is_hosted_on_gcp}" ; then
-		print_task "Updating dnsbinder related global variables to /etc/environment..."
-		declare -A dnsbinder_environment_map=(
-			["dnsbinder_domain"]="$v_given_domain"
-			["dnsbinder_network_cidr"]="$v_network_and_cidr"
-			["dnsbinder_cidr_prefix"]="$v_cidr"
-			["dnsbinder_first24_subnet"]="$v_first_subnet_part"
-			["dnsbinder_last24_subnet"]="$v_last_subnet_part"
-			["dnsbinder_netmask"]="$dnsbinder_netmask"
-			["dnsbinder_gateway"]="$v_network_gateway"
-			["dnsbinder_broadcast"]="${v_last_subnet_part}.255"
-			["dnsbinder_server_ipv4_address"]="$v_primary_ip"
-			["dnsbinder_server_short_name"]="$v_dns_host_short_name"
-			["dnsbinder_server_fqdn"]="${v_dns_host_short_name}.${v_given_domain}"
-		)
+	print_task "Updating dnsbinder related global variables to /etc/environment..."
+	declare -A dnsbinder_environment_map=(
+		["dnsbinder_domain"]="$v_given_domain"
+		["dnsbinder_network_cidr"]="$v_network_and_cidr"
+		["dnsbinder_cidr_prefix"]="$v_cidr"
+		["dnsbinder_first24_subnet"]="$v_first_subnet_part"
+		["dnsbinder_last24_subnet"]="$v_last_subnet_part"
+		["dnsbinder_netmask"]="$dnsbinder_netmask"
+		["dnsbinder_gateway"]="$v_network_gateway"
+		["dnsbinder_broadcast"]="${v_last_subnet_part}.255"
+		["dnsbinder_server_ipv4_address"]="$v_primary_ip"
+		["dnsbinder_server_short_name"]="$v_dns_host_short_name"
+		["dnsbinder_server_fqdn"]="${v_dns_host_short_name}.${v_given_domain}"
+	)
 
-		target_environment_file="/etc/environment"
+	target_environment_file="/etc/environment"
 
-		# Ensure the environment file exists
-		touch "$target_environment_file"
+	# Ensure the environment file exists
+	touch "$target_environment_file"
 
-		# Iterate through all key-value pairs and update or append as necessary
-		for environment_key in "${!dnsbinder_environment_map[@]}"; do
-			environment_value="${dnsbinder_environment_map[$environment_key]}"
-			if grep -q "^${environment_key}=" "$target_environment_file"; then
-				# Update existing variable line
-				sed -i "s|^${environment_key}=.*|${environment_key}=\"${environment_value}\"|" "$target_environment_file"
-			else
-				# Append new variable if not already present
-				echo "${environment_key}=\"${environment_value}\"" | tee -a "$target_environment_file" > /dev/null
-			fi
-		done
-
-		source /etc/environment
-
-		print_task_done
-
-		if ! $KVM_HOST_MODE_SET; then
-			print_task "Updating Network Manager to point the local dns server and domain..."
-			v_active_connection_name=$(nmcli connection show --active | grep "${v_primary_interface}" | head -n 1 | awk '{ print $1 }')
-			nmcli connection modify "${v_active_connection_name}" ipv4.dns-search "${v_given_domain}" &>/dev/null
-			nmcli connection modify "${v_active_connection_name}" ipv4.dns "127.0.0.1,8.8.8.8,8.8.4.4"  &>/dev/null
-			nmcli connection reload "${v_active_connection_name}" &>/dev/null
-			nmcli connection up "${v_active_connection_name}" &>/dev/null
-			print_task_done
+	# Iterate through all key-value pairs and update or append as necessary
+	for environment_key in "${!dnsbinder_environment_map[@]}"; do
+		environment_value="${dnsbinder_environment_map[$environment_key]}"
+		if grep -q "^${environment_key}=" "$target_environment_file"; then
+			# Update existing variable line
+			sed -i "s|^${environment_key}=.*|${environment_key}=\"${environment_value}\"|" "$target_environment_file"
 		else
-			print_task "Updating systemd-resolvd to point the local dns server and domain..."
-			if command -v resolvectl &>/dev/null; then
+			# Append new variable if not already present
+			echo "${environment_key}=\"${environment_value}\"" | tee -a "$target_environment_file" > /dev/null
+		fi
+	done
+
+	source /etc/environment
+
+	print_task_done
+
+	if ! $KVM_HOST_MODE_SET; then
+		print_task "Updating Network Manager to point the local dns server and domain..."
+		v_active_connection_name=$(nmcli connection show --active | grep "${v_primary_interface}" | head -n 1 | awk '{ print $1 }')
+		nmcli connection modify "${v_active_connection_name}" ipv4.dns-search "${v_given_domain}" &>/dev/null
+		nmcli connection modify "${v_active_connection_name}" ipv4.dns "127.0.0.1,8.8.8.8,8.8.4.4"  &>/dev/null
+		nmcli connection reload "${v_active_connection_name}" &>/dev/null
+		nmcli connection up "${v_active_connection_name}" &>/dev/null
+		print_task_done
+	else
+		print_task "Updating systemd-resolvd to point the local dns server and domain..."
+		if command -v resolvectl &>/dev/null; then
   				resolvectl dns labbr0 "$v_primary_ip"
   				resolvectl domain labbr0 "$v_given_domain"
-			fi
-			print_task_done
 		fi
+		print_task_done
 	fi
 
 	print_task "Make named service as a dependency for network-online.target..."

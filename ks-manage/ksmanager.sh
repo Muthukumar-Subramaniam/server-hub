@@ -633,24 +633,8 @@ fn_select_os_distro() {
 
 fn_select_os_distro
 
-# Detect VM platform
-manufacturer=$(sudo dmidecode -t1 | awk -F: '/Manufacturer/ {
-    gsub(/^ +| +$/, "", $2);
-    print tolower($2)
-}')
-
-# Initialize variables
+# Initialize variables for QEMU/KVM
 disk_type_for_the_vm="vda"
-whether_vga_console_is_required=""
-
-# Set values based on platform
-if [[ "$manufacturer" == *vmware* ]]; then
-    disk_type_for_the_vm="nvme0n1"
-    whether_vga_console_is_required="console=tty0"
-elif [[ "$manufacturer" == *qemu* ]]; then
-    disk_type_for_the_vm="vda"
-    whether_vga_console_is_required=""
-fi
 
 fn_create_host_kickstart_dir() {
 	host_kickstart_dir="${ksmanager_hub_dir}/kickstarts/${kickstart_hostname}"
@@ -708,11 +692,7 @@ fi
 
 if ! $invoked_with_golden_image; then
 	if [[ "${os_distribution}" == "opensuse-leap" ]]; then
-		if [[ ! -z "${whether_vga_console_is_required}" ]]; then
-			rsync -a -q "${ksmanager_main_dir}/ks-templates/${os_distribution}-${version_type}-autoinst-vmware.xml" "${host_kickstart_dir}/${os_distribution}-${version_type}-autoinst.xml" 
-		else
-			rsync -a -q "${ksmanager_main_dir}/ks-templates/${os_distribution}-${version_type}-autoinst.xml" "${host_kickstart_dir}/${os_distribution}-${version_type}-autoinst.xml" 
-		fi
+		rsync -a -q "${ksmanager_main_dir}/ks-templates/${os_distribution}-${version_type}-autoinst.xml" "${host_kickstart_dir}/${os_distribution}-${version_type}-autoinst.xml" 
 	elif [[ "${os_distribution}" == "ubuntu-lts" ]]; then 
 		rsync -a -q --delete "${ksmanager_main_dir}/ks-templates/${os_distribution}-${version_type}-ks" "${host_kickstart_dir}"/
 	else
@@ -788,7 +768,6 @@ fn_set_environment() {
 		sed -i "s/get_mgmt_super_user/${mgmt_super_user}/g" "${working_file}"
 		sed -i "s/get_os_name_and_version/${os_name_and_version}/g" "${working_file}"
 		sed -i "s/get_disk_type_for_the_vm/${disk_type_for_the_vm}/g" "${working_file}"
-		sed -i "s/get_whether_vga_console_is_required/${whether_vga_console_is_required}/g" "${working_file}"
 	 	sed -i "s/get_golden_image_creation_not_requested/$golden_image_creation_not_requested/g" "${working_file}"
 	 	sed -i "s/get_redhat_based_distro_name/$redhat_based_distro_name/g" "${working_file}"
 	 	sed -i "s/get_version_type/$version_type/g" "${working_file}"
