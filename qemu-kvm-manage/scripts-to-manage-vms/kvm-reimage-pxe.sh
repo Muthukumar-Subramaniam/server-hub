@@ -78,16 +78,29 @@ for qemu_kvm_hostname in "${HOSTNAMES[@]}"; do
     source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/confirm-reimage-operation.sh
     confirm_reimage_operation "$qemu_kvm_hostname" "PXE boot"
 
-    # Get existing MAC address from VM (for reimage, preserve the existing MAC)
-    print_task "Getting MAC address from existing VM \"${qemu_kvm_hostname}\"..."
-    source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/get-vm-mac-address.sh
-    if ! GENERATED_MAC=$(get_vm_mac_address "${qemu_kvm_hostname}"); then
-        print_task_fail
-        print_error "Failed to get MAC address from VM \"${qemu_kvm_hostname}\"."
-        FAILED_VMS+=("$qemu_kvm_hostname")
-        continue
+    # Handle MAC address based on operation type
+    if [[ "$CLEAN_INSTALL" == "yes" ]]; then
+        # For clean install, generate new MAC (VM will be destroyed and recreated)
+        print_task "Generating MAC address for VM \"${qemu_kvm_hostname}\"..."
+        source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/generate-mac-address.sh
+        if ! GENERATED_MAC=$(generate_unique_mac "${qemu_kvm_hostname}"); then
+            print_task_fail
+            FAILED_VMS+=("$qemu_kvm_hostname")
+            continue
+        fi
+        print_task_done
+    else
+        # For regular reimage, preserve existing MAC
+        print_task "Getting MAC address from existing VM \"${qemu_kvm_hostname}\"..."
+        source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/get-vm-mac-address.sh
+        if ! GENERATED_MAC=$(get_vm_mac_address "${qemu_kvm_hostname}"); then
+            print_task_fail
+            print_error "Failed to get MAC address from VM \"${qemu_kvm_hostname}\"."
+            FAILED_VMS+=("$qemu_kvm_hostname")
+            continue
+        fi
+        print_task_done
     fi
-    print_task_done
 
     print_info "Creating PXE environment for '${qemu_kvm_hostname}' using ksmanager..."
 
