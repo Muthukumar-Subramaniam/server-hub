@@ -67,11 +67,21 @@ for qemu_kvm_hostname in "${HOSTNAMES[@]}"; do
         continue
     fi
 
+    # Generate unique MAC address for the VM
+    print_task "Generating MAC address for VM \"${qemu_kvm_hostname}\"..."
+    source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/generate-mac-address.sh
+    if ! GENERATED_MAC=$(generate_unique_mac "${qemu_kvm_hostname}"); then
+        print_task_fail
+        FAILED_VMS+=("$qemu_kvm_hostname")
+        continue
+    fi
+    print_task_done
+
     print_info "Creating PXE environment for '${qemu_kvm_hostname}' using ksmanager..."
 
     # Run ksmanager and extract VM details
     source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/run-ksmanager.sh
-    ksmanager_opts="--qemu-kvm"
+    ksmanager_opts="--qemu-kvm --mac ${GENERATED_MAC}"
     [[ -n "$OS_DISTRO" ]] && ksmanager_opts="$ksmanager_opts --distro $OS_DISTRO"
     [[ -n "$VERSION_TYPE" ]] && ksmanager_opts="$ksmanager_opts --version $VERSION_TYPE"
     if ! run_ksmanager "${qemu_kvm_hostname}" "$ksmanager_opts"; then

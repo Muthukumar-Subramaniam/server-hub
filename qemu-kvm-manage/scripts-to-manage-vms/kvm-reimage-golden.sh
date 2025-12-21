@@ -94,8 +94,6 @@ for qemu_kvm_hostname in "${HOSTNAMES[@]}"; do
     source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/confirm-reimage-operation.sh
     confirm_reimage_operation "$qemu_kvm_hostname" "golden image"
 
-    print_info "Creating first boot environment for '${qemu_kvm_hostname}' using ksmanager..."
-
     # Check if golden image exists for specified distro
     if [[ -n "$OS_DISTRO" ]]; then
         # Normalize OS distro name first for golden image check
@@ -124,8 +122,19 @@ for qemu_kvm_hostname in "${HOSTNAMES[@]}"; do
     fi
 
     # Run ksmanager and extract VM details
+    print_task "Generating MAC address for VM \"${qemu_kvm_hostname}\"..."
+    source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/generate-mac-address.sh
+    if ! GENERATED_MAC=$(generate_unique_mac "${qemu_kvm_hostname}"); then
+        print_task_fail
+        FAILED_VMS+=("$qemu_kvm_hostname")
+        continue
+    fi
+    print_task_done
+
+    print_info "Creating first boot environment for '${qemu_kvm_hostname}' using ksmanager..."
+
     source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/run-ksmanager.sh
-    ksmanager_opts="--qemu-kvm --golden-image"
+    ksmanager_opts="--qemu-kvm --golden-image --mac ${GENERATED_MAC}"
     [[ -n "$OS_DISTRO" ]] && ksmanager_opts="$ksmanager_opts --distro $OS_DISTRO"
     [[ -n "$VERSION_TYPE" ]] && ksmanager_opts="$ksmanager_opts --version $VERSION_TYPE"
     if ! run_ksmanager "${qemu_kvm_hostname}" "$ksmanager_opts"; then

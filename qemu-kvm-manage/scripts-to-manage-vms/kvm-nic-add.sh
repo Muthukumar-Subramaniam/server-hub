@@ -206,33 +206,6 @@ else
     fn_shutdown_or_poweroff
 fi
 
-# Get all MAC addresses used across all VMs to avoid conflicts
-declare -a USED_MACS
-print_info "Checking MAC addresses across all VMs..."
-while IFS= read -r vm; do
-    while IFS= read -r mac; do
-        [[ -n "$mac" && "$mac" != "-" ]] && USED_MACS+=("$mac")
-    done < <(sudo virsh domiflist "$vm" 2>/dev/null | awk 'NR>2 && NF>=5 {print $5}')
-done < <(sudo virsh list --all --name | grep -v '^$')
-
-# Function to generate a random MAC address for the lab network
-generate_mac() {
-    # Use 52:54:00 prefix (QEMU/KVM range) followed by 3 random octets
-    local mac="52:54:00:$(openssl rand -hex 3 | sed 's/../&:/g; s/:$//')"
-    echo "$mac"
-}
-
-# Function to check if MAC is unique
-is_mac_unique() {
-    local mac="$1"
-    for used_mac in "${USED_MACS[@]}"; do
-        if [[ "$mac" == "$used_mac" ]]; then
-            return 1
-        fi
-    done
-    return 0
-}
-
 # Confirm NIC addition
 print_warning "About to add $nic_count NIC(s) to VM \"$qemu_kvm_hostname\" on network \"$network_name\""
 read -rp "Type 'yes' to confirm: " confirm
@@ -241,22 +214,19 @@ if [[ "$confirm" != "yes" ]]; then
     exit 0
 fi
 
+# Source MAC address generation functions
+source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/generate-mac-address.sh
+
 # Add NICs
 added_count=0
 for ((i=1; i<=nic_count; i++)); do
     # Generate unique MAC address
-    attempts=0
-    while true; do
-        mac=$(generate_mac)
-        if is_mac_unique "$mac"; then
-            break
-        fi
-        ((attempts++))
-        if (( attempts > 100 )); then
-            print_error "Failed to generate unique MAC address after 100 attempts."
-            break 2
-        fi
-    done
+    print_task "Generating MAC address for NIC #$i..."
+    if ! mac=$(generate_unique_mac "$qemu_kvm_hostname"); then
+        print_task_fail
+        break
+    fi
+    print_task_done
     
     # Determine interface type (network or bridge)
     interface_type="network"

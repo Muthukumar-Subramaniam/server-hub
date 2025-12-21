@@ -405,15 +405,19 @@ for input_arguement in "$@"; do
     fi
 done
 
-# Parse --distro and --version flags
+# Parse --distro, --version, and --mac flags
 distro_from_flag=""
 version_from_flag=""
+mac_from_flag=""
 for arg in "$@"; do
     if [[ "$prev_arg" == "--distro" ]]; then
         distro_from_flag="$arg"
     fi
     if [[ "$prev_arg" == "--version" ]]; then
         version_from_flag="$arg"
+    fi
+    if [[ "$prev_arg" == "--mac" ]]; then
+        mac_from_flag="$arg"
     fi
     prev_arg="$arg"
 done
@@ -422,6 +426,20 @@ done
 version_type="${version_from_flag:-latest}"
 
 fn_check_and_create_mac_if_required() {
+
+# If MAC address was provided via --mac flag, use it directly
+if [[ -n "${mac_from_flag}" ]]; then
+	print_info "Using MAC address provided via --mac flag: ${mac_from_flag}"
+	mac_address_of_host="${mac_from_flag}"
+	# Validate the provided MAC address
+	if ! fn_validate_mac "${mac_address_of_host}"; then
+		print_error "Invalid MAC address provided via --mac flag: ${mac_address_of_host}"
+		exit 1
+	fi
+	fn_convert_mac_for_ipxe_cfg
+	fn_cache_the_mac
+	return
+fi
 
 print_info "Looking up MAC address for host \"${kickstart_hostname}\" from cache..."
 
@@ -466,10 +484,9 @@ then
 else
 	print_info "MAC address for \"${kickstart_hostname}\" not found in cache."
 	if $invoked_with_qemu_kvm; then
-		print_info "Generating MAC address for QEMU/KVM VM \"${kickstart_hostname}\"..."
-		mac_address_of_host=$(printf '52:54:00:%02x:%02x:%02x\n' $((RANDOM%256)) $((RANDOM%256)) $((RANDOM%256)))
-		fn_convert_mac_for_ipxe_cfg
-		fn_cache_the_mac
+		print_error "MAC address not found in cache and --mac flag not provided for QEMU/KVM mode."
+		print_error "QEMU/KVM scripts must provide MAC address via --mac flag."
+		exit 1
 	else
 		fn_get_mac_address
 		fn_convert_mac_for_ipxe_cfg

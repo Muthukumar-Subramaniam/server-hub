@@ -9,7 +9,7 @@ virt_install_error=$(sudo virt-install \
   --vcpus 2 \
   --disk path=${DISK_PATH},size=20,bus=virtio,boot.order=1 \
   --os-variant almalinux9 \
-  --network network=default,model=virtio,mac=${MAC_ADDRESS},boot.order=2 \
+  --network network=default,model=virtio,mac=${GENERATED_MAC},boot.order=2 \
   --graphics none \
   --noautoconsole \
   --machine q35 \

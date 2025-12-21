@@ -87,11 +87,20 @@ if [[ -n "$OS_DISTRO" && -z "$VERSION_TYPE" ]]; then
     VERSION_TYPE="latest"
 fi
 
+# Generate unique MAC address for the VM
+print_task "Generating MAC address for golden image VM..."
+source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/generate-mac-address.sh
+if ! GENERATED_MAC=$(generate_unique_mac "golden-image"); then
+    print_task_fail
+    exit 1
+fi
+print_task_done
+
 print_info "Invoking ksmanager to create PXE environment for golden image..."
 
 # Run ksmanager for golden image creation
 source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/run-ksmanager.sh
-ksmanager_opts="--qemu-kvm --create-golden-image"
+ksmanager_opts="--qemu-kvm --create-golden-image --mac ${GENERATED_MAC}"
 [[ -n "$OS_DISTRO" ]] && ksmanager_opts="$ksmanager_opts --distro $OS_DISTRO"
 [[ -n "$VERSION_TYPE" ]] && ksmanager_opts="$ksmanager_opts --version $VERSION_TYPE"
 if ! run_ksmanager "" "$ksmanager_opts"; then
@@ -146,7 +155,7 @@ if ! sudo virt-install \
   --vcpus 2 \
   --disk path=${DISK_PATH},size=20,bus=virtio,boot.order=1 \
   --os-variant almalinux9 \
-  --network network=default,model=virtio,mac=${MAC_ADDRESS},boot.order=2 \
+  --network network=default,model=virtio,mac=${GENERATED_MAC},boot.order=2 \
   --graphics none \
   --console pty,target_type=serial \
   --machine q35 \
