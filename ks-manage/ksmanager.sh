@@ -513,14 +513,9 @@ fn_get_version_number() {
 fn_check_distro_availability() {
 	local os_distribution="${1}"
 	local version="${2:-latest}"
+	local mount_dir="/${web_server_name}.${ipv4_domain}/${os_distribution}-${version}"
 	
-	if [[ "${os_distribution}" == "opensuse-leap" ]]; then
-		kernel_file_name="linux"
-	else
-		kernel_file_name="vmlinuz"
-	fi
-	
-	if [[ -f "${ipxe_web_dir}/images/${os_distribution}-${version}/${kernel_file_name}" ]]; then
+	if mountpoint -q "${mount_dir}"; then
 		print_green '[Ready]'
 	else
 		print_yellow '[Not-Ready]'
@@ -648,13 +643,9 @@ if $golden_image_creation_not_requested; then
 	fi
 fi
 
-if [[ "${os_distribution}" == "opensuse-leap" ]]; then
-	kernel_file_name="linux"
-else
-	kernel_file_name="vmlinuz"
-fi
+mount_dir="/${web_server_name}.${ipv4_domain}/${os_distribution}-${version_type}"
 
-while [ ! -f "${ipxe_web_dir}/images/${os_distribution}-${version_type}/${kernel_file_name}" ]; do
+while ! mountpoint -q "${mount_dir}"; do
 	print_warning "${os_distribution} is not yet prepared for PXE-boot environment."
 	print_info "Please use 'prepare-distro-for-ksmanager' tool to prepare ${os_distribution} for PXE-boot."
 	if $invoked_with_qemu_kvm; then

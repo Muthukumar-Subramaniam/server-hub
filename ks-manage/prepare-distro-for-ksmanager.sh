@@ -19,7 +19,7 @@ set -euo pipefail
 : "${mgmt_super_user:?Must set mgmt_super_user}"
 
 # Validate required commands are installed
-REQUIRED_COMMANDS=("wget" "rsync" "curl" "mountpoint" "sed" "awk" "grep")
+REQUIRED_COMMANDS=("wget" "curl" "mountpoint" "sed" "awk" "grep")
 MISSING_COMMANDS=()
 
 for cmd in "${REQUIRED_COMMANDS[@]}"; do
@@ -64,12 +64,9 @@ fn_get_version_number() {
 fn_is_distro_ready() {
   local os_distribution="$1"
   local version="${2:-latest}"  # Default to 'latest' if not specified
-  if [[ "$os_distribution" == "opensuse-leap" ]]; then
-    kernel_file_name="linux"
-  else
-    kernel_file_name="vmlinuz"
-  fi
-  if [[ -f "/${dnsbinder_server_fqdn}/ipxe/images/${os_distribution}-${version}/${kernel_file_name}" ]]; then
+  local mount_dir="/${dnsbinder_server_fqdn}/${os_distribution}-${version}"
+  
+  if mountpoint -q "$mount_dir"; then
     return 0  # Ready
   else
     return 1  # Not Ready
@@ -126,9 +123,8 @@ fn_select_os_distro() {
 }
 
 prepare_iso() {
-  local distro="$1" iso_file="$2" iso_url="$3" kernel_path="$4" initrd_path="$5"
+  local distro="$1" iso_file="$2" iso_url="$3"
   local mount_dir="/${dnsbinder_server_fqdn}/${distro}-${VERSION_VARIANT}"
-  local web_image_dir="/${dnsbinder_server_fqdn}/ipxe/images/${distro}-${VERSION_VARIANT}"
   local iso_path="${ISO_DIR}/${iso_file}"
 
   print_info "Ensuring ISO directory exists..."
@@ -182,32 +178,6 @@ prepare_iso() {
     print_info "ISO already mounted.\n"
   fi
 
-  print_info "Syncing kernel and initrd to $web_image_dir\n"
-  sudo mkdir -p "$web_image_dir"
-  sudo chown "${mgmt_super_user}:${mgmt_super_user}" "$web_image_dir"
-
-  if ! rsync -avPh "$mount_dir/$kernel_path" "$web_image_dir/"; then
-    print_error "Failed to sync kernel file"
-    print_info "Cleaning up..."
-    sudo umount "$mount_dir"
-    sudo sed -i "\|${mount_dir}|d" "$FSTAB"
-    sudo systemctl daemon-reload
-    sudo rm -f "$iso_path"
-    sudo rm -rf "$mount_dir" "$web_image_dir"
-    exit 1
-  fi
-  
-  if ! rsync -avPh "$mount_dir/$initrd_path" "$web_image_dir/"; then
-    print_error "Failed to sync initrd file"
-    print_info "Cleaning up..."
-    sudo umount "$mount_dir"
-    sudo sed -i "\|${mount_dir}|d" "$FSTAB"
-    sudo systemctl daemon-reload
-    sudo rm -f "$iso_path"
-    sudo rm -rf "$mount_dir" "$web_image_dir"
-    exit 1
-  fi
-
   print_success "All done for $distro.\n"
 }
 
@@ -221,17 +191,17 @@ prepare_rhel() {
   print_info "Login from a browser with your Red Hat Developer Subscription!"
   read -rp "Enter the link to download RHEL ${rhel_version} ISO : " iso_url
 
-  prepare_iso "$distro" "${ISO_FILENAMES[rhel]}" "$iso_url" "${REDHAT_BASED_BOOT_VMLINUZ}" "${REDHAT_BASED_BOOT_INITRD}"
+  prepare_iso "$distro" "${ISO_FILENAMES[rhel]}" "$iso_url"
 }
 
 prepare_ubuntu() {
   local distro="ubuntu-lts"
-  prepare_iso "$distro" "${ISO_FILENAMES[ubuntu-lts]}" "${ISO_URLS[ubuntu-lts]}" "${UBUNTU_BOOT_VMLINUZ}" "${UBUNTU_BOOT_INITRD}"
+  prepare_iso "$distro" "${ISO_FILENAMES[ubuntu-lts]}" "${ISO_URLS[ubuntu-lts]}"
 }
 
 prepare_oraclelinux() {
   local distro="oraclelinux"
-  prepare_iso "$distro" "${ISO_FILENAMES[oraclelinux]}" "${ISO_URLS[oraclelinux]}" "${REDHAT_BASED_BOOT_VMLINUZ}" "${REDHAT_BASED_BOOT_INITRD}"
+  prepare_iso "$distro" "${ISO_FILENAMES[oraclelinux]}" "${ISO_URLS[oraclelinux]}"
 }
 
 cleanup_distro() {
@@ -239,9 +209,8 @@ cleanup_distro() {
   local iso_file="$2"
   local iso_path="${ISO_DIR}/${iso_file}"
   local mount_dir="/${dnsbinder_server_fqdn}/${distro}-${VERSION_VARIANT}"
-  local web_image_dir="/${dnsbinder_server_fqdn}/ipxe/images/${distro}-${VERSION_VARIANT}"
 
-  print_warning "This will delete ISO, mount point and boot image files for $distro."
+  print_warning "This will delete ISO and mount point for $distro."
   read -p "Are you sure you want to continue? (yes/no): " confirm
   if [[ "$confirm" != "yes" ]]; then
     print_error "Cleanup aborted."
@@ -262,10 +231,6 @@ cleanup_distro() {
       fi
     fi
     sudo rm -rf "$mount_dir"
-  fi
-
-  if [[ -n "$web_image_dir" && -d "$web_image_dir" ]]; then
-    sudo rm -rf "$web_image_dir"
   fi
 
   print_info "Cleaning up /etc/fstab entries containing '${distro}-${VERSION_VARIANT}'"
@@ -373,36 +338,30 @@ case "$MODE" in
     case "$DISTRO" in
       almalinux)
         prepare_iso "almalinux" "${ISO_FILENAMES[almalinux]}" \
-          "${ISO_URLS[almalinux]}" \
-          "${REDHAT_BASED_BOOT_VMLINUZ}" "${REDHAT_BASED_BOOT_INITRD}"
+          "${ISO_URLS[almalinux]}"
         ;;
       rocky)
         prepare_iso "rocky" "${ISO_FILENAMES[rocky]}" \
-          "${ISO_URLS[rocky]}" \
-          "${REDHAT_BASED_BOOT_VMLINUZ}" "${REDHAT_BASED_BOOT_INITRD}"
+          "${ISO_URLS[rocky]}"
         ;;
       oraclelinux)
         prepare_iso "oraclelinux" "${ISO_FILENAMES[oraclelinux]}" \
-          "${ISO_URLS[oraclelinux]}" \
-          "${REDHAT_BASED_BOOT_VMLINUZ}" "${REDHAT_BASED_BOOT_INITRD}"
+          "${ISO_URLS[oraclelinux]}"
         ;;
       centos-stream)
         prepare_iso "centos-stream" "${ISO_FILENAMES[centos-stream]}" \
-          "${ISO_URLS[centos-stream]}" \
-          "${REDHAT_BASED_BOOT_VMLINUZ}" "${REDHAT_BASED_BOOT_INITRD}"
+          "${ISO_URLS[centos-stream]}"
         ;;
       rhel)
         prepare_rhel
         ;;
       ubuntu-lts)
         prepare_iso "ubuntu-lts" "${ISO_FILENAMES[ubuntu-lts]}" \
-          "${ISO_URLS[ubuntu-lts]}" \
-          "${UBUNTU_BOOT_VMLINUZ}" "${UBUNTU_BOOT_INITRD}"
+          "${ISO_URLS[ubuntu-lts]}"
         ;;
       opensuse-leap)
         prepare_iso "opensuse-leap" "${ISO_FILENAMES[opensuse-leap]}" \
-          "${ISO_URLS[opensuse-leap]}" \
-          "${OPENSUSE_BOOT_VMLINUZ}" "${OPENSUSE_BOOT_INITRD}"
+          "${ISO_URLS[opensuse-leap]}"
         ;;
       *)
         print_error "Unknown distro: $DISTRO"
