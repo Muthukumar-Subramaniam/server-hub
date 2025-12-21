@@ -179,6 +179,7 @@ fi
 # Get list of additional disks (excluding vda/OS disk)
 declare -a ADDITIONAL_DISKS
 declare -A DISK_PATHS
+declare -A SEEN_DISKS
 for disk_file in "$VM_DIR"/*.qcow2; do
     [[ -e "$disk_file" ]] || continue
     BASENAME=$(basename "$disk_file")
@@ -189,8 +190,12 @@ for disk_file in "$VM_DIR"/*.qcow2; do
     # Extract disk target (e.g., vdb, vdc)
     if [[ "$BASENAME" =~ ${qemu_kvm_hostname}_(vd[b-z])\.qcow2 ]]; then
         DISK_TARGET="${BASH_REMATCH[1]}"
-        ADDITIONAL_DISKS+=("$DISK_TARGET")
-        DISK_PATHS["$DISK_TARGET"]="$disk_file"
+        # Only add if not already seen (avoid duplicates)
+        if [[ -z "${SEEN_DISKS[$DISK_TARGET]}" ]]; then
+            ADDITIONAL_DISKS+=("$DISK_TARGET")
+            DISK_PATHS["$DISK_TARGET"]="$disk_file"
+            SEEN_DISKS["$DISK_TARGET"]=1
+        fi
     fi
 done
 
