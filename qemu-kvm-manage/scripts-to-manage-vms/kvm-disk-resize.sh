@@ -290,9 +290,7 @@ while true; do
         print_info "Available additional disks for VM \"$qemu_kvm_hostname\":"
         for i in "${!AVAILABLE_DISKS[@]}"; do
             disk="${AVAILABLE_DISKS[$i]}"
-            disk_path="${DISK_PATHS[$disk]}"
-            disk_size=$(sudo qemu-img info "$disk_path" | grep "virtual size" | grep -o '[0-9]\+ GiB' | cut -d' ' -f1)
-            echo "  $((i+1))) $disk (${disk_size} GiB)"
+            echo "  $((i+1))) $disk"
         done
         
         # Only show "all" option if more than one disk available and this is first iteration
