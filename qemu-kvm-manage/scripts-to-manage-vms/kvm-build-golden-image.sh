@@ -185,4 +185,16 @@ else
     print_warning "Could not cleanup temporary VM \"${qemu_kvm_hostname}\": $error_msg"
 fi
 
+# Clean up ksmanager databases (DNS, MAC cache, kickstart, iPXE, DHCP)
+print_info "Cleaning up ksmanager databases for temporary VM..."
+if $lab_infra_server_mode_is_host; then
+    if ! ksmanager "$qemu_kvm_hostname" --remove-host; then
+        print_warning "Could not clean up ksmanager databases."
+    fi
+else
+    if ! ssh -o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "${lab_infra_admin_username}@${lab_infra_server_ipv4_address}" "ksmanager $qemu_kvm_hostname --remove-host"; then
+        print_warning "Could not clean up ksmanager databases."
+    fi
+fi
+
 print_success "Golden image disk created successfully: ${golden_image_path}"
