@@ -324,6 +324,16 @@ while true; do
         done
     fi
 
+    # Shutdown VM if running (only once, before first resize operation)
+    if [[ "${VM_SHUTDOWN_DONE:-false}" == false ]]; then
+        if ! sudo virsh list | awk '{print $2}' | grep -Fxq "$qemu_kvm_hostname"; then
+            print_info "VM \"$qemu_kvm_hostname\" is not running. Proceeding further."
+        else
+            fn_shutdown_or_poweroff
+        fi
+        VM_SHUTDOWN_DONE=true
+    fi
+
     # Validate gib argument if provided (only first iteration in interactive mode)
     if [[ -n "$gib_arg" ]] || [[ "$INTERACTIVE_MODE" == false ]]; then
         if [[ -n "$gib_arg" ]]; then
@@ -343,9 +353,19 @@ while true; do
             print_info "Using increase size: ${grow_size_gib} GiB"
         fi
     else
-        # Prompt for disk increase size
+        # Prompt for disk increase size - show current sizes now that VM is stopped
         if [[ "$RESIZE_ALL" == true ]]; then
-            print_info "Resizing all additional disks: ${AVAILABLE_DISKS[*]}"
+            print_info "Resizing all additional disks:"
+            for disk in "${AVAILABLE_DISKS[@]}"; do
+                disk_path="${DISK_PATHS[$disk]}"
+                disk_size=$(sudo qemu-img info "$disk_path" | grep "virtual size" | grep -o '[0-9]\+ GiB' | cut -d' ' -f1)
+                echo "  - $disk: ${disk_size} GiB"
+            done
+        else
+            # Show current size for single disk
+            SELECTED_DISK_PATH="${DISK_PATHS[$SELECTED_DISK]}"
+            current_disk_gib=$(sudo qemu-img info "$SELECTED_DISK_PATH" | grep "virtual size" | grep -o '[0-9]\+ GiB' | cut -d' ' -f1)
+            print_info "Current size of $SELECTED_DISK: ${current_disk_gib} GiB"
         fi
         print_info "Allowed sizes for increase: Steps of 5 GiB — e.g., 5, 10, 15... up to 50 GiB"
 
@@ -368,16 +388,6 @@ while true; do
             fi
             break
         done
-    fi
-
-    # Shutdown VM if running (only once, before first resize operation)
-    if [[ "${VM_SHUTDOWN_DONE:-false}" == false ]]; then
-        if ! sudo virsh list | awk '{print $2}' | grep -Fxq "$qemu_kvm_hostname"; then
-            print_info "VM \"$qemu_kvm_hostname\" is not running. Proceeding further."
-        else
-            fn_shutdown_or_poweroff
-        fi
-        VM_SHUTDOWN_DONE=true
     fi
 
     # Perform the disk resize
