@@ -519,7 +519,7 @@ if error_msg=$(sudo virsh start "$qemu_kvm_hostname" 2>&1); then
     else
         print_warning "[VM: $qemu_kvm_hostname] No disks were resized, but VM started successfully."
     fi
-    print_info "You may need to resize the filesystem and partitions at the operating system level."
+    print_info "You may need to resize the partitions and filesystems at the operating system level."
 else
     print_task_fail
     print_error "Could not start VM \"$qemu_kvm_hostname\"."
