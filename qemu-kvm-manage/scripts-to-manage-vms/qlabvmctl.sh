@@ -45,6 +45,7 @@ VM OPERATIONS:
 VM CONFIGURATION:
     resize                  Resize VM resources (CPU, memory, disk)
     disk-add                Add additional disk to VM
+    disk-resize             Resize additional disk(s)
     disk-attach             Attach disk(s) from detached storage
     disk-detach             Detach and save disk(s) from VM
     disk-delete             Permanently delete disk(s) from detached storage
@@ -97,7 +98,7 @@ main() {
         build-golden-image)
             script_name="kvm-build-golden-image.sh"
             ;;
-        disk-add|disk-attach|disk-detach|disk-delete|nic-add|nic-remove)
+        disk-add|disk-resize|disk-attach|disk-detach|disk-delete|nic-add|nic-remove)
             script_name="kvm-${subcommand}.sh"
             ;;
         *)

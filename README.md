@@ -175,6 +175,7 @@ qlabvmctl remove                    # 🗑️ Delete VMs completely
 ```bash
 qlabvmctl resize                    # 📏 Resize memory, CPU, or disk
 qlabvmctl disk-add                  # 💾 Add new storage disks to VM
+qlabvmctl disk-resize               # 📐 Resize additional disks
 qlabvmctl disk-attach               # 🔗 Attach disks from detached storage
 qlabvmctl disk-detach               # 📤 Detach and save disks for later use
 qlabvmctl disk-delete               # 🗑️ Permanently delete detached disks
