@@ -210,6 +210,7 @@ fi
 
 # Track resized disks for interactive multi-resize
 declare -a RESIZED_DISKS
+declare -A DISK_NEW_SIZES
 
 # Main resize loop (for interactive mode with multiple disks)
 while true; do
@@ -403,6 +404,7 @@ while true; do
                 new_disk_size=$(( current_disk_gib + grow_size_gib ))
                 print_info "Disk $disk resized from ${current_disk_gib} GiB to ${new_disk_size} GiB."
                 RESIZED_DISKS+=("$disk")
+                DISK_NEW_SIZES["$disk"]="$new_disk_size"
             else
                 print_task_fail
                 print_error "$error_msg"
@@ -424,6 +426,7 @@ while true; do
                 new_disk_size=$(( current_disk_gib + grow_size_gib ))
                 print_info "Disk $disk resized from ${current_disk_gib} GiB to ${new_disk_size} GiB."
                 RESIZED_DISKS+=("$disk")
+                DISK_NEW_SIZES["$disk"]="$new_disk_size"
             else
                 print_task_fail
                 print_error "$error_msg"
@@ -443,6 +446,7 @@ while true; do
             new_disk_size=$(( current_disk_gib + grow_size_gib ))
             print_info "Disk $SELECTED_DISK resized from ${current_disk_gib} GiB to ${new_disk_size} GiB."
             RESIZED_DISKS+=("$SELECTED_DISK")
+            DISK_NEW_SIZES["$SELECTED_DISK"]="$new_disk_size"
         else
             print_task_fail
             print_error "$error_msg"
@@ -500,12 +504,15 @@ print_task "Starting VM \"$qemu_kvm_hostname\"..." nskip
 if error_msg=$(sudo virsh start "$qemu_kvm_hostname" 2>&1); then
     print_task_done
     if (( ${#RESIZED_DISKS[@]} > 1 )); then
-        print_success "Successfully resized ${#RESIZED_DISKS[@]} disk(s) and VM started."
-        print_info "Resized disks: ${RESIZED_DISKS[*]}"
+        print_success "[VM: $qemu_kvm_hostname] Successfully resized ${#RESIZED_DISKS[@]} disk(s) and started."
+        for disk in "${RESIZED_DISKS[@]}"; do
+            print_info "  - $disk: Final size ${DISK_NEW_SIZES[$disk]} GiB"
+        done
     elif (( ${#RESIZED_DISKS[@]} == 1 )); then
-        print_success "Disk ${RESIZED_DISKS[0]} successfully resized and VM started."
+        disk="${RESIZED_DISKS[0]}"
+        print_success "[VM: $qemu_kvm_hostname] Disk $disk successfully resized to ${DISK_NEW_SIZES[$disk]} GiB and VM started."
     else
-        print_warning "No disks were resized, but VM started successfully."
+        print_warning "[VM: $qemu_kvm_hostname] No disks were resized, but VM started successfully."
     fi
     print_info "You may need to resize the filesystem and partitions at the operating system level."
 else
