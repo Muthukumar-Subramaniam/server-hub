@@ -4,8 +4,15 @@
 # please open an issue at: https://github.com/Muthukumar-Subramaniam/server-hub/issues   #
 #----------------------------------------------------------------------------------------#
 
+source /etc/environment
 source /server-hub/common-utils/color-functions.sh
 source /server-hub/ks-manage/distro-versions.conf
+
+if [[ -z "$mgmt_super_user" ]]; then
+	print_error "Critical: mgmt_super_user is not defined in /etc/environment."
+	print_error "Please ensure the environment is properly configured."
+	exit 1
+fi
 
 if [[ "$USER" != "$mgmt_super_user" ]]; then
 	print_error "Access denied. Only infra management super user '${mgmt_super_user}' is authorized to run this tool."
@@ -20,16 +27,13 @@ ipv4_prefix="${dnsbinder_cidr_prefix}"
 ipv4_gateway="${dnsbinder_gateway}"
 ipv4_nameserver="${dnsbinder_server_ipv4_address}"
 ipv4_nfsserver="${dnsbinder_server_ipv4_address}"
-tftp_server_name="${dnsbinder_server_short_name}"
-nfs_server_name="${dnsbinder_server_short_name}"
-ntp_pool_name="${dnsbinder_server_short_name}"
-web_server_name="${dnsbinder_server_short_name}"
+lab_infra_server_hostname="${dnsbinder_server_fqdn}"
 ##rhel_activation_key=$(cat /server-hub/rhel-activation-key.base64 | base64 -d)
 time_of_last_update=$(date +"%Y-%m-%d_%H-%M-%S_%Z")
 dnsbinder_script='/server-hub/named-manage/dnsbinder.sh'
 ksmanager_main_dir='/server-hub/ks-manage'
-ksmanager_hub_dir="/${web_server_name}.${ipv4_domain}/ksmanager-hub"
-ipxe_web_dir="/${web_server_name}.${ipv4_domain}/ipxe"
+ksmanager_hub_dir="/${lab_infra_server_hostname}/ksmanager-hub"
+ipxe_web_dir="/${lab_infra_server_hostname}/ipxe"
 shadow_password_super_mgmt_user=$(sudo grep "${mgmt_super_user}" /etc/shadow | cut -d ":" -f 2)
 if [ -d "/kvm-hub" ]; then
 	if [ -f "/kvm-hub/lab_environment_vars" ]; then
@@ -513,7 +517,7 @@ fn_get_version_number() {
 fn_check_distro_availability() {
 	local os_distribution="${1}"
 	local version="${2:-latest}"
-	local mount_dir="/${web_server_name}.${ipv4_domain}/${os_distribution}-${version}"
+	local mount_dir="/${lab_infra_server_hostname}/${os_distribution}-${version}"
 	
 	if mountpoint -q "${mount_dir}"; then
 		print_green '[Ready]'
@@ -643,7 +647,7 @@ if $golden_image_creation_not_requested; then
 	fi
 fi
 
-mount_dir="/${web_server_name}.${ipv4_domain}/${os_distribution}-${version_type}"
+mount_dir="/${lab_infra_server_hostname}/${os_distribution}-${version_type}"
 
 while ! mountpoint -q "${mount_dir}"; do
 	print_warning "${os_distribution} is not yet prepared for PXE-boot environment."
@@ -656,21 +660,21 @@ while ! mountpoint -q "${mount_dir}"; do
 done
 
 if [[ "${os_distribution}" == "ubuntu-lts" ]]; then
-	os_name_and_version=$(awk -F'LTS' '{print $1 "LTS"}' "/${web_server_name}.${ipv4_domain}/${os_distribution}-${version_type}/.disk/info")
+	os_name_and_version=$(awk -F'LTS' '{print $1 "LTS"}' "/${lab_infra_server_hostname}/${os_distribution}-${version_type}/.disk/info")
 elif [[ "${os_distribution}" == "opensuse-leap" ]]; then
-	os_name_and_version=$(awk -F ' = ' '/^\[release\]/{f=1; next} /^\[/{f=0} f && /^(name|version)/ {gsub(/^[ \t]+/, "", $2); printf "%s ", $2} END{print ""}' "/${web_server_name}.${ipv4_domain}/${os_distribution}-${version_type}/.treeinfo")
+	os_name_and_version=$(awk -F ' = ' '/^\[release\]/{f=1; next} /^\[/{f=0} f && /^(name|version)/ {gsub(/^[ \t]+/, "", $2); printf "%s ", $2} END{print ""}' "/${lab_infra_server_hostname}/${os_distribution}-${version_type}/.treeinfo")
 	# Extract just the version number (e.g., "15.6" from "openSUSE Leap 15.6")
 	opensuse_version_number=$(echo "$os_name_and_version" | grep -oP '\d+\.\d+')
 else
 	redhat_based_distro_name="${os_distribution}"
 	if [[ "${os_distribution}" == "centos-stream" ]]; then
-		os_name_and_version=$(grep -i "centos" "/${web_server_name}.${ipv4_domain}/${os_distribution}-${version_type}/.discinfo")
+		os_name_and_version=$(grep -i "centos" "/${lab_infra_server_hostname}/${os_distribution}-${version_type}/.discinfo")
 	elif [[ "${os_distribution}" == "oraclelinux" ]]; then
-		os_name_and_version=$(grep -i "oracle" "/${web_server_name}.${ipv4_domain}/${os_distribution}-${version_type}/.discinfo")
+		os_name_and_version=$(grep -i "oracle" "/${lab_infra_server_hostname}/${os_distribution}-${version_type}/.discinfo")
 	elif [[ "${os_distribution}" == "rhel" ]]; then
-		os_name_and_version=$(grep -i "Red Hat" "/${web_server_name}.${ipv4_domain}/${os_distribution}-${version_type}/.discinfo")
+		os_name_and_version=$(grep -i "Red Hat" "/${lab_infra_server_hostname}/${os_distribution}-${version_type}/.discinfo")
 	else
-		os_name_and_version=$(grep -i "${os_distribution}" "/${web_server_name}.${ipv4_domain}/${os_distribution}-${version_type}/.discinfo")
+		os_name_and_version=$(grep -i "${os_distribution}" "/${lab_infra_server_hostname}/${os_distribution}-${version_type}/.discinfo")
 	fi
 fi
 
@@ -749,11 +753,8 @@ fn_set_environment() {
 		sed -i "s/get_ipv4_nfsserver/${ipv4_nfsserver}/g" "${working_file}"
 		sed -i "s/get_ipv4_domain/${ipv4_domain}/g" "${working_file}"
     	sed -i "s/get_hostname/${kickstart_short_hostname}/g" "${working_file}"
-		sed -i "s/get_ntp_pool_name/${ntp_pool_name}/g" "${working_file}"
-		sed -i "s/get_web_server_name/${web_server_name}/g" "${working_file}" 
+		sed -i "s/get_lab_infra_server_hostname/${lab_infra_server_hostname}/g" "${working_file}"
 		sed -i "s/get_win_hostname/${win_hostname}/g" "${working_file}"
-		sed -i "s/get_tftp_server_name/${tftp_server_name}.${ipv4_domain}/g" "${working_file}"
-		sed -i "s/get_nfs_server_name/${nfs_server_name}.${ipv4_domain}/g" "${working_file}"
 		sed -i "s/get_rhel_activation_key/${rhel_activation_key}/g" "${working_file}"
 		sed -i "s/get_time_of_last_update/${time_of_last_update}/g" "${working_file}"
 		sed -i "s/get_mgmt_super_user/${mgmt_super_user}/g" "${working_file}"
@@ -900,39 +901,23 @@ if systemctl is-active --quiet kea-ctrl-agent; then
 	fn_update_kea_dhcp_reservations
 fi
 
+config_summary="Configuration Summary:
+  ✓ Hostname         : ${kickstart_hostname}
+  ✓ MAC Address      : ${mac_address_of_host}
+  ✓ IPv4 Address     : ${ipv4_address}
+  ✓ IPv4 Netmask     : ${ipv4_netmask}
+  ✓ IPv4 Gateway     : ${ipv4_gateway}
+  ✓ IPv4 Network     : ${ipv4_network_cidr}
+  ✓ IPv4 DNS         : ${ipv4_nameserver}
+  ✓ Domain           : ${ipv4_domain}
+  ✓ Lab Infra Server : ${lab_infra_server_hostname}
+  ✓ Requested OS     : ${os_name_and_version}"
+
+print_info "$config_summary"
+
 if ! $invoked_with_golden_image; then
-	print_info "Configuration Summary:
-  ✓ Hostname     : ${kickstart_hostname}
-  ✓ MAC Address  : ${mac_address_of_host}
-  ✓ IPv4 Address : ${ipv4_address}
-  ✓ IPv4 Netmask : ${ipv4_netmask}
-  ✓ IPv4 Gateway : ${ipv4_gateway}
-  ✓ IPv4 Network : ${ipv4_network_cidr}
-  ✓ IPv4 DNS     : ${ipv4_nameserver}
-  ✓ Domain Name  : ${ipv4_domain}
-  ✓ NTP Pool     : ${ntp_pool_name}.${ipv4_domain}
-  ✓ Web Server   : ${web_server_name}.${ipv4_domain}
-  ✓ NFS Server   : ${nfs_server_name}.${ipv4_domain}
-  ✓ DHCP Server  : ${tftp_server_name}.${ipv4_domain}
-  ✓ TFTP Server  : ${tftp_server_name}.${ipv4_domain}
-  ✓ KS Local     : ${host_kickstart_dir}
-  ✓ KS Web       : https://${host_kickstart_dir#/}
-  ✓ Requested OS : ${os_name_and_version}"
 	print_info "Kickstart configs ready for '${kickstart_hostname}'."
 else
-	print_info "Configuration Summary:
-  ✓ Hostname     : ${kickstart_hostname}
-  ✓ MAC Address  : ${mac_address_of_host}
-  ✓ IPv4 Address : ${ipv4_address}
-  ✓ IPv4 Netmask : ${ipv4_netmask}
-  ✓ IPv4 Gateway : ${ipv4_gateway}
-  ✓ IPv4 Network : ${ipv4_network_cidr}
-  ✓ IPv4 DNS     : ${ipv4_nameserver}
-  ✓ Domain Name  : ${ipv4_domain}
-  ✓ NTP Pool     : ${ntp_pool_name}.${ipv4_domain}
-  ✓ Web Server   : ${web_server_name}.${ipv4_domain}
-  ✓ NFS Server   : ${nfs_server_name}.${ipv4_domain}
-  ✓ Requested OS : ${os_name_and_version}"
 	print_info "Golden boot configs ready for '${kickstart_hostname}'."
 fi
 

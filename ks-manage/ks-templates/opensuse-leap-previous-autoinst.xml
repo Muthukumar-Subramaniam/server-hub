@@ -5,7 +5,7 @@
     <add_on_products t="list">
       <listentry t="map">
         <alias>lab-repo-oss</alias>
-        <media_url>http://get_web_server_name.get_ipv4_domain/opensuse-leap-get_version_type/</media_url>
+        <media_url>http://get_lab_infra_server_hostname/opensuse-leap-get_version_type/</media_url>
         <name>Lab OSS Repository</name>
         <priority t="integer">99</priority>
         <product_dir>/</product_dir>
@@ -89,7 +89,7 @@
     <ntp_policy>auto</ntp_policy>
     <ntp_servers t="list">
       <ntp_server t="map">
-        <address>get_ntp_pool_name.get_ipv4_domain</address>
+        <address>get_lab_infra_server_hostname</address>
         <iburst t="boolean">true</iburst>
         <offline t="boolean">false</offline>
       </ntp_server>
@@ -275,30 +275,30 @@
 	#!/bin/bash
   /usr/bin/mkdir /etc/zypp/repos.d/original
   /usr/bin/mv /etc/zypp/repos.d/*-update.repo /etc/zypp/repos.d/openSUSE* /etc/zypp/repos.d/original/
-	/usr/bin/wget -O /etc/motd http://get_web_server_name.get_ipv4_domain/ksmanager-hub/addons-for-kickstarts/motd.txt
+	/usr/bin/wget -O /etc/motd http://get_lab_infra_server_hostname/ksmanager-hub/addons-for-kickstarts/motd.txt
   /usr/bin/date '+%Y-%m-%d %H:%M:%S %Z' > /etc/bigbang
 	/usr/bin/mkdir -p /home/get_mgmt_super_user/.ssh /root/.ssh
 	/usr/bin/chmod 0700 /home/get_mgmt_super_user/.ssh /root/.ssh
-	/usr/bin/wget -O /home/get_mgmt_super_user/.ssh/authorized_keys http://get_web_server_name.get_ipv4_domain/ksmanager-hub/addons-for-kickstarts/authorized_keys
-	/usr/bin/wget -O /home/get_mgmt_super_user/.ssh/kvm_lab_global_id_rsa.pub http://get_web_server_name.get_ipv4_domain/ksmanager-hub/addons-for-kickstarts/kvm_lab_global_id_rsa.pub
-  /usr/bin/wget -O /home/get_mgmt_super_user/.ssh/kvm_lab_global_id_rsa http://get_web_server_name.get_ipv4_domain/ksmanager-hub/addons-for-kickstarts/kvm_lab_global_id_rsa
+	/usr/bin/wget -O /home/get_mgmt_super_user/.ssh/authorized_keys http://get_lab_infra_server_hostname/ksmanager-hub/addons-for-kickstarts/authorized_keys
+	/usr/bin/wget -O /home/get_mgmt_super_user/.ssh/kvm_lab_global_id_rsa.pub http://get_lab_infra_server_hostname/ksmanager-hub/addons-for-kickstarts/kvm_lab_global_id_rsa.pub
+  /usr/bin/wget -O /home/get_mgmt_super_user/.ssh/kvm_lab_global_id_rsa http://get_lab_infra_server_hostname/ksmanager-hub/addons-for-kickstarts/kvm_lab_global_id_rsa
   /usr/bin/cp -p /home/get_mgmt_super_user/.ssh/{authorized_keys,kvm_lab_global_id_rsa.pub,kvm_lab_global_id_rsa} /root/.ssh/
 	/usr/bin/chmod 0600 /home/get_mgmt_super_user/.ssh/{authorized_keys,kvm_lab_global_id_rsa} /root/.ssh/{authorized_keys,kvm_lab_global_id_rsa}
   /usr/bin/chmod 0644 /home/get_mgmt_super_user/.ssh/kvm_lab_global_id_rsa.pub /root/.ssh/kvm_lab_global_id_rsa.pub
 	/usr/bin/chown -R get_mgmt_super_user:users /home/get_mgmt_super_user/.ssh
 	/usr/bin/echo -e "HISTSIZE=-1\nHISTFILESIZE=-1" | /usr/bin/tee -a /home/get_mgmt_super_user/.bashrc /root/.bashrc
-	var_PS1_variable_get_mgmt_super_user=$(/usr/bin/curl -s -L http://get_web_server_name.get_ipv4_domain/ksmanager-hub/addons-for-kickstarts/PS1-env-variable-normal-user)
+	var_PS1_variable_get_mgmt_super_user=$(/usr/bin/curl -s -L http://get_lab_infra_server_hostname/ksmanager-hub/addons-for-kickstarts/PS1-env-variable-normal-user)
 	/usr/bin/echo "${var_PS1_variable_get_mgmt_super_user}" >> /home/get_mgmt_super_user/.bashrc
-	var_PS1_variable_root=$(/usr/bin/curl -s -L http://get_web_server_name.get_ipv4_domain/ksmanager-hub/addons-for-kickstarts/PS1-env-variable-root-user)
+	var_PS1_variable_root=$(/usr/bin/curl -s -L http://get_lab_infra_server_hostname/ksmanager-hub/addons-for-kickstarts/PS1-env-variable-root-user)
 	/usr/bin/echo "${var_PS1_variable_root}" >> /root/.bashrc
 	/usr/bin/echo "get_mgmt_super_user ALL=(ALL) NOPASSWD:ALL" >/etc/sudoers.d/get_mgmt_super_user
 	/usr/bin/systemctl disable kdump
 	/usr/bin/echo 'kernel.hostname=get_hostname.get_ipv4_domain' > /etc/sysctl.d/hostname.conf 
-	/usr/bin/get_golden_image_creation_not_requested || /usr/bin/wget -O /etc/systemd/system/golden-image-setup.service http://get_web_server_name.get_ipv4_domain/ksmanager-hub/addons-for-kickstarts/golden-image-setup.service
-	/usr/bin/get_golden_image_creation_not_requested || /usr/bin/wget -O /root/golden-image-setup.sh http://get_web_server_name.get_ipv4_domain/ksmanager-hub/addons-for-kickstarts/golden-image-setup.sh
+	/usr/bin/get_golden_image_creation_not_requested || /usr/bin/wget -O /etc/systemd/system/golden-image-setup.service http://get_lab_infra_server_hostname/ksmanager-hub/addons-for-kickstarts/golden-image-setup.service
+	/usr/bin/get_golden_image_creation_not_requested || /usr/bin/wget -O /root/golden-image-setup.sh http://get_lab_infra_server_hostname/ksmanager-hub/addons-for-kickstarts/golden-image-setup.sh
 	/usr/bin/get_golden_image_creation_not_requested || /usr/bin/ln -s /etc/systemd/system/golden-image-setup.service /etc/systemd/system/multi-user.target.wants/golden-image-setup.service
-	/usr/bin/get_golden_image_creation_not_requested || /usr/bin/wget -O /etc/systemd/system/golden-boot-opensuse-leap.service http://get_web_server_name.get_ipv4_domain/ksmanager-hub/kickstarts/get_hostname.get_ipv4_domain/golden-boot-opensuse-leap.service
-	/usr/bin/get_golden_image_creation_not_requested || /usr/bin/wget -O /root/golden-boot-opensuse-leap.sh http://get_web_server_name.get_ipv4_domain/ksmanager-hub/kickstarts/get_hostname.get_ipv4_domain/golden-boot-opensuse-leap.sh
+	/usr/bin/get_golden_image_creation_not_requested || /usr/bin/wget -O /etc/systemd/system/golden-boot-opensuse-leap.service http://get_lab_infra_server_hostname/ksmanager-hub/kickstarts/get_hostname.get_ipv4_domain/golden-boot-opensuse-leap.service
+	/usr/bin/get_golden_image_creation_not_requested || /usr/bin/wget -O /root/golden-boot-opensuse-leap.sh http://get_lab_infra_server_hostname/ksmanager-hub/kickstarts/get_hostname.get_ipv4_domain/golden-boot-opensuse-leap.sh
 	/usr/bin/get_golden_image_creation_not_requested || /usr/bin/ln -s /etc/systemd/system/golden-boot-opensuse-leap.service /etc/systemd/system/multi-user.target.wants/golden-boot-opensuse-leap.service
 	local_lab_info=$(/usr/bin/echo 'get_ipv4_domain' | /usr/bin/sed "s/\./-/g")
   /usr/bin/mkdir -p /etc/ssh/ssh_config.d && /usr/bin/echo -e "Host *.get_ipv4_domain get_subnets_to_allow_ssh_pub_access\n  IdentityFile ~/.ssh/kvm_lab_global_id_rsa\n  StrictHostKeyChecking no\n  UserKnownHostsFile /dev/null\n  LogLevel QUIET" > /etc/ssh/ssh_config.d/999-kvm-lab-global.conf
@@ -307,9 +307,9 @@
 	/usr/bin/sed -i 's/^[[:space:]]*#\+[[:space:]]*\(+dir:\/etc\/auto\.master\.d\)/\1/' /etc/auto.master
 	/usr/bin/echo "/- /etc/auto.master.d/auto-${local_lab_info}" > /etc/auto.master.d/direct.autofs
 	/usr/bin/cat << EOF > /etc/auto.master.d/auto-${local_lab_info}
-/server-hub -fstype=nfs,soft,timeo=5,retrans=2 get_nfs_server_name:/server-hub
-/lab-web-share -fstype=nfs,soft,timeo=5,retrans=2 get_nfs_server_name:/get_web_server_name.get_ipv4_domain
-/lab-share -fstype=nfs,soft,timeo=5,retrans=2 get_nfs_server_name:/lab-share
+/server-hub -fstype=nfs,soft,timeo=5,retrans=2 get_lab_infra_server_hostname:/server-hub
+/lab-web-share -fstype=nfs,soft,timeo=5,retrans=2 get_lab_infra_server_hostname:/get_lab_infra_server_hostname
+/lab-share -fstype=nfs,soft,timeo=5,retrans=2 get_lab_infra_server_hostname:/lab-share
 EOF
         ]]></source>
       </script>

@@ -27,7 +27,7 @@ fi
 log "Starting golden boot configuration for openSUSE Leap system"
 
 log "Checking network connectivity to lab infrastructure server..."
-if ! ping -c 3 get_web_server_name.get_ipv4_domain; then
+if ! ping -c 3 get_lab_infra_server_hostname; then
 	error_exit "Cannot reach lab infrastructure server"
 fi
 log "Network connectivity to lab infrastructure server confirmed"
@@ -50,7 +50,7 @@ get_mac_address_path=$(grep '^MACAddress=' /etc/systemd/network/70-eth0.link | c
 log "MAC address path: $get_mac_address_path"
 
 log "Downloading network configuration from lab infrastructure server"
-if ! curl -fsSL "http://get_web_server_name.get_ipv4_domain/ksmanager-hub/golden-boot-mac-configs/network-config-${get_mac_address_path}" -o "/root/network-config-$get_mac_address_path"; then
+if ! curl -fsSL "http://get_lab_infra_server_hostname/ksmanager-hub/golden-boot-mac-configs/network-config-${get_mac_address_path}" -o "/root/network-config-$get_mac_address_path"; then
 	error_exit "Failed to download network configuration for MAC: $get_mac_address_path"
 fi
 
@@ -143,7 +143,7 @@ fi
 log "Network interface configured with IP ${IPv4_ADDRESS}/${IPv4_CIDR}"
 
 log "Verifying network connectivity to lab infrastructure server..."
-if ! ping -c 3 get_web_server_name.get_ipv4_domain; then
+if ! ping -c 3 get_lab_infra_server_hostname; then
 	error_exit "Cannot reach lab infrastructure server after reconfiguration"
 fi
 log "Network connectivity to lab infrastructure server confirmed with new IP configuration"
@@ -153,7 +153,7 @@ date '+%Y-%m-%d %H:%M:%S %Z' > /etc/bigbang
 log "Installation timestamp: $(cat /etc/bigbang)"
 
 log "Running lab rootfs extender"
-if ! curl -fsSL "http://get_web_server_name.get_ipv4_domain/server-hub/common-utils/lab-rootfs-extender" | bash -s -- localhost; then
+if ! curl -fsSL "http://get_lab_infra_server_hostname/server-hub/common-utils/lab-rootfs-extender" | bash -s -- localhost; then
 	log "WARNING: Lab rootfs extender failed, continuing anyway"
 fi
 
