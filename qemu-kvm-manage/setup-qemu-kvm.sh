@@ -93,15 +93,23 @@ if [[ ! -f "$virsh_network_definition" ]]; then
     exit 1
 fi
 
-ipv4_labbr0=$(grep -oP "<ip address='\K[^']+" "$virsh_network_definition")
+# Extract both IPv4 and IPv6 addresses from labbr0.xml (dual-stack)
+ipv4_labbr0=$(grep -oP "<ip address='\K[^']+" "$virsh_network_definition" | head -1)
+ipv6_labbr0=$(grep -oP "<ip family='ipv6' address='\K[^']+" "$virsh_network_definition")
 
 if [[ -z "$ipv4_labbr0" ]]; then
-    print_error "Failed to extract IP address from $virsh_network_definition"
+    print_error "Failed to extract IPv4 address from $virsh_network_definition"
     exit 1
 fi
 
-if ( ip link show labbr0 &>/dev/null && ip addr show labbr0 | grep -q "$ipv4_labbr0" ); then
-    print_success "labbr0 already has IP $ipv4_labbr0 — skipping task."
+if [[ -z "$ipv6_labbr0" ]]; then
+    print_error "Failed to extract IPv6 address from $virsh_network_definition"
+    print_info "Dual-stack support required. Please ensure labbr0.xml has IPv6 configured."
+    exit 1
+fi
+
+if ( ip link show labbr0 &>/dev/null && ip addr show labbr0 | grep -q "$ipv4_labbr0" && ip addr show labbr0 | grep -q "$ipv6_labbr0" ); then
+    print_success "labbr0 already has dual-stack configured (IPv4: $ipv4_labbr0, IPv6: $ipv6_labbr0) — skipping task."
 else
     print_task "Setting up custom bridge network labbr0 for QEMU/KVM"
     run_virsh_cmd() {

@@ -321,13 +321,59 @@ prepare_lab_infra_config() {
   
   lab_infra_server_ipv4_address=$(echo "$lab_infra_server_ipv4_gateway" | awk -F. '{ printf "%d.%d.%d.%d", $1, $2, $3, $4+1 }')
 
+  # Extract IPv6 ULA configuration (required for dual-stack)
+  lab_infra_server_ipv6_gateway=$(echo "$qemu_kvm_default_net_info" | awk -F"'" '/<ip family=.ipv6/ {print $4}')
+  lab_infra_server_ipv6_prefix=$(echo "$qemu_kvm_default_net_info" | awk -F"'" '/<ip family=.ipv6/ {print $6}')
+  
+  if [[ -z "$lab_infra_server_ipv6_gateway" || -z "$lab_infra_server_ipv6_prefix" ]]; then
+    print_error "IPv6 configuration not found in QEMU/KVM default network!"
+    print_info "Dual-stack support required. Please ensure labbr0.xml has IPv6 configured."
+    exit 1
+  fi
+  
+  # Extract the /64 prefix base (remove host portion)
+  lab_infra_server_ipv6_ula_subnet=$(echo "$lab_infra_server_ipv6_gateway" | sed 's/::[^:]*$/::/')::/${lab_infra_server_ipv6_prefix}
+  
+  # Convert IPv4 address to IPv6 using our mapping scheme
+  # Extract octets from IPv4 address
+  IFS=. read -r oct1 oct2 oct3 oct4 <<< "$lab_infra_server_ipv4_address"
+  
+  # Extract IPv6 prefix without host portion (e.g., fd00:1234:1234:1234)
+  ipv6_prefix_base=$(echo "$lab_infra_server_ipv6_gateway" | sed 's/::[^:]*$//')
+  
+  # Build IPv6 address: prefix:subnet_encoding:ipv4_full
+  # Groups 5-6: Subnet encoding (first 3 octets)
+  # Groups 7-8: Full IPv4 address
+  group5=$(printf "%02x%02x" $oct1 $oct2)
+  group6=$(printf "00%02x" $oct3)
+  group7=$(printf "%02x%02x" $oct1 $oct2)
+  group8=$(printf "%02x%02x" $oct3 $oct4)
+  
+  lab_infra_server_ipv6_address="${ipv6_prefix_base}:${group5}:${group6}:${group7}:${group8}"
+
+  # Calculate IPv4 subnet in CIDR notation
+  IFS=. read -r m1 m2 m3 m4 <<< "$lab_infra_server_ipv4_netmask"
+  cidr_prefix=$(( $(echo "obase=2; $((m1)); $((m2)); $((m3)); $((m4))" | bc | tr -d '\n' | tr -cd '1' | wc -c) ))
+  IFS=. read -r o1 o2 o3 o4 <<< "$lab_infra_server_ipv4_gateway"
+  network_o1=$((o1 & m1))
+  network_o2=$((o2 & m2))
+  network_o3=$((o3 & m3))
+  network_o4=$((o4 & m4))
+  lab_infra_server_ipv4_subnet="${network_o1}.${network_o2}.${network_o3}.${network_o4}/${cidr_prefix}"
+
   print_task_done
 
   # Print captured network information in user-friendly format
-  print_info "Lab Network Information:
-✓ Lab Infra Server IPv4 Gateway : \033[1m${lab_infra_server_ipv4_gateway}\033[0m
-✓ Lab Infra Server Netmask      : \033[1m${lab_infra_server_ipv4_netmask}\033[0m
-✓ Lab Infra Server IPv4 Address : \033[1m${lab_infra_server_ipv4_address}\033[0m"
+  print_info "Lab Infra Server Network Information (Dual-Stack):
+✓ Hostname            : \033[1m${lab_infra_server_hostname}\033[0m
+✓ Domain              : \033[1m${lab_infra_domain_name}\033[0m
+✓ IPv4 Address        : \033[1m${lab_infra_server_ipv4_address}\033[0m
+✓ IPv4 Gateway        : \033[1m${lab_infra_server_ipv4_gateway}\033[0m
+✓ IPv4 Netmask        : \033[1m${lab_infra_server_ipv4_netmask}\033[0m
+✓ IPv4 Subnet         : \033[1m${lab_infra_server_ipv4_subnet}\033[0m
+✓ IPv6 Address        : \033[1m${lab_infra_server_ipv6_address}\033[0m
+✓ IPv6 Gateway        : \033[1m${lab_infra_server_ipv6_gateway}\033[0m
+✓ IPv6 ULA Subnet     : \033[1m${lab_infra_server_ipv6_ula_subnet}\033[0m"
 
   # Update SSH Custom Config
   print_task "Creating SSH Custom Config for '${lab_infra_domain_name}' domain"
@@ -362,7 +408,7 @@ prepare_lab_infra_config() {
   # Write SSH custom config
   SSH_CUSTOM_CONFIG_FILE="/etc/ssh/ssh_config.d/999-kvm-lab-global.conf"
   sudo tee "$SSH_CUSTOM_CONFIG_FILE" &>/dev/null <<EOF
-Host *.${lab_infra_domain_name} ${lab_infra_server_ipv4_address} ${subnets_to_allow_ssh_pub_access}
+Host *.${lab_infra_domain_name} ${lab_infra_server_ipv4_address} ${lab_infra_server_ipv6_address} ${subnets_to_allow_ssh_pub_access}
     IdentityFile ~/.ssh/kvm_lab_global_id_rsa
     StrictHostKeyChecking no
     UserKnownHostsFile /dev/null
@@ -376,8 +422,9 @@ EOF
   # Remove any existing entry
   sudo sed -i.bak "/${lab_infra_server_hostname}/d" /etc/hosts 
 
-  # Add new entry
+  # Add dual-stack entries
   echo "${lab_infra_server_ipv4_address} ${lab_infra_server_hostname}" | sudo tee -a /etc/hosts &>/dev/null
+  echo "${lab_infra_server_ipv6_address} ${lab_infra_server_hostname}" | sudo tee -a /etc/hosts &>/dev/null
 
   print_task_done
   # Save all lab environment variables to file
@@ -395,6 +442,11 @@ lab_infra_ssh_public_key='${lab_infra_ssh_public_key}'
 lab_infra_server_ipv4_gateway="${lab_infra_server_ipv4_gateway}"
 lab_infra_server_ipv4_netmask="${lab_infra_server_ipv4_netmask}"
 lab_infra_server_ipv4_address="${lab_infra_server_ipv4_address}"
+lab_infra_server_ipv4_subnet="${lab_infra_server_ipv4_subnet}"
+lab_infra_server_ipv6_gateway="${lab_infra_server_ipv6_gateway}"
+lab_infra_server_ipv6_prefix="${lab_infra_server_ipv6_prefix}"
+lab_infra_server_ipv6_ula_subnet="${lab_infra_server_ipv6_ula_subnet}"
+lab_infra_server_ipv6_address="${lab_infra_server_ipv6_address}"
 EOF
 
   if [[ $? -ne 0 ]]; then
@@ -469,6 +521,9 @@ deploy_lab_infra_server_vm() {
   sed -i "s/get_ipv4_address/${lab_infra_server_ipv4_address}/g" "${KS_FILE}"
   sed -i "s/get_ipv4_netmask/${lab_infra_server_ipv4_netmask}/g" "${KS_FILE}"
   sed -i "s/get_ipv4_gateway/${lab_infra_server_ipv4_gateway}/g" "${KS_FILE}"
+  sed -i "s/get_ipv6_address/${lab_infra_server_ipv6_address}/g" "${KS_FILE}"
+  sed -i "s/get_ipv6_gateway/${lab_infra_server_ipv6_gateway}/g" "${KS_FILE}"
+  sed -i "s/get_ipv6_prefix/${lab_infra_server_ipv6_prefix}/g" "${KS_FILE}"
   sed -i "s/get_mgmt_super_user/${lab_infra_admin_username}/g" "${KS_FILE}"
   sed -i "s/get_infra_server_name/${lab_infra_server_hostname}/g" "${KS_FILE}"
   sed -i "s/get_lab_infra_domain_name/${lab_infra_domain_name}/g" "${KS_FILE}"
@@ -638,13 +693,21 @@ deploy_lab_infra_server_host() {
     echo
     print_info "$lab_bridge_interface_name is UP and running!"
     
-    # ====== STEP 5: Assign IP address ======
-    print_info "Configuring IP ${lab_infra_server_ipv4_address} netmask ${lab_infra_server_ipv4_netmask} on $lab_bridge_interface_name..."
-    # Add the secondary IP address with netmask
+    # ====== Assign IP addresses (dual-stack) ======
+    print_info "Configuring IPv4 ${lab_infra_server_ipv4_address}/${lab_infra_server_ipv4_netmask} on $lab_bridge_interface_name..."
+    # Add the IPv4 address with netmask
     if sudo ip addr add "${lab_infra_server_ipv4_address}/${lab_infra_server_ipv4_netmask}" dev "$lab_bridge_interface_name" 2>/dev/null; then
-        print_success "IP address assigned successfully"
+        print_success "IPv4 address assigned successfully"
     else
-        print_info "IP address may already be assigned"
+        print_info "IPv4 address may already be assigned"
+    fi
+    
+    print_info "Configuring IPv6 ${lab_infra_server_ipv6_address}/${lab_infra_server_ipv6_prefix} on $lab_bridge_interface_name..."
+    # Add the IPv6 address with prefix
+    if sudo ip addr add "${lab_infra_server_ipv6_address}/${lab_infra_server_ipv6_prefix}" dev "$lab_bridge_interface_name" 2>/dev/null; then
+        print_success "IPv6 address assigned successfully"
+    else
+        print_info "IPv6 address may already be assigned"
     fi
 
   # -----------------------------
@@ -689,8 +752,8 @@ deploy_lab_infra_server_host() {
   # ---------------------------
   # Lab Infra DNS configuration
   # ---------------------------
-  print_info "Setting up Lab Infra DNS with custom utility dnsbinder..."
-  if ! sudo bash /server-hub/named-manage/dnsbinder.sh --setup "${lab_infra_domain_name}"; then
+  print_info "Setting up Lab Infra DNS with custom utility dnsbinder (dual-stack)..."
+  if ! sudo bash /server-hub/named-manage/dnsbinder.sh --setup "${lab_infra_domain_name}" "${lab_infra_server_ipv6_ula_subnet}"; then
     print_error "Failed to setup DNS with dnsbinder"
     exit 1
   fi
