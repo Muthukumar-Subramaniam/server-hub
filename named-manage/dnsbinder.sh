@@ -318,11 +318,21 @@ fn_configure_named_dns_server() {
 	fi
 
 	# Generate named.conf from template
-	sed -e "s|LISTEN_IPV4_ADDRESSES|${v_listen_ipv4}|g" \
-	    -e "s|LISTEN_IPV6_ADDRESSES|${v_listen_ipv6}|g" \
-	    -e "s|ALLOW_QUERY_NETWORKS|${v_allow_networks}|g" \
-	    -e "s|ALLOW_RECURSION_NETWORKS|${v_allow_networks}|g" \
-	    "${v_template_file}" > /etc/named.conf
+	if [[ ! -z "${v_ipv6_address}" ]]; then
+		# IPv6 is available - configure it normally
+		sed -e "s|LISTEN_IPV4_ADDRESSES|${v_listen_ipv4}|g" \
+		    -e "s|LISTEN_IPV6_ADDRESSES|${v_listen_ipv6}|g" \
+		    -e "s|ALLOW_QUERY_NETWORKS|${v_allow_networks}|g" \
+		    -e "s|ALLOW_RECURSION_NETWORKS|${v_allow_networks}|g" \
+		    "${v_template_file}" > /etc/named.conf
+	else
+		# IPv6 not available - remove listen-on-v6 line entirely
+		sed -e "s|LISTEN_IPV4_ADDRESSES|${v_listen_ipv4}|g" \
+		    -e "/listen-on-v6 port 53/d" \
+		    -e "s|ALLOW_QUERY_NETWORKS|${v_allow_networks}|g" \
+		    -e "s|ALLOW_RECURSION_NETWORKS|${v_allow_networks}|g" \
+		    "${v_template_file}" > /etc/named.conf
+	fi
 
 	print_task_done
 
