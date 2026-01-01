@@ -233,14 +233,14 @@ fn_configure_named_dns_server() {
 		# Try to get IPv6 from primary interface (exclude link-local fe80 and loopback ::1)
 		v_ipv6_address=$(ip -6 addr show "${v_primary_interface}" | grep -oP 'inet6\s+\Kfd[0-9a-f:]+' | grep -v 'fe80' | grep -v '::1' | head -1)
 		if [[ ! -z "${v_ipv6_address}" ]]; then
-			# Extract gateway from default IPv6 route
-			v_ipv6_gateway=$(ip -6 route | grep default | awk '{print $3}' | head -1)
 			# Extract prefix length
 			v_ipv6_prefix=$(ip -6 addr show "${v_primary_interface}" | grep -oP 'fd[0-9a-f:]+/\K[0-9]+' | head -1)
 			# Build ULA subnet
 			if [[ ! -z "${v_ipv6_address}" && ! -z "${v_ipv6_prefix}" ]]; then
 				v_ipv6_base=$(echo "${v_ipv6_address}" | sed 's/::[^:]*$//')
 				v_ipv6_ula_subnet="${v_ipv6_base}::/${v_ipv6_prefix}"
+				# Gateway is always ::1 in the subnet (no default route needed for detection)
+				v_ipv6_gateway="${v_ipv6_base}::1"
 			fi
 		fi
 		
