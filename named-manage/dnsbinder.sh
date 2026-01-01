@@ -464,7 +464,7 @@ EOF
 		echo -e "${v_dns_host_short_name_adjusted_space} IN AAAA ${v_ipv6_address}" | tee -a "${v_zone_file_name}" > /dev/null
 	fi
 
-	echo -e "\n;CNAME-Records" | tee -a "${v_zone_file_name}" > /dev/null
+	echo -e ";CNAME-Records" | tee -a "${v_zone_file_name}" > /dev/null
 
 	for v_subnet_part in ${v_splited_subnets}
 	do
