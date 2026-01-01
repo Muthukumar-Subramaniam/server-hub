@@ -140,8 +140,43 @@ fn_check_vm_ipv6_route() {
     fi
 }
 
+fn_enable_host_ipv6_forwarding() {
+    print_task "Enabling IPv6 forwarding on QEMU host..."
+    
+    # Enable IPv6 forwarding
+    sudo sysctl -w net.ipv6.conf.all.forwarding=1 &>/dev/null
+    
+    # Keep accepting Router Advertisements on primary interface
+    local primary_if=$(ip route | grep default | awk '{print $5}' | head -n 1)
+    if [[ ! -z "${primary_if}" ]]; then
+        sudo sysctl -w net.ipv6.conf.${primary_if}.accept_ra=2 &>/dev/null
+    fi
+    
+    # Add IPv6 NAT masquerading if subnet configured (from lab environment)
+    if [[ ! -z "${lab_infra_server_ipv6_ula_subnet}" ]] && [[ ! -z "${primary_if}" ]]; then
+        if ! sudo ip6tables -t nat -C POSTROUTING -s ${lab_infra_server_ipv6_ula_subnet} -o ${primary_if} -j MASQUERADE 2>/dev/null; then
+            sudo ip6tables -t nat -A POSTROUTING -s ${lab_infra_server_ipv6_ula_subnet} -o ${primary_if} -j MASQUERADE &>/dev/null
+        fi
+        
+        # Add forwarding rules
+        if ! sudo ip6tables -C FORWARD -m state --state ESTABLISHED,RELATED -j ACCEPT 2>/dev/null; then
+            sudo ip6tables -I FORWARD 1 -m state --state ESTABLISHED,RELATED -j ACCEPT &>/dev/null
+        fi
+        
+        if ! sudo ip6tables -C FORWARD -i labbr0 -o ${primary_if} -j ACCEPT 2>/dev/null; then
+            sudo ip6tables -I FORWARD 2 -i labbr0 -o ${primary_if} -j ACCEPT &>/dev/null
+        fi
+    fi
+    
+    print_task_done
+}
+
 fn_enable_all() {
     print_notify "Enabling IPv6 default route on all running VMs..."
+    echo ""
+    
+    # First, enable host-level forwarding and NAT
+    fn_enable_host_ipv6_forwarding
     echo ""
     
     local vms=$(fn_get_running_vms)
