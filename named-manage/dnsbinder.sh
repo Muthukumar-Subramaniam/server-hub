@@ -6,6 +6,11 @@
 
 source /server-hub/common-utils/color-functions.sh
 
+# Source environment variables for IPv6 dual-stack support
+if [ -f /etc/environment ]; then
+    source /etc/environment
+fi
+
 if [[ "${UID}" -ne 0 ]]
 then
     print_error "Run with sudo or run from root account ! "
@@ -187,6 +192,11 @@ fn_configure_named_dns_server() {
 		fn_instruct_on_valid_domain_name
 	fi
 
+	# Accept IPv6 ULA subnet as second parameter (for dual-stack)
+	if [[ ! -z "${2}" ]]; then
+		v_ipv6_ula_subnet="${2}"
+	fi
+
 	while :
 	do
 		if [[ -z "${v_given_domain}" ]]; then
@@ -211,6 +221,13 @@ fn_configure_named_dns_server() {
 		v_primary_interface='labbr0'
 		v_primary_ip=$lab_infra_server_ipv4_address
 		v_network_gateway=$lab_infra_server_ipv4_gateway
+		# Extract IPv6 information for dual-stack support
+		v_ipv6_address=$lab_infra_server_ipv6_address
+		v_ipv6_gateway=$lab_infra_server_ipv6_gateway
+		v_ipv6_prefix=$lab_infra_server_ipv6_prefix
+		if [[ -z "${v_ipv6_ula_subnet}" ]]; then
+			v_ipv6_ula_subnet=$lab_infra_server_ipv6_ula_subnet
+		fi
 	else
 		v_dns_host_short_name=$(hostname -s)
 		v_primary_interface=$(ip r | grep default | awk '{ print $5 }')
@@ -252,11 +269,16 @@ fn_configure_named_dns_server() {
 
 	if $KVM_HOST_MODE_SET; then
 		sed -i "s/listen-on port 53 {\s*127.0.0.1;\s*};/listen-on port 53 { ${v_primary_ip}; };/" /etc/named.conf
+		# Enable IPv6 listening for dual-stack support
+		if [[ ! -z "${v_ipv6_address}" ]]; then
+			sed -i "s/listen-on-v6 port 53 {\s*::1;\s*};/listen-on-v6 port 53 { ${v_ipv6_address}; };/" /etc/named.conf
+		else
+			sed -i '/^[[:space:]]*[^#].*listen-on-v6/s/^/#/' /etc/named.conf
+		fi
 	else
 		sed -i "s/listen-on port 53 {\s*127.0.0.1;\s*};/listen-on port 53 { 127.0.0.1; ${v_primary_ip}; };/" /etc/named.conf
+		sed -i '/^[[:space:]]*[^#].*listen-on-v6/s/^/#/' /etc/named.conf
 	fi
-
-	sed -i '/^[[:space:]]*[^#].*listen-on-v6/s/^/#/' /etc/named.conf
 
 	sed -i "s/allow-query\s*{\s*localhost;\s*};/allow-query     { localhost; ${v_network}\/${v_cidr}; };/" /etc/named.conf
 
@@ -294,6 +316,33 @@ zone "${v_reverse_subnet_part}.in-addr.arpa" IN {
 EOF
 		v_last_subnet_part="${v_subnet_part}"
 	done
+
+	# Add IPv6 reverse zone if IPv6 is configured
+	if [[ ! -z "${v_ipv6_ula_subnet}" ]]; then
+		# Extract IPv6 prefix for reverse zone (e.g., fd00:1234:1234:1234::/64)
+		# Convert to reverse DNS format
+		v_ipv6_base=$(echo "${v_ipv6_ula_subnet}" | cut -d'/' -f1 | sed 's/::$//')
+		# For fd00:1234:1234:1234::, reverse is 4.3.2.1.4.3.2.1.4.3.2.1.0.0.d.f.ip6.arpa
+		v_ipv6_reverse_zone=$(echo "${v_ipv6_base}" | awk -F':' '{
+			for(i=NF; i>=1; i--) {
+				if($i != "") {
+					len=length($i)
+					for(j=len; j>=1; j--) {
+						printf "%s.", substr($i,j,1)
+					}
+				}
+			}
+		}' | sed 's/\.$//')
+		
+		tee -a /etc/named.conf > /dev/null << EOF
+//IPv6 Reverse Zone
+zone "${v_ipv6_reverse_zone}.ip6.arpa" IN {
+             type master;
+             file "dnsbinder-managed-zone-files/${v_given_domain}-ipv6-reverse.db";
+             allow-update { none; };
+};
+EOF
+	fi
 
 	echo -e "# END zones-of-${v_given_domain}-domain" | tee -a /etc/named.conf > /dev/null
 
@@ -341,6 +390,17 @@ EOF
 
 	echo -e "${v_broadcast_adjusted_space} IN A ${v_last_subnet_part}.255" | tee -a  "${v_zone_file_name}" > /dev/null
 
+	# Add AAAA records for IPv6 (dual-stack)
+	if [[ ! -z "${v_ipv6_address}" ]]; then
+		echo -e "\n;AAAA-Records (IPv6)" | tee -a "${v_zone_file_name}" > /dev/null
+		
+		v_ipv6_gateway_adjusted_space=$(printf "%-*s" 63 "gateway")
+		echo -e "${v_ipv6_gateway_adjusted_space} IN AAAA ${v_ipv6_gateway}" | tee -a "${v_zone_file_name}" > /dev/null
+		
+		v_dns_host_short_name_adjusted_space=$(printf "%-*s" 63 "${v_dns_host_short_name}")
+		echo -e "${v_dns_host_short_name_adjusted_space} IN AAAA ${v_ipv6_address}" | tee -a "${v_zone_file_name}" > /dev/null
+	fi
+
 	echo -e "\n;CNAME-Records" | tee -a "${v_zone_file_name}" > /dev/null
 
 	for v_subnet_part in ${v_splited_subnets}
@@ -360,6 +420,44 @@ EOF
 			echo -e "255 IN PTR broadcast.${v_given_domain}." | tee -a "${v_zone_file_name}" > /dev/null
 		fi
 	done
+
+	# Create IPv6 reverse zone file if IPv6 is configured
+	if [[ ! -z "${v_ipv6_address}" && ! -z "${v_ipv6_ula_subnet}" ]]; then
+		v_ipv6_zone_file="${var_zone_dir}/${v_given_domain}-ipv6-reverse.db"
+		fn_update_dns_server_data_to_zone_file "${v_ipv6_zone_file}"
+		echo -e "\n;IPv6 PTR-Records" | tee -a "${v_ipv6_zone_file}" > /dev/null
+		
+		# Add PTR record for gateway (::1)
+		echo -e "1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0 IN PTR gateway.${v_given_domain}." | tee -a "${v_ipv6_zone_file}" > /dev/null
+		
+		# Add PTR record for DNS server's IPv6 address
+		# Extract the IPv6 base prefix
+		v_ipv6_base=$(echo "${v_ipv6_ula_subnet}" | cut -d'/' -f1 | sed 's/::$//')
+		# Extract the host portion from the full IPv6 address
+		v_ipv6_host_portion=$(echo "${v_ipv6_address}" | sed "s|${v_ipv6_base}:||" | sed 's/:://')
+		# Convert to reverse notation (each nibble separated by dots)
+		v_ipv6_ptr=$(echo "${v_ipv6_host_portion}" | awk -F':' '{
+			result = ""
+			for(i=1; i<=NF; i++) {
+				if($i != "") {
+					# Pad to 4 characters
+					padded = sprintf("%04s", $i)
+					gsub(/ /, "0", padded)
+					# Reverse the string
+					len=length(padded)
+					for(j=len; j>=1; j--) {
+						if(result != "") result = result "."
+						result = result substr(padded,j,1)
+					}
+				}
+			}
+			print result
+		}')
+		
+		if [[ ! -z "${v_ipv6_ptr}" ]]; then
+			echo -e "${v_ipv6_ptr} IN PTR ${v_dns_host_short_name}.${v_given_domain}." | tee -a "${v_ipv6_zone_file}" > /dev/null
+		fi
+	fi
 
 	print_task_done
 
@@ -389,6 +487,14 @@ EOF
 		["dnsbinder_server_short_name"]="$v_dns_host_short_name"
 		["dnsbinder_server_fqdn"]="${v_dns_host_short_name}.${v_given_domain}"
 	)
+
+	# Add IPv6 variables if configured
+	if [[ ! -z "${v_ipv6_address}" ]]; then
+		dnsbinder_environment_map["dnsbinder_server_ipv6_address"]="$v_ipv6_address"
+		dnsbinder_environment_map["dnsbinder_ipv6_gateway"]="$v_ipv6_gateway"
+		dnsbinder_environment_map["dnsbinder_ipv6_prefix"]="$v_ipv6_prefix"
+		dnsbinder_environment_map["dnsbinder_ipv6_ula_subnet"]="$v_ipv6_ula_subnet"
+	fi
 
 	target_environment_file="/etc/environment"
 
@@ -444,8 +550,13 @@ EOF
 
 	print_task_done
 
-	print_success "All done! Your domain \"${v_given_domain}\" with DNS server ${v_primary_ip} [ ${v_dns_host_short_name}.${v_given_domain}  ] has been configured."
-	print_info "Now you could manage the domain  \"${v_given_domain}\" with dnsbinder utility from command line."
+	# Display success message with dual-stack info if configured
+	if [[ ! -z "${v_ipv6_address}" ]]; then
+		print_success "All done! Your domain \"${v_given_domain}\" with dual-stack DNS server IPv4: ${v_primary_ip}, IPv6: ${v_ipv6_address} [ ${v_dns_host_short_name}.${v_given_domain} ] has been configured."
+	else
+		print_success "All done! Your domain \"${v_given_domain}\" with DNS server ${v_primary_ip} [ ${v_dns_host_short_name}.${v_given_domain} ] has been configured."
+	fi
+	print_info "Now you could manage the domain \"${v_given_domain}\" with dnsbinder utility from command line."
 
 	exit
 }
@@ -977,6 +1088,32 @@ fn_create_host_record() {
 
 	##################  End of  A Record Create Section ############################
 
+	############### AAAA Record Creation Section (IPv6 dual-stack) ############################
+
+	# Add AAAA record if IPv6 is configured
+	if [[ ! -z "${dnsbinder_ipv6_ula_subnet}" && ! -z "${dnsbinder_ipv6_gateway}" ]]; then
+		# Convert IPv4 to IPv6 using the mapping scheme
+		IFS=. read -r oct1 oct2 oct3 oct4 <<< "$v_current_ip_of_host_record"
+		
+		# Extract IPv6 prefix base from gateway
+		ipv6_prefix_base=$(echo "$dnsbinder_ipv6_gateway" | sed 's/::[^:]*$//')
+		
+		# Build IPv6 address: prefix:subnet_encoding:ipv4_full
+		group5=$(printf "%02x%02x" $oct1 $oct2)
+		group6=$(printf "00%02x" $oct3)
+		group7=$(printf "%02x%02x" $oct1 $oct2)
+		group8=$(printf "%02x%02x" $oct3 $oct4)
+		
+		v_ipv6_address_for_host="${ipv6_prefix_base}:${group5}:${group6}:${group7}:${group8}"
+		
+		v_add_ipv6_host_record=$(echo "${v_host_record_adjusted_space} IN AAAA ${v_ipv6_address_for_host}")
+		
+		# Find the position after the A record we just added
+		sed -i "/${v_host_record_adjusted_space} IN A ${v_current_ip_of_host_record}/a \\${v_add_ipv6_host_record}" "${v_fw_zone}"
+	fi
+
+	##################  End of  AAAA Record Create Section ############################
+
 
 
 	################## PTR Record Create  Section ###################################
@@ -1046,6 +1183,9 @@ fn_delete_host_record() {
 
 			sed -i "/^${v_capture_ptr_prefix} /d" "${v_ptr_zone}"
 			sed -i "/^${v_capture_host_record}/d" "${v_fw_zone}"
+			
+			# Also delete AAAA record if it exists (IPv6 dual-stack)
+			sed -i "/^${v_host_record} .*IN AAAA/d" "${v_fw_zone}"
 
 			${v_if_autorun_false} && print_task_done
 
@@ -1114,6 +1254,9 @@ fn_rename_host_record() {
 
 			sed -i "s/${v_host_record_exist}/${v_host_record_rename}/g" ${v_fw_zone}
 			sed -i "s/${v_host_record}.${v_domain_name}./${v_rename_record}.${v_domain_name}./g" ${v_ptr_zone}
+			
+			# Also rename AAAA record if it exists (IPv6 dual-stack)
+			sed -i "s/^${v_host_record} \(.*\)IN AAAA/${v_rename_record} \1IN AAAA/g" ${v_fw_zone}
 
 			print_task_done
 			
@@ -1258,16 +1401,24 @@ fn_handle_multiple_host_record() {
 	        
 		if [[ ${v_action_required} == "create" ]]
 		then
-			v_ip_address=$(grep -w "^${v_host_record} "  "${v_fw_zone}" | awk '{print $NF}' | tr -d '[:space:]')
+			v_ip_address=$(grep -w "^${v_host_record} " "${v_fw_zone}" | grep "IN A " | awk '{print $NF}' | tr -d '[:space:]')
+			v_ipv6_address=$(grep -w "^${v_host_record} " "${v_fw_zone}" | grep "IN AAAA " | awk '{print $NF}' | tr -d '[:space:]')
 	
 			if [[ -z "${v_ip_address}" ]]; then
 	        		v_ip_address="N/A"
+	    		fi
+	    		
+	    		# Build address display (dual-stack)
+	    		if [[ ! -z "${v_ipv6_address}" ]]; then
+	    			v_address_display="IPv4: ${v_ip_address}, IPv6: ${v_ipv6_address}"
+	    		else
+	    			v_address_display="${v_ip_address}"
 	    		fi
 		fi
 	
 		if [[ ${v_action_required} == "create" ]]
 		then
-			v_details_of_host_record="${v_fqdn} ( ${v_ip_address} )"
+			v_details_of_host_record="${v_fqdn} ( ${v_address_display} )"
 
 		elif [[ ${v_action_required} == "delete" ]]
 		then
@@ -1353,7 +1504,11 @@ fn_handle_multiple_host_record() {
 
 	if [[ ${v_action_required} == "create" ]]
 	then
-		print_white "Action-Taken     FQDN ( IPv4-Address )"
+		if [[ ! -z "${dnsbinder_ipv6_ula_subnet}" ]]; then
+			print_white "Action-Taken     FQDN ( IPv4-Address, IPv6-Address )"
+		else
+			print_white "Action-Taken     FQDN ( IPv4-Address )"
+		fi
 
 	elif [[ ${v_action_required} == "delete" ]]
 	then
