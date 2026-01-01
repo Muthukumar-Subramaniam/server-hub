@@ -316,7 +316,7 @@ fn_configure_named_dns_server() {
 
 	tee -a /etc/named.conf > /dev/null << EOF
 # BEGIN zones-of-${v_given_domain}-domain
-# dnsbinder-network ${v_network}/${v_cidr} 
+# dnsbinder-network ${v_network}/${v_cidr}$([ ! -z "${v_ipv6_ula_subnet}" ] && echo " ${v_ipv6_ula_subnet}")
 # ${v_given_domain} zones-are-managed-by-dnsbinder
 //Forward Zone for ${v_given_domain}
 zone "${v_given_domain}" IN {
