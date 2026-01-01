@@ -294,7 +294,12 @@ fn_configure_named_dns_server() {
 		fi
 	else
 		sed -i "s/listen-on port 53 {\s*127.0.0.1;\s*};/listen-on port 53 { 127.0.0.1; ${v_primary_ip}; };/" /etc/named.conf
-		sed -i '/^[[:space:]]*[^#].*listen-on-v6/s/^/#/' /etc/named.conf
+		# Enable IPv6 listening for dual-stack support
+		if [[ ! -z "${v_ipv6_address}" ]]; then
+			sed -i "s/listen-on-v6 port 53 {\s*::1;\s*};/listen-on-v6 port 53 { ::1; ${v_ipv6_address}; };/" /etc/named.conf
+		else
+			sed -i '/^[[:space:]]*[^#].*listen-on-v6/s/^/#/' /etc/named.conf
+		fi
 	fi
 
 	sed -i "s/allow-query\s*{\s*localhost;\s*};/allow-query     { localhost; ${v_network}\/${v_cidr}; };/" /etc/named.conf
