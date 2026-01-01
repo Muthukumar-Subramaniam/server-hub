@@ -1181,8 +1181,8 @@ fn_create_host_record() {
 		
 		v_add_ipv6_host_record=$(echo "${v_host_record_adjusted_space} IN AAAA ${v_ipv6_address_for_host}")
 		
-		# Find the position after the A record we just added
-		sed -i "/${v_host_record_adjusted_space} IN A ${v_current_ip_of_host_record}/a \\${v_add_ipv6_host_record}" "${v_fw_zone}"
+		# Insert AAAA record in the AAAA section (before CNAME section)
+		sed -i "/^;CNAME-Records/i \\${v_add_ipv6_host_record}" "${v_fw_zone}"
 	fi
 
 	##################  End of  AAAA Record Create Section ############################
