@@ -458,28 +458,18 @@ EOF
 		echo -e "1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0 IN PTR gateway.${v_given_domain}." | tee -a "${v_ipv6_zone_file}" > /dev/null
 		
 		# Add PTR record for DNS server's IPv6 address
-		# Extract the IPv6 base prefix
-		v_ipv6_base=$(echo "${v_ipv6_ula_subnet}" | cut -d'/' -f1 | sed 's/::$//')
-		# Extract the host portion from the full IPv6 address
-		v_ipv6_host_portion=$(echo "${v_ipv6_address}" | sed "s|${v_ipv6_base}:||" | sed 's/:://')
-		# Convert to reverse notation (each nibble separated by dots)
-		v_ipv6_ptr=$(echo "${v_ipv6_host_portion}" | awk -F':' '{
-			result = ""
-			for(i=1; i<=NF; i++) {
-				if($i != "") {
-					# Pad to 4 characters
-					padded = sprintf("%04s", $i)
-					gsub(/ /, "0", padded)
-					# Reverse the string
-					len=length(padded)
-					for(j=len; j>=1; j--) {
-						if(result != "") result = result "."
-						result = result substr(padded,j,1)
-					}
-				}
-			}
-			print result
-		}')
+		# Convert IPv6 address to full expanded form, then extract host part and reverse it
+		v_ipv6_ptr=$(python3 -c "
+import ipaddress
+addr = ipaddress.IPv6Address('${v_ipv6_address}')
+# Get the last 64 bits (host portion for /64)
+host_int = int(addr) & ((1 << 64) - 1)
+# Convert to 16 hex nibbles
+host_hex = format(host_int, '016x')
+# Reverse nibbles with dots
+ptr = '.'.join(reversed(host_hex))
+print(ptr)
+")
 		
 		if [[ ! -z "${v_ipv6_ptr}" ]]; then
 			echo -e "${v_ipv6_ptr} IN PTR ${v_dns_host_short_name}.${v_given_domain}." | tee -a "${v_ipv6_zone_file}" > /dev/null
@@ -1158,6 +1148,37 @@ fn_create_host_record() {
 
 	############# End of PTR Record Create Section #######################
 
+	################## IPv6 PTR Record Create Section ###################################
+
+	# Add IPv6 PTR record if dual-stack is configured
+	if [[ ! -z "${dnsbinder_ipv6_ula_subnet}" && ! -z "${v_ipv6_address_for_host}" ]]; then
+		v_ipv6_zone_file="${var_zone_dir}/${v_domain_name}-ipv6-reverse.db"
+		
+		# Convert IPv6 address to PTR format (16 nibbles reversed)
+		v_ipv6_ptr=$(python3 -c "
+import ipaddress
+addr = ipaddress.IPv6Address('${v_ipv6_address_for_host}')
+# Get the last 64 bits (host portion for /64)
+host_int = int(addr) & ((1 << 64) - 1)
+# Convert to 16 hex nibbles
+host_hex = format(host_int, '016x')
+# Reverse nibbles with dots
+ptr = '.'.join(reversed(host_hex))
+print(ptr)
+")
+		
+		if [[ ! -z "${v_ipv6_ptr}" ]]; then
+			v_add_ipv6_ptr_record="${v_ipv6_ptr} IN PTR ${v_host_record}.${v_domain_name}."
+			
+			# Add after the IPv6 PTR-Records comment
+			if grep -q "^;IPv6 PTR-Records" "${v_ipv6_zone_file}" 2>/dev/null; then
+				sed -i "/^;IPv6 PTR-Records/a\\${v_add_ipv6_ptr_record}" "${v_ipv6_zone_file}"
+			fi
+		fi
+	fi
+
+	############# End of IPv6 PTR Record Create Section #######################
+
 
 	${v_if_autorun_false} && print_task_done
 
@@ -1212,7 +1233,14 @@ fn_delete_host_record() {
 			sed -i "/^${v_capture_host_record}/d" "${v_fw_zone}"
 			
 			# Also delete AAAA record if it exists (IPv6 dual-stack)
-			sed -i "/^${v_host_record} .*IN AAAA/d" "${v_fw_zone}"
+			if sed -i "/^${v_host_record} .*IN AAAA/d" "${v_fw_zone}"; then
+				# If AAAA record existed, also delete IPv6 PTR record
+				v_ipv6_zone_file="${var_zone_dir}/${v_domain_name}-ipv6-reverse.db"
+				if [[ -f "${v_ipv6_zone_file}" ]]; then
+					# Delete any PTR record pointing to this host
+					sed -i "/IN PTR ${v_host_record}\.${v_domain_name}\./d" "${v_ipv6_zone_file}"
+				fi
+			fi
 
 			${v_if_autorun_false} && print_task_done
 
@@ -1284,6 +1312,12 @@ fn_rename_host_record() {
 			
 			# Also rename AAAA record if it exists (IPv6 dual-stack)
 			sed -i "s/^${v_host_record} \(.*\)IN AAAA/${v_rename_record} \1IN AAAA/g" ${v_fw_zone}
+			
+			# Also rename IPv6 PTR record if it exists
+			v_ipv6_zone_file="${var_zone_dir}/${v_domain_name}-ipv6-reverse.db"
+			if [[ -f "${v_ipv6_zone_file}" ]]; then
+				sed -i "s/IN PTR ${v_host_record}\.${v_domain_name}\./IN PTR ${v_rename_record}.${v_domain_name}./g" "${v_ipv6_zone_file}"
+			fi
 
 			print_task_done
 			
