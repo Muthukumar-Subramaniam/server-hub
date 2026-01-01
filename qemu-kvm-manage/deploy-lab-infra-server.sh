@@ -334,22 +334,12 @@ prepare_lab_infra_config() {
   # Extract the /64 prefix base (remove host portion)
   lab_infra_server_ipv6_ula_subnet=$(echo "$lab_infra_server_ipv6_gateway" | sed 's/::[^:]*$/::/')::/${lab_infra_server_ipv6_prefix}
   
-  # Convert IPv4 address to IPv6 using our mapping scheme
-  # Extract octets from IPv4 address
-  IFS=. read -r oct1 oct2 oct3 oct4 <<< "$lab_infra_server_ipv4_address"
-  
+  # Lab Infra Server gets special IPv6 address ::2 (gateway is ::1)
   # Extract IPv6 prefix without host portion (e.g., fd00:1234:1234:1234)
   ipv6_prefix_base=$(echo "$lab_infra_server_ipv6_gateway" | sed 's/::[^:]*$//')
   
-  # Build IPv6 address: prefix:subnet_encoding:ipv4_full
-  # Groups 5-6: Subnet encoding (first 3 octets)
-  # Groups 7-8: Full IPv4 address
-  group5=$(printf "%02x%02x" $oct1 $oct2)
-  group6=$(printf "00%02x" $oct3)
-  group7=$(printf "%02x%02x" $oct1 $oct2)
-  group8=$(printf "%02x%02x" $oct3 $oct4)
-  
-  lab_infra_server_ipv6_address="${ipv6_prefix_base}:${group5}:${group6}:${group7}:${group8}"
+  # Assign ::2 as the infrastructure server address
+  lab_infra_server_ipv6_address="${ipv6_prefix_base}::2"
 
   # Calculate IPv4 subnet in CIDR notation
   IFS=. read -r m1 m2 m3 m4 <<< "$lab_infra_server_ipv4_netmask"
