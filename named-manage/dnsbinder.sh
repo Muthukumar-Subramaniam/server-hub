@@ -317,29 +317,11 @@ fn_configure_named_dns_server() {
 		v_allow_networks="localhost; ${v_network}/${v_cidr}"
 	fi
 
-	# Prepare DNS forwarders
-	if [[ ! -z "${v_ipv6_address}" ]]; then
-		v_forwarders="		8.8.8.8;
-		8.8.4.4;
-		1.1.1.1;
-		1.0.0.1;
-		2001:4860:4860::8888;
-		2001:4860:4860::8844;
-		2606:4700:4700::1111;
-		2606:4700:4700::1001;"
-	else
-		v_forwarders="		8.8.8.8;
-		8.8.4.4;
-		1.1.1.1;
-		1.0.0.1;"
-	fi
-
 	# Generate named.conf from template
 	sed -e "s|LISTEN_IPV4_ADDRESSES|${v_listen_ipv4}|g" \
 	    -e "s|LISTEN_IPV6_ADDRESSES|${v_listen_ipv6}|g" \
 	    -e "s|ALLOW_QUERY_NETWORKS|${v_allow_networks}|g" \
 	    -e "s|ALLOW_RECURSION_NETWORKS|${v_allow_networks}|g" \
-	    -e "s|DNS_FORWARDERS|${v_forwarders}|g" \
 	    "${v_template_file}" > /etc/named.conf
 
 	print_task_done
