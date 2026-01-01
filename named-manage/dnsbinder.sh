@@ -146,8 +146,8 @@ fn_split_network_into_cidr24subnets() {
 }
 
 if [[ ! -z "${dnsbinder_network}" ]]; then
-	v_splited_subnets=$(ls "${var_zone_dir}"/*-reverse.db | awk -F'/' '{print $NF}' | awk -F'.' '{print $1"."$2"."$3}' | sort -n)
-	v_total_ptr_zones=$(ls "${var_zone_dir}"/*-reverse.db | wc -l)
+	v_splited_subnets=$(ls "${var_zone_dir}"/*-reverse.db | grep -v "ipv6-reverse.db" | awk -F'/' '{print $NF}' | awk -F'.' '{print $1"."$2"."$3}' | sort -n)
+	v_total_ptr_zones=$(ls "${var_zone_dir}"/*-reverse.db | grep -v "ipv6-reverse.db" | wc -l)
 
 	v_zone_number=1
 	for v_subnet_part in ${v_splited_subnets}
