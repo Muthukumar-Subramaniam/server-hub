@@ -1265,8 +1265,8 @@ fn_delete_host_record() {
 		return ${v_exit_status_fn_get_host_record}
 	fi
 
-	v_capture_host_record=$(grep "^${v_host_record} " "${v_fw_zone}" ) 
-	v_current_ip_of_host_record=$(grep "^${v_host_record} " ${v_fw_zone} | awk '{print $NF}' | tr -d '[:space:]')
+	v_capture_host_record=$(grep "^${v_host_record} .*IN A " "${v_fw_zone}" ) 
+	v_current_ip_of_host_record=$(grep "^${v_host_record} .*IN A " ${v_fw_zone} | awk '{print $NF}' | tr -d '[:space:]')
 	v_capture_ptr_prefix=$(awk -F. '{ print $4 }' <<< ${v_current_ip_of_host_record} )
 
 	fn_set_ptr_zone
@@ -1340,8 +1340,8 @@ fn_rename_host_record() {
 		return ${v_exit_status_fn_get_host_record}
 	fi
 
-	v_host_record_exist=$(grep "^$v_host_record " $v_fw_zone)
-	v_current_ip_of_host_record=$(grep "^$v_host_record " $v_fw_zone | cut -d "A" -f 2 | tr -d '[[:space:]]')
+	v_host_record_exist=$(grep "^$v_host_record .*IN A " $v_fw_zone)
+	v_current_ip_of_host_record=$(grep "^$v_host_record .*IN A " $v_fw_zone | awk '{print $NF}' | tr -d '[[:space:]]')
 
 	fn_set_ptr_zone
 
