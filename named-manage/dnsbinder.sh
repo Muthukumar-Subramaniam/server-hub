@@ -304,7 +304,7 @@ fn_configure_named_dns_server() {
 
 	# Configure allow-query for IPv4 and optionally IPv6
 	if [[ ! -z "${v_ipv6_address}" ]]; then
-		sed -i "s/allow-query\s*{\s*localhost;\s*};/allow-query     { localhost; ${v_network}\/${v_cidr}; ${v_ipv6_subnet}\/${v_ipv6_prefix}; };/" /etc/named.conf
+		sed -i "s/allow-query\s*{\s*localhost;\s*};/allow-query     { localhost; ${v_network}\/${v_cidr}; ${v_ipv6_ula_subnet}; };/" /etc/named.conf
 	else
 		sed -i "s/allow-query\s*{\s*localhost;\s*};/allow-query     { localhost; ${v_network}\/${v_cidr}; };/" /etc/named.conf
 	fi
