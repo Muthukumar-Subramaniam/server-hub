@@ -282,41 +282,69 @@ fn_configure_named_dns_server() {
 	
 	print_task_done
 
-	print_task "Configuring named.conf..."
+	print_task "Configuring named.conf from template..."
 
+	# Get the directory where dnsbinder script is located
+	v_script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+	v_template_file="${v_script_dir}/named.conf.template"
+	
+	if [[ ! -f "${v_template_file}" ]]; then
+		print_error "Template file not found: ${v_template_file}"
+		exit 1
+	fi
+
+	# Prepare listen addresses
 	if $KVM_HOST_MODE_SET; then
-		sed -i "s/listen-on port 53 {\s*127.0.0.1;\s*};/listen-on port 53 { ${v_primary_ip}; };/" /etc/named.conf
-		# Enable IPv6 listening for dual-stack support
-		if [[ ! -z "${v_ipv6_address}" ]]; then
-			sed -i "s/listen-on-v6 port 53 {\s*::1;\s*};/listen-on-v6 port 53 { ${v_ipv6_address}; };/" /etc/named.conf
+		v_listen_ipv4="${v_primary_ip}"
+	else
+		v_listen_ipv4="127.0.0.1; ${v_primary_ip}"
+	fi
+
+	if [[ ! -z "${v_ipv6_address}" ]]; then
+		if $KVM_HOST_MODE_SET; then
+			v_listen_ipv6="${v_ipv6_address}"
 		else
-			sed -i '/^[[:space:]]*[^#].*listen-on-v6/s/^/#/' /etc/named.conf
+			v_listen_ipv6="::1; ${v_ipv6_address}"
 		fi
 	else
-		sed -i "s/listen-on port 53 {\s*127.0.0.1;\s*};/listen-on port 53 { 127.0.0.1; ${v_primary_ip}; };/" /etc/named.conf
-		# Enable IPv6 listening for dual-stack support
-		if [[ ! -z "${v_ipv6_address}" ]]; then
-			sed -i "s/listen-on-v6 port 53 {\s*::1;\s*};/listen-on-v6 port 53 { ::1; ${v_ipv6_address}; };/" /etc/named.conf
-		else
-			sed -i '/^[[:space:]]*[^#].*listen-on-v6/s/^/#/' /etc/named.conf
-		fi
+		v_listen_ipv6="none"
 	fi
 
-	# Configure allow-query for IPv4 and optionally IPv6
+	# Prepare allow-query and allow-recursion networks
 	if [[ ! -z "${v_ipv6_address}" ]]; then
-		sed -i "s|allow-query\s*{\s*localhost;\s*};|allow-query     { localhost; ${v_network}/${v_cidr}; ${v_ipv6_ula_subnet}; };|" /etc/named.conf
+		v_allow_networks="localhost; ${v_network}/${v_cidr}; ${v_ipv6_ula_subnet}"
 	else
-		sed -i "s/allow-query\s*{\s*localhost;\s*};/allow-query     { localhost; ${v_network}\/${v_cidr}; };/" /etc/named.conf
+		v_allow_networks="localhost; ${v_network}/${v_cidr}"
 	fi
 
-	sed -i '/dnssec-validation yes;/d' /etc/named.conf
-
-	# Add forwarders with IPv6 support if dual-stack is configured
+	# Prepare DNS forwarders
 	if [[ ! -z "${v_ipv6_address}" ]]; then
-		sed -i '/recursion yes;/a # BEGIN public-dns-servers-as-forwarders\n\n        forwarders {\n                8.8.8.8;\n                8.8.4.4;\n                1.1.1.1;\n                1.0.0.1;\n                2001:4860:4860::8888;\n                2001:4860:4860::8844;\n                2606:4700:4700::1111;\n                2606:4700:4700::1001;\n        };\n\n        dnssec-validation no;\n# END public-dns-servers-as-forwarders' /etc/named.conf
+		v_forwarders="		8.8.8.8;
+		8.8.4.4;
+		1.1.1.1;
+		1.0.0.1;
+		2001:4860:4860::8888;
+		2001:4860:4860::8844;
+		2606:4700:4700::1111;
+		2606:4700:4700::1001;"
 	else
-		sed -i '/recursion yes;/a # BEGIN public-dns-servers-as-forwarders\n\n        forwarders {\n                8.8.8.8;\n                8.8.4.4;\n                1.1.1.1;\n                1.0.0.1;\n        };\n\n        dnssec-validation no;\n# END public-dns-servers-as-forwarders' /etc/named.conf
+		v_forwarders="		8.8.8.8;
+		8.8.4.4;
+		1.1.1.1;
+		1.0.0.1;"
 	fi
+
+	# Generate named.conf from template
+	sed -e "s|LISTEN_IPV4_ADDRESSES|${v_listen_ipv4}|g" \
+	    -e "s|LISTEN_IPV6_ADDRESSES|${v_listen_ipv6}|g" \
+	    -e "s|ALLOW_QUERY_NETWORKS|${v_allow_networks}|g" \
+	    -e "s|ALLOW_RECURSION_NETWORKS|${v_allow_networks}|g" \
+	    -e "s|DNS_FORWARDERS|${v_forwarders}|g" \
+	    "${v_template_file}" > /etc/named.conf
+
+	print_task_done
+
+	print_task "Adding DNS zones to named.conf..."
 
 
 	tee -a /etc/named.conf > /dev/null << EOF
