@@ -68,6 +68,13 @@
         <prefixlen>get_ipv4_prefix</prefixlen>
         <startmode>auto</startmode>
       </interface>
+      <interface t="map">
+        <bootproto>static</bootproto>
+        <ipaddr>get_ipv6_address</ipaddr>
+        <name>eth0</name>
+        <prefixlen>get_ipv6_prefix</prefixlen>
+        <startmode>auto</startmode>
+      </interface>
     </interfaces>
     <ipv6 t="boolean">true</ipv6>
     <keep_install_network t="boolean">true</keep_install_network>

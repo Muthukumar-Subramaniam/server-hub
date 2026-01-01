@@ -33,7 +33,7 @@ lab_infra_server_hostname="${dnsbinder_server_fqdn}"
 ipv6_gateway="${dnsbinder_ipv6_gateway}"
 ipv6_prefix="${dnsbinder_ipv6_prefix}"
 ipv6_ula_subnet="${dnsbinder_ipv6_ula_subnet}"
-ipv6_address=""  # Will be derived from IPv4
+ipv6_address=""  # Will be queried from DNS
 ##rhel_activation_key=$(cat /server-hub/rhel-activation-key.base64 | base64 -d)
 time_of_last_update=$(date +"%Y-%m-%d_%H-%M-%S_%Z")
 dnsbinder_script='/server-hub/named-manage/dnsbinder.sh'
@@ -143,7 +143,7 @@ fn_check_and_create_host_record() {
 		fi
 	else
 		print_info "DNS record found for \"${kickstart_hostname}\"."
-		print_info "$(host ${kickstart_hostname} ${dnsbinder_server_ipv4_address} | grep 'has address')"
+		print_info "$(host ${kickstart_hostname} ${dnsbinder_server_ipv4_address} | grep -E 'has address|has IPv6 address')"
 	fi
 }
 
@@ -378,7 +378,7 @@ fn_convert_mac_for_ipxe_cfg() {
 fn_cache_the_mac() {
 	print_task "Caching MAC address..."
 	if sed -i "/${kickstart_hostname}/d" "${ksmanager_hub_dir}"/mac-address-cache && \
-	   echo "${kickstart_hostname} ${mac_address_of_host} ${ipv4_address}" >> "${ksmanager_hub_dir}"/mac-address-cache; then
+	   echo "${kickstart_hostname} ${mac_address_of_host} ${ipv4_address} ${ipv6_address}" >> "${ksmanager_hub_dir}"/mac-address-cache; then
 		print_task_done
 	else
 		print_task_fail
@@ -933,6 +933,9 @@ config_summary="Configuration Summary:
   ✓ IPv4 Gateway     : ${ipv4_gateway}
   ✓ IPv4 Network     : ${ipv4_network_cidr}
   ✓ IPv4 DNS         : ${ipv4_nameserver}
+  ✓ IPv6 Address     : ${ipv6_address}
+  ✓ IPv6 Prefix      : ${ipv6_prefix}
+  ✓ IPv6 Gateway     : ${ipv6_gateway}
   ✓ Domain           : ${ipv4_domain}
   ✓ Lab Infra Server : ${lab_infra_server_hostname}
   ✓ Requested OS     : ${os_name_and_version}"
