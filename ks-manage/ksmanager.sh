@@ -28,6 +28,12 @@ ipv4_gateway="${dnsbinder_gateway}"
 ipv4_nameserver="${dnsbinder_server_ipv4_address}"
 ipv4_nfsserver="${dnsbinder_server_ipv4_address}"
 lab_infra_server_hostname="${dnsbinder_server_fqdn}"
+
+# IPv6 variables (if dual-stack configured)
+ipv6_gateway="${dnsbinder_ipv6_gateway}"
+ipv6_prefix="${dnsbinder_ipv6_prefix}"
+ipv6_ula_subnet="${dnsbinder_ipv6_ula_subnet}"
+ipv6_address=""  # Will be derived from IPv4
 ##rhel_activation_key=$(cat /server-hub/rhel-activation-key.base64 | base64 -d)
 time_of_last_update=$(date +"%Y-%m-%d_%H-%M-%S_%Z")
 dnsbinder_script='/server-hub/named-manage/dnsbinder.sh'
@@ -343,7 +349,12 @@ fi
 
 if $golden_image_creation_not_requested; then
 	fn_check_and_create_host_record "${1}"
-	ipv4_address=$(host "${kickstart_hostname}" "${dnsbinder_server_ipv4_address}" | grep 'has address' | cut -d " " -f 4 | tr -d '[[:space:]]')
+	ipv4_address=$(host "${kickstart_hostname}" "${dnsbinder_server_ipv4_address}" | grep 'has address' | cut -d " " -f 4 | tr -d '[[: space:]]')
+	
+	# Query DNS for IPv6 address (if dual-stack configured)
+	if [[ ! -z "${ipv6_gateway}" ]]; then
+		ipv6_address=$(host "${kickstart_hostname}" "${dnsbinder_server_ipv4_address}" | grep 'has IPv6 address' | awk '{print $NF}' | tr -d '[:space:]')
+	fi
 fi
 
 # Function to validate MAC address
@@ -681,6 +692,12 @@ fi
 if ! $golden_image_creation_not_requested; then
 	fn_check_and_create_host_record "${os_distribution}-golden-image-${version_type}"
 	ipv4_address=$(host "${kickstart_hostname}" "${dnsbinder_server_ipv4_address}" | grep 'has address' | cut -d " " -f 4 | tr -d '[[:space:]]')
+	
+	# Query DNS for IPv6 address (if dual-stack configured)
+	if [[ ! -z "${ipv6_gateway}" ]]; then
+		ipv6_address=$(host "${kickstart_hostname}" "${dnsbinder_server_ipv4_address}" | grep 'has IPv6 address' | awk '{print $NF}' | tr -d '[:space:]')
+	fi
+	
 	fn_check_and_create_mac_if_required
 	fn_create_host_kickstart_dir
 fi
@@ -752,6 +769,13 @@ fn_set_environment() {
 		sed -i "s/get_ipv4_nameserver/${ipv4_nameserver}/g" "${working_file}"
 		sed -i "s/get_ipv4_nfsserver/${ipv4_nfsserver}/g" "${working_file}"
 		sed -i "s/get_ipv4_domain/${ipv4_domain}/g" "${working_file}"
+		
+		# IPv6 replacements (if configured)
+		if [[ ! -z "${ipv6_address}" ]]; then
+			sed -i "s|get_ipv6_address|${ipv6_address}|g" "${working_file}"
+			sed -i "s/get_ipv6_gateway/${ipv6_gateway}/g" "${working_file}"
+			sed -i "s/get_ipv6_prefix/${ipv6_prefix}/g" "${working_file}"
+		fi
     	sed -i "s/get_hostname/${kickstart_short_hostname}/g" "${working_file}"
 		sed -i "s/get_lab_infra_server_hostname/${lab_infra_server_hostname}/g" "${working_file}"
 		sed -i "s/get_win_hostname/${win_hostname}/g" "${working_file}"
