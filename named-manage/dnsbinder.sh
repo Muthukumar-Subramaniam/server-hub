@@ -454,8 +454,8 @@ EOF
 		fn_update_dns_server_data_to_zone_file "${v_ipv6_zone_file}"
 		echo -e "\n;IPv6 PTR-Records" | tee -a "${v_ipv6_zone_file}" > /dev/null
 		
-		# Add PTR record for gateway (::1)
-		echo -e "1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0 IN PTR gateway.${v_given_domain}." | tee -a "${v_ipv6_zone_file}" > /dev/null
+		# Add PTR record for gateway (::1) - only 16 nibbles for /64 host portion
+		echo -e "1.0.0.0.0.0.0.0.0.0.0.0.0.0.0.0 IN PTR gateway.${v_given_domain}." | tee -a "${v_ipv6_zone_file}" > /dev/null
 		
 		# Add PTR record for DNS server's IPv6 address
 		# Convert IPv6 address to full expanded form, then extract host part and reverse it
