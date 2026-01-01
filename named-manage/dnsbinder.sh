@@ -311,7 +311,12 @@ fn_configure_named_dns_server() {
 
 	sed -i '/dnssec-validation yes;/d' /etc/named.conf
 
-	sed -i '/recursion yes;/a # BEGIN public-dns-servers-as-forwarders\n\n        forwarders {\n                8.8.8.8;\n                8.8.4.4;\n        };\n\n        dnssec-validation no;\n# END public-dns-servers-as-forwarders' /etc/named.conf
+	# Add forwarders with IPv6 support if dual-stack is configured
+	if [[ ! -z "${v_ipv6_address}" ]]; then
+		sed -i '/recursion yes;/a # BEGIN public-dns-servers-as-forwarders\n\n        forwarders {\n                8.8.8.8;\n                8.8.4.4;\n                1.1.1.1;\n                1.0.0.1;\n                2001:4860:4860::8888;\n                2001:4860:4860::8844;\n                2606:4700:4700::1111;\n                2606:4700:4700::1001;\n        };\n\n        dnssec-validation no;\n# END public-dns-servers-as-forwarders' /etc/named.conf
+	else
+		sed -i '/recursion yes;/a # BEGIN public-dns-servers-as-forwarders\n\n        forwarders {\n                8.8.8.8;\n                8.8.4.4;\n                1.1.1.1;\n                1.0.0.1;\n        };\n\n        dnssec-validation no;\n# END public-dns-servers-as-forwarders' /etc/named.conf
+	fi
 
 
 	tee -a /etc/named.conf > /dev/null << EOF
