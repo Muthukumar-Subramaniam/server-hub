@@ -344,6 +344,17 @@ fn_configure_named_dns_server() {
 
 	print_task_done
 
+	print_task "Downloading latest root hints file (named.root)..."
+
+	# Download the latest named.root from IANA
+	if curl -s -o /var/named/named.root https://www.internic.net/domain/named.root; then
+		chown root:named /var/named/named.root
+		chmod 640 /var/named/named.root
+		print_task_done
+	else
+		print_warning "Failed to download named.root, using system default"
+	fi
+
 	print_task "Adding DNS zones to named.conf..."
 
 

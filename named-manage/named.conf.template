@@ -62,7 +62,7 @@ logging {
 
 zone "." IN {
 	type hint;
-	file "named.ca";
+	file "/var/named/named.root";
 };
 
 include "/etc/named.rfc1912.zones";
