@@ -758,6 +758,16 @@ fn_update_serial_number_of_zones() {
 		v_current_serial_ptr_zone=$(grep ';Serial' "${v_ptr_zone}" | cut -d ";" -f 1 | tr -d '[:space:]')
 		v_set_new_serial_ptr_zone=$(( v_current_serial_ptr_zone + 1 ))
 		sed -i "/;Serial/s/${v_current_serial_ptr_zone}/${v_set_new_serial_ptr_zone}/g" "${v_ptr_zone}"
+		
+		# Update IPv6 reverse zone if it exists
+		if [[ ! -z "${dnsbinder_ipv6_ula_subnet}" ]]; then
+			v_ipv6_zone_file="${var_zone_dir}/${v_domain_name}-ipv6-reverse.db"
+			if [[ -f "${v_ipv6_zone_file}" ]]; then
+				v_current_serial_ipv6_zone=$(grep ';Serial' "${v_ipv6_zone_file}" | cut -d ";" -f 1 | tr -d '[:space:]')
+				v_set_new_serial_ipv6_zone=$(( v_current_serial_ipv6_zone + 1 ))
+				sed -i "/;Serial/s/${v_current_serial_ipv6_zone}/${v_set_new_serial_ipv6_zone}/g" "${v_ipv6_zone_file}"
+			fi
+		fi
 	fi
 
 	${v_if_autorun_false} && print_task_done
