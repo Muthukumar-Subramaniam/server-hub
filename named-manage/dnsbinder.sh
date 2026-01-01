@@ -464,7 +464,7 @@ EOF
 		echo -e "${v_dns_host_short_name_adjusted_space} IN AAAA ${v_ipv6_address}" | tee -a "${v_zone_file_name}" > /dev/null
 	fi
 
-	echo -e ";CNAME-Records" | tee -a "${v_zone_file_name}" > /dev/null
+	echo -e "\n;CNAME-Records" | tee -a "${v_zone_file_name}" > /dev/null
 
 	for v_subnet_part in ${v_splited_subnets}
 	do
@@ -1181,8 +1181,8 @@ fn_create_host_record() {
 		
 		v_add_ipv6_host_record=$(echo "${v_host_record_adjusted_space} IN AAAA ${v_ipv6_address_for_host}")
 		
-		# Insert AAAA record in the AAAA section (before CNAME section)
-		sed -i "/^;CNAME-Records/i \\${v_add_ipv6_host_record}" "${v_fw_zone}"
+		# Insert AAAA record after the AAAA-Records header
+		sed -i "/^;AAAA-Records (IPv6)/a \\${v_add_ipv6_host_record}" "${v_fw_zone}"
 	fi
 
 	##################  End of  AAAA Record Create Section ############################
