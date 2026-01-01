@@ -580,6 +580,8 @@ print(ptr)
 		if [[ ! -z "${v_ipv6_address}" ]]; then
 			nmcli connection modify "${v_active_connection_name}" ipv6.method "manual" &>/dev/null
 			nmcli connection modify "${v_active_connection_name}" ipv6.addresses "${v_ipv6_address}/${v_ipv6_prefix}" &>/dev/null
+			# Clear any IPv6 DNS servers (we only use IPv4 DNS)
+			nmcli connection modify "${v_active_connection_name}" ipv6.dns "" &>/dev/null
 		fi
 		
 		# Reapply settings without restarting the connection
