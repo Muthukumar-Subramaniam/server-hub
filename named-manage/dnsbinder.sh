@@ -1181,8 +1181,22 @@ fn_create_host_record() {
 		
 		v_add_ipv6_host_record=$(echo "${v_host_record_adjusted_space} IN AAAA ${v_ipv6_address_for_host}")
 		
-		# Insert AAAA record after the AAAA-Records header
-		sed -i "/^;AAAA-Records (IPv6)/a \\${v_add_ipv6_host_record}" "${v_fw_zone}"
+		# Insert AAAA record in the same relative position as the A record
+		# Find the hostname that has the previous IP to determine insertion point
+		if [[ "${v_previous_ip}" == ';PTR-Records' ]]; then
+			# First record - insert right after the AAAA-Records header
+			sed -i "/^;AAAA-Records (IPv6)/a \\${v_add_ipv6_host_record}" "${v_fw_zone}"
+		else
+			# Find the hostname that has v_previous_ip and insert after its AAAA record
+			v_previous_hostname=$(grep " IN A ${v_previous_ip}$" "${v_fw_zone}" | awk '{print $1}' | tr -d '[:space:]')
+			if [[ ! -z "${v_previous_hostname}" ]]; then
+				# Insert after the previous hostname's AAAA record
+				sed -i "/^${v_previous_hostname} .*IN AAAA/a \\${v_add_ipv6_host_record}" "${v_fw_zone}"
+			else
+				# Fallback: insert after header if previous hostname not found
+				sed -i "/^;AAAA-Records (IPv6)/a \\${v_add_ipv6_host_record}" "${v_fw_zone}"
+			fi
+		fi
 	fi
 
 	##################  End of  AAAA Record Create Section ############################
@@ -1226,9 +1240,24 @@ print(ptr)
 		if [[ ! -z "${v_ipv6_ptr}" ]]; then
 			v_add_ipv6_ptr_record="${v_ipv6_ptr} IN PTR ${v_host_record}.${v_domain_name}."
 			
-			# Add after the IPv6 PTR-Records comment
-			if grep -q "^;IPv6 PTR-Records" "${v_ipv6_zone_file}" 2>/dev/null; then
-				sed -i "/^;IPv6 PTR-Records/a\\${v_add_ipv6_ptr_record}" "${v_ipv6_zone_file}"
+			# Insert in the same relative position as the IPv4 PTR record
+			if [[ "${v_previous_ip}" == ';PTR-Records' ]]; then
+				# First record - insert right after the IPv6 PTR-Records header
+				if grep -q "^;IPv6 PTR-Records" "${v_ipv6_zone_file}" 2>/dev/null; then
+					sed -i "/^;IPv6 PTR-Records/a\\${v_add_ipv6_ptr_record}" "${v_ipv6_zone_file}"
+				fi
+			else
+				# Find the previous hostname's IPv6 PTR record and insert after it
+				v_previous_hostname=$(grep " IN A ${v_previous_ip}$" "${v_fw_zone}" | awk '{print $1}' | tr -d '[:space:]')
+				if [[ ! -z "${v_previous_hostname}" ]] && grep -q "IN PTR ${v_previous_hostname}.${v_domain_name}.$" "${v_ipv6_zone_file}" 2>/dev/null; then
+					# Insert after the previous hostname's IPv6 PTR record
+					sed -i "/IN PTR ${v_previous_hostname}.${v_domain_name}.$/a\\${v_add_ipv6_ptr_record}" "${v_ipv6_zone_file}"
+				else
+					# Fallback: insert after header if previous hostname not found
+					if grep -q "^;IPv6 PTR-Records" "${v_ipv6_zone_file}" 2>/dev/null; then
+						sed -i "/^;IPv6 PTR-Records/a\\${v_add_ipv6_ptr_record}" "${v_ipv6_zone_file}"
+					fi
+				fi
 			fi
 		fi
 	fi
