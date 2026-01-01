@@ -574,13 +574,13 @@ print(ptr)
 		print_task "Updating Network Manager to point the local dns server and domain..."
 		v_active_connection_name=$(nmcli connection show --active | grep "${v_primary_interface}" | head -n 1 | awk '{ print $1 }')
 		nmcli connection modify "${v_active_connection_name}" ipv4.dns-search "${v_given_domain}" &>/dev/null
-		nmcli connection modify "${v_active_connection_name}" ipv4.dns "127.0.0.1,8.8.8.8,8.8.4.4"  &>/dev/null
+		nmcli connection modify "${v_active_connection_name}" ipv4.dns "127.0.0.1,8.8.8.8,1.1.1.1"  &>/dev/null
 		
 		# Update IPv6 configuration if dual-stack is configured
 		if [[ ! -z "${v_ipv6_address}" ]]; then
 			nmcli connection modify "${v_active_connection_name}" ipv6.method "manual" &>/dev/null
 			nmcli connection modify "${v_active_connection_name}" ipv6.addresses "${v_ipv6_address}/${v_ipv6_prefix}" &>/dev/null
-			nmcli connection modify "${v_active_connection_name}" ipv6.dns "::1" &>/dev/null
+			nmcli connection modify "${v_active_connection_name}" ipv6.dns "::1,2001:4860:4860::8888,2606:4700:4700::1111" &>/dev/null
 		fi
 		
 		# Reapply DNS settings without restarting the connection
