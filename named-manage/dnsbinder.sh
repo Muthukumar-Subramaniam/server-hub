@@ -576,8 +576,10 @@ print(ptr)
 		nmcli connection modify "${v_active_connection_name}" ipv4.dns-search "${v_given_domain}" &>/dev/null
 		nmcli connection modify "${v_active_connection_name}" ipv4.dns "127.0.0.1,8.8.8.8,8.8.4.4"  &>/dev/null
 		
-		# Update IPv6 DNS if dual-stack is configured
+		# Update IPv6 configuration if dual-stack is configured
 		if [[ ! -z "${v_ipv6_address}" ]]; then
+			nmcli connection modify "${v_active_connection_name}" ipv6.method "manual" &>/dev/null
+			nmcli connection modify "${v_active_connection_name}" ipv6.addresses "${v_ipv6_address}/${v_ipv6_prefix}" &>/dev/null
 			nmcli connection modify "${v_active_connection_name}" ipv6.dns "::1" &>/dev/null
 		fi
 		
