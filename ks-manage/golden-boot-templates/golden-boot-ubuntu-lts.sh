@@ -83,8 +83,9 @@ log "Creating netplan configuration directory"
 /bin/mkdir -p /etc/netplan
 
 log "Creating netplan configuration for eth0"
-log "  IP: ${IPv4_ADDRESS}/${IPv4_CIDR}"
-log "  Gateway: ${IPv4_GATEWAY}"
+log "  IPv4: ${IPv4_ADDRESS}/${IPv4_CIDR}"
+log "  IPv4 Gateway: ${IPv4_GATEWAY}"
+log "  IPv6: ${IPv6_ADDRESS}/${IPv6_PREFIX}"
 log "  DNS: ${IPv4_DNS_SERVER},8.8.8.8,8.8.4.4"
 log "  Search domain: ${IPv4_DNS_DOMAIN}"
 
@@ -94,7 +95,10 @@ network:
     ethernets:
         eth0:
             dhcp4: false
-            addresses: [${IPv4_ADDRESS}/${IPv4_CIDR}]
+            dhcp6: false
+            addresses:
+              - ${IPv4_ADDRESS}/${IPv4_CIDR}
+              - ${IPv6_ADDRESS}/${IPv6_PREFIX}
             routes:
               - to: default
                 via: ${IPv4_GATEWAY}

@@ -109,12 +109,14 @@ do
 done
 
 log "Creating network configuration for eth0"
-log "  IP: ${IPv4_ADDRESS}/${IPv4_CIDR}"
-log "  Gateway: ${IPv4_GATEWAY}"
+log "  IPv4: ${IPv4_ADDRESS}/${IPv4_CIDR}"
+log "  IPv4 Gateway: ${IPv4_GATEWAY}"
+log "  IPv6: ${IPv6_ADDRESS}/${IPv6_PREFIX}"
 log "  DNS: ${IPv4_DNS_SERVER}"
 
 cat << EOF > /etc/sysconfig/network/ifcfg-eth0
 IPADDR='${IPv4_ADDRESS}/${IPv4_CIDR}'
+IPADDR_0='${IPv6_ADDRESS}/${IPv6_PREFIX}'
 BOOTPROTO='static'
 STARTMODE='auto'
 ZONE=public
