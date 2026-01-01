@@ -52,6 +52,9 @@ VM CONFIGURATION:
     nic-add                 Add network interface to VM
     nic-remove              Remove network interface from VM
 
+NETWORK MANAGEMENT:
+    ipv6-route              Manage IPv6 default routes (enable/disable/auto/status)
+
 OPTIONS:
     -h, --help              Show this help message
     -v, --version           Show version information
@@ -100,6 +103,9 @@ main() {
             ;;
         disk-add|disk-resize|disk-attach|disk-detach|disk-delete|nic-add|nic-remove)
             script_name="kvm-${subcommand}.sh"
+            ;;
+        ipv6-route)
+            script_name="kvm-ipv6-route.sh"
             ;;
         *)
             print_error "Unknown subcommand: $subcommand"

@@ -192,11 +192,6 @@ fn_configure_named_dns_server() {
 		fn_instruct_on_valid_domain_name
 	fi
 
-	# Accept IPv6 ULA subnet as second parameter (for dual-stack)
-	if [[ ! -z "${2}" ]]; then
-		v_ipv6_ula_subnet="${2}"
-	fi
-
 	while :
 	do
 		if [[ -z "${v_given_domain}" ]]; then
@@ -233,6 +228,28 @@ fn_configure_named_dns_server() {
 		v_primary_interface=$(ip r | grep default | awk '{ print $5 }')
 		v_primary_ip=$(ip r | grep -v default | grep "${v_primary_interface}" | head -n 1 | awk '{ print $9 }')
 		v_network_gateway=$(ip r | grep default | awk '{ print $3 }')
+		
+		# Auto-detect IPv6 from system (lab infra server VM must have IPv6 configured)
+		# Try to get IPv6 from primary interface (exclude link-local fe80 and loopback ::1)
+		v_ipv6_address=$(ip -6 addr show "${v_primary_interface}" | grep -oP 'inet6\s+\Kfd[0-9a-f:]+' | grep -v 'fe80' | grep -v '::1' | head -1)
+		if [[ ! -z "${v_ipv6_address}" ]]; then
+			# Extract gateway from default IPv6 route
+			v_ipv6_gateway=$(ip -6 route | grep default | awk '{print $3}' | head -1)
+			# Extract prefix length
+			v_ipv6_prefix=$(ip -6 addr show "${v_primary_interface}" | grep -oP 'fd[0-9a-f:]+/\K[0-9]+' | head -1)
+			# Build ULA subnet
+			if [[ ! -z "${v_ipv6_address}" && ! -z "${v_ipv6_prefix}" ]]; then
+				v_ipv6_base=$(echo "${v_ipv6_address}" | sed 's/::[^:]*$//')
+				v_ipv6_ula_subnet="${v_ipv6_base}::/${v_ipv6_prefix}"
+			fi
+		fi
+		
+		# Verify dual-stack configuration is present on the system
+		if [[ -z "${v_ipv6_ula_subnet}" ]]; then
+			print_error "IPv6 configuration not found. Dual-stack (IPv4+IPv6) is required."
+			print_error "Please configure IPv6 on ${v_primary_interface} before running this script."
+			exit 1
+		fi
 	fi
 
 	fn_split_network_into_cidr24subnets
@@ -1704,24 +1721,27 @@ v_domain_if_present=$(if [ ! -z "${v_domain_name}" ];then echo -n "${v_domain_na
 v_domain_if_present=$(printf "%-*s" 53 "${v_domain_if_present}")
 v_network_if_present=$(if [ ! -z "${dnsbinder_network}" ];then echo -n "${dnsbinder_network}";else echo '[dnsbinder-not-yet-configured]';fi)
 v_network_if_present=$(printf "%-*s" 53 "${v_network_if_present}")
+v_ipv6_if_present=$(if [ ! -z "${dnsbinder_ipv6_ula_subnet}" ];then echo -n "${dnsbinder_ipv6_ula_subnet}";else echo '[ipv6-not-configured]';fi)
+v_ipv6_if_present=$(printf "%-*s" 53 "${v_ipv6_if_present}")
 
 fn_main_menu() {
 
 print_notify "##################################################################
 #-------------------------[ DNS-BINDER ]-------------------------#
 # Domain  : ${v_domain_if_present}#
-# Network : ${v_network_if_present}# 
+# IPv4 Net: ${v_network_if_present}#
+# IPv6 Net: ${v_ipv6_if_present}#
 #----------------------------------------------------------------#
-# 1) Create a DNS host record                                    #
-# 2) Delete a DNS host record                                    #
-# 3) Rename an existing DNS host record                          #
+# 1) Create a DNS host record (dual-stack A + AAAA)              #
+# 2) Delete a DNS host record (removes A + AAAA)                 #
+# 3) Rename an existing DNS host record (updates A + AAAA)       #
 # 4) Create multiple DNS host records provided in a file         #
 # 5) Delete multiple DNS host records provided in a file         #
-# 6) Create a DNS host record with specific IPv4 Address         #
+# 6) Create DNS host with specific IPv4 (auto-generates IPv6)    #
 # 7) Create a CNAME/Alias record for existing host record        #
 # 8) Delete a CNAME/Alias record for existing host record        #
 #----------------------------------------------------------------#
-# 0) Configure local dns server and domain if not yet done       #
+# 0) Configure local dns server and domain (dual-stack)          #
 #----------------------------------------------------------------#
 # q) Quit without any changes                                    #
 #----------------------------------------------------------------#"
@@ -1787,24 +1807,30 @@ esac
 
 
 fn_usage_message() {
-print_notify "Domain  : ${v_domain_if_present}
-Network : ${v_network_if_present} 
+print_notify "Domain   : ${v_domain_if_present}
+IPv4 Net : ${v_network_if_present}
+IPv6 Net : ${v_ipv6_if_present}
 
-Usage: dnsbinder [ option ] [ dns record ]
+Usage: dnsbinder [ option ] [ arguments ]
 Use one of the following Options :
-	-c      To create a host record
-	-d      To delete a host record
+	-c      To create a host record (dual-stack: A + AAAA records)
+	-d      To delete a host record (removes both A and AAAA records)
 	-dy     caution ! To do the above without any confirmation
-	-r      To rename an existing host record
+	-r      To rename an existing host record (updates A and AAAA records)
 	-ry     caution ! To do the above without any confirmation
-	-cf     To create multiple host records provided in a file 
-	-df     To delete multiple host records provided in a file
-	-ci     To create a host record with specific IPv4 Address
+	-cf     To create multiple host records provided in a file (dual-stack)
+	-df     To delete multiple host records provided in a file (dual-stack)
+	-ci     To create a host record with specific IPv4 Address (auto-generates IPv6)
 	-cc     To create a CNAME/Alias record for an existing host record
 	-dc     To delete a CNAME/Alias record for an existing host record
 	-dcy    caution ! To do the above without any confirmation
-	--setup	To configure local dns server and domain if not done already
+	--setup	To configure local dns server and domain (dual-stack IPv4/IPv6)
+	        Both IPv4 and IPv6 networks are auto-detected from system
+	        Usage: dnsbinder --setup <domain>
+	        Example: dnsbinder --setup lab.local
 	-h (or) --help To print this usage info	
+
+Note: All host record operations automatically create/manage both IPv4 (A) and IPv6 (AAAA) records
 
 [ Or ]
 Run dnsbinder utility without any arguements to get menu driven actions."
