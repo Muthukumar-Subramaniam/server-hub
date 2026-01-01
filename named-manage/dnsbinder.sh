@@ -304,7 +304,7 @@ fn_configure_named_dns_server() {
 
 	# Configure allow-query for IPv4 and optionally IPv6
 	if [[ ! -z "${v_ipv6_address}" ]]; then
-		sed -i "s/allow-query\s*{\s*localhost;\s*};/allow-query     { localhost; ${v_network}\/${v_cidr}; ${v_ipv6_ula_subnet}; };/" /etc/named.conf
+		sed -i "s|allow-query\s*{\s*localhost;\s*};|allow-query     { localhost; ${v_network}/${v_cidr}; ${v_ipv6_ula_subnet}; };|" /etc/named.conf
 	else
 		sed -i "s/allow-query\s*{\s*localhost;\s*};/allow-query     { localhost; ${v_network}\/${v_cidr}; };/" /etc/named.conf
 	fi
@@ -539,8 +539,15 @@ print(ptr)
 		v_active_connection_name=$(nmcli connection show --active | grep "${v_primary_interface}" | head -n 1 | awk '{ print $1 }')
 		nmcli connection modify "${v_active_connection_name}" ipv4.dns-search "${v_given_domain}" &>/dev/null
 		nmcli connection modify "${v_active_connection_name}" ipv4.dns "127.0.0.1,8.8.8.8,8.8.4.4"  &>/dev/null
+		
+		# Update IPv6 DNS if dual-stack is configured
+		if [[ ! -z "${v_ipv6_address}" ]]; then
+			nmcli connection modify "${v_active_connection_name}" ipv6.dns "::1" &>/dev/null
+		fi
+		
+		# Reapply DNS settings without restarting the connection
 		nmcli connection reload "${v_active_connection_name}" &>/dev/null
-		nmcli connection up "${v_active_connection_name}" &>/dev/null
+		nmcli device reapply "${v_primary_interface}" &>/dev/null
 		print_task_done
 	else
 		print_task "Updating systemd-resolvd to point the local dns server and domain..."
