@@ -15,6 +15,7 @@ options {
 	
 	allow-query     { ALLOW_QUERY_NETWORKS };
 	allow-recursion { ALLOW_RECURSION_NETWORKS };
+	allow-transfer  { none; };
 
 	/* 
 	 - If you are building an AUTHORITATIVE DNS server, do NOT enable recursion.
@@ -46,11 +47,17 @@ DNS_FORWARDERS
 	/* https://fedoraproject.org/wiki/Changes/CryptoPolicy */
 	include "/etc/crypto-policies/back-ends/bind.config";
 	
+	/* Hide BIND version for security */
+	version "not disclosed";
+	
 	/* Rate limiting to prevent DNS amplification attacks */
 	rate-limit {
 		responses-per-second 10;
 		window 5;
 	};
+	
+	/* Empty zones for RFC 1918 addresses - prevents unnecessary queries */
+	empty-zones-enable yes;
 };
 
 logging {
@@ -58,6 +65,13 @@ logging {
 		file "data/named.run";
 		severity dynamic;
 	};
+	channel query_log {
+		file "data/query.log" versions 3 size 10m;
+		severity info;
+		print-time yes;
+		print-category yes;
+	};
+	category queries { query_log; };
 };
 
 zone "." IN {
