@@ -209,6 +209,7 @@ if $remove_host_requested; then
     if [ -f "${ksmanager_hub_dir}/mac-address-cache" ]; then
         cached_mac=$(grep "^${cleanup_hostname} " "${ksmanager_hub_dir}/mac-address-cache" 2>/dev/null | cut -d " " -f 2)
         cached_ip=$(grep "^${cleanup_hostname} " "${ksmanager_hub_dir}/mac-address-cache" 2>/dev/null | cut -d " " -f 3)
+        cached_ipv6=$(grep "^${cleanup_hostname} " "${ksmanager_hub_dir}/mac-address-cache" 2>/dev/null | cut -d " " -f 4)
         
         if [[ -n "$cached_mac" ]]; then
             ipxe_cfg_mac=$(echo "${cached_mac}" | tr ':' '-' | tr 'A-F' 'a-f')
@@ -260,7 +261,7 @@ if $remove_host_requested; then
         kea_api_url="http://127.0.0.1:8000/"
         kea_api_auth="kea-api:kea-api-password"
         
-        # Delete lease by MAC address
+        # Delete DHCPv4 lease by MAC address
         curl -s -X POST -H "Content-Type: application/json" \
             -u "$kea_api_auth" \
             -d "{
@@ -274,7 +275,7 @@ if $remove_host_requested; then
                 }" \
             "$kea_api_url" &>/dev/null
         
-        # Delete lease by IP address
+        # Delete DHCPv4 lease by IP address
         if [[ -n "$cached_ip" ]]; then
             curl -s -X POST -H "Content-Type: application/json" \
                 -u "$kea_api_auth" \
@@ -289,46 +290,113 @@ if $remove_host_requested; then
                 "$kea_api_url" &>/dev/null
         fi
         
-        # Rebuild KEA config without this host
+        # Delete DHCPv6 lease by MAC address
+        curl -s -X POST -H "Content-Type: application/json" \
+            -u "$kea_api_auth" \
+            -d "{
+                  \"command\": \"lease6-del\",
+                  \"service\": [ \"dhcp6\" ],
+                  \"arguments\": {
+                    \"identifier-type\": \"hw-address\",
+                    \"identifier\": \"${cached_mac}\",
+                    \"subnet-id\": 1
+                  }
+                }" \
+            "$kea_api_url" &>/dev/null
+        
+        # Delete DHCPv6 lease by IP address (if IPv6 exists in cache)
+        if [[ -n "$cached_ipv6" ]]; then
+            curl -s -X POST -H "Content-Type: application/json" \
+                -u "$kea_api_auth" \
+                -d "{
+                      \"command\": \"lease6-del\",
+                      \"service\": [ \"dhcp6\" ],
+                      \"arguments\": {
+                        \"ip-address\": \"${cached_ipv6}\",
+                        \"subnet-id\": 1
+                      }
+                    }" \
+                "$kea_api_url" &>/dev/null
+        fi
+        
+        # Rebuild KEA DHCPv4 config without this host
         kea_cache_file="${ksmanager_hub_dir}/mac-address-cache"
-        kea_config_file="/etc/kea/kea-dhcp4.conf"
+        kea_dhcp4_config_file="/etc/kea/kea-dhcp4.conf"
+        kea_dhcp6_config_file="/etc/kea/kea-dhcp6.conf"
         kea_temp_config_timestamp=$(date +"%Y%m%d_%H%M%S_%Z")
         kea_config_temp_dir="${ksmanager_hub_dir}/kea_dhcp_temp_configs_with_reservation"
-        kea_tmp_config="${kea_config_temp_dir}/kea-dhcp4.conf_${kea_temp_config_timestamp}"
+        kea_dhcp4_tmp_config="${kea_config_temp_dir}/kea-dhcp4.conf_${kea_temp_config_timestamp}"
+        kea_dhcp6_tmp_config="${kea_config_temp_dir}/kea-dhcp6.conf_${kea_temp_config_timestamp}"
         
         mkdir -p "$kea_config_temp_dir"
         
-        kea_existing_config=$(sudo cat "$kea_config_file")
+        # Rebuild DHCPv4 reservations
+        kea_dhcp4_existing_config=$(sudo cat "$kea_dhcp4_config_file")
         
-        kea_reservations_json=""
+        kea_dhcp4_reservations_json=""
         while read -r kea_hostname kea_hw_address kea_ip_address; do
-            kea_reservations_json+="{
+            kea_dhcp4_reservations_json+="{
               \"hostname\": \"$kea_hostname\",
               \"hw-address\": \"$kea_hw_address\",
               \"ip-address\": \"$kea_ip_address\"
             },"
         done < "$kea_cache_file"
         
-        kea_reservations_json="[${kea_reservations_json%,}]"
+        kea_dhcp4_reservations_json="[${kea_dhcp4_reservations_json%,}]"
         
-        kea_new_config=$(echo "$kea_existing_config" | \
-            jq --argjson reservations "$kea_reservations_json" \
+        kea_dhcp4_new_config=$(echo "$kea_dhcp4_existing_config" | \
+            jq --argjson reservations "$kea_dhcp4_reservations_json" \
               '.Dhcp4.subnet4[0].reservations = $reservations')
         
-        cat > "$kea_tmp_config" <<EOF
+        cat > "$kea_dhcp4_tmp_config" <<EOF
 {
   "command": "config-set",
   "service": [ "dhcp4" ],
-  "arguments": $kea_new_config
+  "arguments": $kea_dhcp4_new_config
 }
 EOF
         
+        # Rebuild DHCPv6 reservations
+        kea_dhcp6_existing_config=$(sudo cat "$kea_dhcp6_config_file")
+        
+        kea_dhcp6_reservations_json=""
+        while read -r kea_hostname kea_hw_address kea_ip_address kea_ipv6_address; do
+            if [[ -n "$kea_ipv6_address" ]]; then
+                kea_dhcp6_reservations_json+="{
+                  \"hostname\": \"$kea_hostname\",
+                  \"hw-address\": \"$kea_hw_address\",
+                  \"ip-addresses\": [ \"${kea_ipv6_address}\" ]
+                },"
+            fi
+        done < "$kea_cache_file"
+        
+        kea_dhcp6_reservations_json="[${kea_dhcp6_reservations_json%,}]"
+        
+        kea_dhcp6_new_config=$(echo "$kea_dhcp6_existing_config" | \
+            jq --argjson reservations "$kea_dhcp6_reservations_json" \
+              '.Dhcp6.subnet6[0].reservations = $reservations')
+        
+        cat > "$kea_dhcp6_tmp_config" <<EOF
+{
+  "command": "config-set",
+  "service": [ "dhcp6" ],
+  "arguments": $kea_dhcp6_new_config
+}
+EOF
+        
+        # Push DHCPv4 config
         curl -s -X POST -H "Content-Type: application/json" \
             -u "$kea_api_auth" \
-            -d @"$kea_tmp_config" \
+            -d @"$kea_dhcp4_tmp_config" \
             "$kea_api_url" &>/dev/null
         
-        print_info "Removed KEA DHCP reservations"
+        # Push DHCPv6 config
+        curl -s -X POST -H "Content-Type: application/json" \
+            -u "$kea_api_auth" \
+            -d @"$kea_dhcp6_tmp_config" \
+            "$kea_api_url" &>/dev/null
+        
+        print_info "Removed KEA DHCP reservations (IPv4 and IPv6)"
     fi
     
     # 6. Remove DNS record
@@ -836,12 +904,14 @@ chown -R ${mgmt_super_user}:${mgmt_super_user}  "${ksmanager_hub_dir}"
 fn_update_kea_dhcp_reservations() {
   print_task "Updating KEA DHCP reservations..."
   local kea_cache_file="${ksmanager_hub_dir}/mac-address-cache"
-  local kea_config_file="/etc/kea/kea-dhcp4.conf"
+  local kea_dhcp4_config_file="/etc/kea/kea-dhcp4.conf"
+  local kea_dhcp6_config_file="/etc/kea/kea-dhcp6.conf"
   local kea_api_url="http://127.0.0.1:8000/"
   local kea_api_auth="kea-api:kea-api-password"
   local kea_temp_config_timestamp=$(date +"%Y%m%d_%H%M%S_%Z")
   local kea_config_temp_dir="${ksmanager_hub_dir}/kea_dhcp_temp_configs_with_reservation"
-  local kea_tmp_config="${kea_config_temp_dir}/kea-dhcp4.conf_${kea_temp_config_timestamp}"
+  local kea_dhcp4_tmp_config="${kea_config_temp_dir}/kea-dhcp4.conf_${kea_temp_config_timestamp}"
+  local kea_dhcp6_tmp_config="${kea_config_temp_dir}/kea-dhcp6.conf_${kea_temp_config_timestamp}"
 
   mkdir -p "$kea_config_temp_dir"
 
@@ -850,38 +920,72 @@ fn_update_kea_dhcp_reservations() {
     sed -i "/^${kickstart_hostname} / s/${current_ip_with_mac}/${ipv4_address}/" "${kea_cache_file}"
   fi
 
-  # Read existing Kea config
-  local kea_existing_config
-  kea_existing_config=$(sudo cat "$kea_config_file")
+  # ===== DHCPv4 Reservations =====
+  # Read existing Kea DHCPv4 config
+  local kea_dhcp4_existing_config
+  kea_dhcp4_existing_config=$(sudo cat "$kea_dhcp4_config_file")
 
-  # Build JSON array of reservations from cache file
-  local kea_reservations_json=""
+  # Build JSON array of DHCPv4 reservations from cache file
+  local kea_dhcp4_reservations_json=""
   while read -r kea_hostname kea_hw_address kea_ip_address; do
-    kea_reservations_json+="{
+    kea_dhcp4_reservations_json+="{
       \"hostname\": \"$kea_hostname\",
       \"hw-address\": \"$kea_hw_address\",
       \"ip-address\": \"$kea_ip_address\"
     },"
   done < "$kea_cache_file"
 
-  kea_reservations_json="[${kea_reservations_json%,}]"
+  kea_dhcp4_reservations_json="[${kea_dhcp4_reservations_json%,}]"
 
-  # Insert reservations into config JSON
-  local kea_new_config
-  kea_new_config=$(echo "$kea_existing_config" | \
-    jq --argjson reservations "$kea_reservations_json" \
+  # Insert DHCPv4 reservations into config JSON
+  local kea_dhcp4_new_config
+  kea_dhcp4_new_config=$(echo "$kea_dhcp4_existing_config" | \
+    jq --argjson reservations "$kea_dhcp4_reservations_json" \
       '.Dhcp4.subnet4[0].reservations = $reservations')
 
-  # Wrap into config-set command for Kea Control Agent
-  cat > "$kea_tmp_config" <<EOF
+  # Wrap into config-set command for DHCPv4
+  cat > "$kea_dhcp4_tmp_config" <<EOF
 {
   "command": "config-set",
   "service": [ "dhcp4" ],
-  "arguments": $kea_new_config
+  "arguments": $kea_dhcp4_new_config
 }
 EOF
 
-  # Delete old lease (safe if none exists)
+  # ===== DHCPv6 Reservations =====
+  # Read existing Kea DHCPv6 config
+  local kea_dhcp6_existing_config
+  kea_dhcp6_existing_config=$(sudo cat "$kea_dhcp6_config_file")
+
+  # Build JSON array of DHCPv6 reservations from cache file
+  local kea_dhcp6_reservations_json=""
+  while read -r kea_hostname kea_hw_address kea_ip_address; do
+    kea_dhcp6_reservations_json+="{
+      \"hostname\": \"$kea_hostname\",
+      \"hw-address\": \"$kea_hw_address\",
+      \"ip-addresses\": [ \"${ipv6_address}\" ]
+    },"
+  done < "$kea_cache_file"
+
+  kea_dhcp6_reservations_json="[${kea_dhcp6_reservations_json%,}]"
+
+  # Insert DHCPv6 reservations into config JSON
+  local kea_dhcp6_new_config
+  kea_dhcp6_new_config=$(echo "$kea_dhcp6_existing_config" | \
+    jq --argjson reservations "$kea_dhcp6_reservations_json" \
+      '.Dhcp6.subnet6[0].reservations = $reservations')
+
+  # Wrap into config-set command for DHCPv6
+  cat > "$kea_dhcp6_tmp_config" <<EOF
+{
+  "command": "config-set",
+  "service": [ "dhcp6" ],
+  "arguments": $kea_dhcp6_new_config
+}
+EOF
+
+  # ===== Delete old DHCPv4 leases =====
+  # Delete old DHCPv4 lease by MAC (safe if none exists)
   curl -s -X POST -H "Content-Type: application/json" \
     -u "$kea_api_auth" \
     -d "{
@@ -895,7 +999,10 @@ EOF
         }" \
   "$kea_api_url" &>/dev/null
 
-  # Delete lease by IP (safe if none exists)
+  # Delete DHCPv4 lease by IP (safe if none exists)
+  curl -s -X POST -H "Content-Type: application/json" \
+    -u "$kea_api_auth" \
+  # Delete DHCPv4 lease by IP (safe if none exists)
   curl -s -X POST -H "Content-Type: application/json" \
     -u "$kea_api_auth" \
     -d "{
@@ -908,15 +1015,54 @@ EOF
         }" \
    "$kea_api_url" &>/dev/null
 
-  # Push new config dynamically
+  # ===== Delete old DHCPv6 leases =====
+  # Delete old DHCPv6 lease by MAC (safe if none exists)
+  curl -s -X POST -H "Content-Type: application/json" \
+    -u "$kea_api_auth" \
+    -d "{
+          \"command\": \"lease6-del\",
+          \"service\": [ \"dhcp6\" ],
+          \"arguments\": {
+            \"identifier-type\": \"hw-address\",
+            \"identifier\": \"${mac_address_of_host}\",
+            \"subnet-id\": 1
+          }
+        }" \
+  "$kea_api_url" &>/dev/null
+
+  # Delete DHCPv6 lease by IP (safe if none exists)
+  curl -s -X POST -H "Content-Type: application/json" \
+    -u "$kea_api_auth" \
+    -d "{
+          \"command\": \"lease6-del\",
+          \"service\": [ \"dhcp6\" ],
+          \"arguments\": {
+            \"ip-address\": \"${ipv6_address}\",
+            \"subnet-id\": 1
+          }
+        }" \
+   "$kea_api_url" &>/dev/null
+
+  # ===== Push new configs dynamically =====
+  # Push DHCPv4 config
+  if ! curl -s -X POST -H "Content-Type: application/json" \
+    -u "$kea_api_auth" \
+    -d @"$kea_dhcp4_tmp_config" \
+    "$kea_api_url" &>/dev/null; then
+    print_task_fail
+    print_error "Failed to update KEA DHCPv4 reservations."
+    exit 1
+  fi
+
+  # Push DHCPv6 config
   if curl -s -X POST -H "Content-Type: application/json" \
     -u "$kea_api_auth" \
-    -d @"$kea_tmp_config" \
+    -d @"$kea_dhcp6_tmp_config" \
     "$kea_api_url" &>/dev/null; then
     print_task_done
   else
     print_task_fail
-    print_error "Failed to update KEA DHCP reservations."
+    print_error "Failed to update KEA DHCPv6 reservations."
     exit 1
   fi
 }
