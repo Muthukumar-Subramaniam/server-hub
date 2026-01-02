@@ -55,9 +55,9 @@ for entry in "${services_to_check[@]}"; do
     IFS=':' read -r service_name service_port service_proto <<< "$entry"
 
     if [[ "$service_proto" == "udp" ]]; then
-        nc -z -u -w 3 "$lab_infra_server_ipv4_address" "$service_port" &>/dev/null
+        nc -z -u -w 3 "$lab_infra_server_hostname" "$service_port" &>/dev/null
     else
-        nc -z -w 3 "$lab_infra_server_ipv4_address" "$service_port" &>/dev/null
+        nc -z -w 3 "$lab_infra_server_hostname" "$service_port" &>/dev/null
     fi
 
     if [[ $? -eq 0 ]]; then

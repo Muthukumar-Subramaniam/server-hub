@@ -126,7 +126,7 @@ remove_vm() {
                 print_warning "Could not clean up ksmanager databases."
             fi
         else
-            if ! ssh -o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "${lab_infra_admin_username}@${lab_infra_server_ipv4_address}" "ksmanager $vm_name --remove-host"; then
+            if ! ssh -o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "${lab_infra_admin_username}@${lab_infra_server_hostname}" "ksmanager $vm_name --remove-host"; then
                 print_warning "Could not clean up ksmanager databases."
             fi
         fi

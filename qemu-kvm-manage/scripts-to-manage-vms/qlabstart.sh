@@ -15,7 +15,7 @@ lab_bridge_interface_name="labbr0"
 # ====== DNS CONFIGURATION FUNCTION ======
 configure_dns_for_bridge() {
     print_task "Configuring DNS for $lab_bridge_interface_name..."
-    sudo resolvectl dns "$lab_bridge_interface_name" "$lab_infra_server_ipv4_address" || print_warning "Could not set DNS server"
+    sudo resolvectl dns "$lab_bridge_interface_name" "$lab_infra_server_ipv4_address" "$lab_infra_server_ipv6_address" || print_warning "Could not set DNS server"
     sudo resolvectl domain "$lab_bridge_interface_name" "$lab_infra_domain_name" || print_warning "Could not set DNS domain"
     print_task_done
 }
@@ -265,9 +265,9 @@ when_lab_infra_server_is_vm() {
         IFS=':' read -r service_name service_port service_proto <<< "$entry"
         
         if [[ "$service_proto" == "udp" ]]; then
-            nc -z -u -w 3 "$lab_infra_server_ipv4_address" "$service_port" &>/dev/null
+            nc -z -u -w 3 "$lab_infra_server_hostname" "$service_port" &>/dev/null
         else
-            nc -z -w 3 "$lab_infra_server_ipv4_address" "$service_port" &>/dev/null
+            nc -z -w 3 "$lab_infra_server_hostname" "$service_port" &>/dev/null
         fi
         
         if [[ $? -eq 0 ]]; then

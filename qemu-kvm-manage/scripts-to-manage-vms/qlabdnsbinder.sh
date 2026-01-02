@@ -21,7 +21,7 @@ if grep -q "${lab_infra_server_ipv4_address}" <<< "$(resolvectl)"; then
     print_task_done
 else
     if ip link show labbr0 &>/dev/null; then
-       if error_msg=$(sudo resolvectl dns labbr0 "${lab_infra_server_ipv4_address}" 2>&1) && \
+       if error_msg=$(sudo resolvectl dns labbr0 "${lab_infra_server_ipv4_address}" "${lab_infra_server_ipv6_address}" 2>&1) && \
           error_msg=$(sudo resolvectl domain labbr0 "~${lab_infra_domain_name}" 2>&1); then
            print_task_done
        else
@@ -42,7 +42,7 @@ if $lab_infra_server_mode_is_host; then
     sudo dnsbinder "$@"
     exit_code=$?
 else
-    ssh -o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -t "${lab_infra_admin_username}@${lab_infra_server_ipv4_address}" "sudo dnsbinder $(printf '%q ' "$@")"
+    ssh -o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -t "${lab_infra_admin_username}@${lab_infra_server_hostname}" "sudo dnsbinder $(printf '%q ' "$@")"
     exit_code=$?
 fi
 
