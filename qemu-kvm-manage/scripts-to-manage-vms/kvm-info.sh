@@ -190,6 +190,9 @@ uptime_info=$(uptime -p 2>/dev/null || uptime | awk -F'up ' '{print $2}' | awk -
 mem_total=$(awk '/MemTotal/ {printf "%.0f", $2/1024}' /proc/meminfo)
 mem_used=$(awk '/MemTotal/ {total=$2} /MemAvailable/ {avail=$2} END {printf "%.0f", (total-avail)/1024}' /proc/meminfo)
 
+# Root filesystem usage
+root_fs_info=$(df -h / | awk 'NR==2 {printf "%s|%s|%s|%s", $2, $3, $4, $5}')
+
 # IP addresses (IPv4 and IPv6)
 ipv4_addrs=$(ip -4 addr show | grep -oP '(?<=inet\s)\d+(\.\d+){3}' | grep -v '^127\.' | tr '\n' ',' | sed 's/,$//')
 ipv6_addrs=$(ip -6 addr show | grep -oP '(?<=inet6\s)[0-9a-f:]+' | grep -v '^::1' | grep -v '^fe80:' | tr '\n' ',' | sed 's/,$//')
@@ -198,7 +201,7 @@ ipv6_addrs=$(ip -6 addr show | grep -oP '(?<=inet6\s)[0-9a-f:]+' | grep -v '^::1
 storage_info=$(lsblk -dno NAME,SIZE,TYPE | grep 'disk' | awk '{printf "%s:%s,", $1, $2}' | sed 's/,$//')
 
 # Output all info separated by |
-echo "${os_distro}|${birthdate}|${uptime_info}|${mem_total}|${mem_used}|${ipv4_addrs}|${ipv6_addrs}|${storage_info}"
+echo "${os_distro}|${birthdate}|${uptime_info}|${mem_total}|${mem_used}|${root_fs_info}|${ipv4_addrs}|${ipv6_addrs}|${storage_info}"
 EOSSH
 )
     
@@ -212,7 +215,7 @@ EOSSH
     fi
     
     # Parse the data
-    IFS='|' read -r os_distro birthdate uptime mem_total mem_used ipv4_addrs ipv6_addrs storage_info <<< "$vm_data"
+    IFS='|' read -r os_distro birthdate uptime mem_total mem_used root_fs_total root_fs_used root_fs_avail root_fs_percent ipv4_addrs ipv6_addrs storage_info <<< "$vm_data"
     
     # Display information
     print_green "════════════════════════════════════════════════════════════════"
@@ -238,6 +241,12 @@ EOSSH
     print_cyan "Memory:"
     echo "  Allocated: ${memory_mb} MB"
     echo "  Used: ${mem_used} MB / ${mem_total} MB"
+    echo
+    
+    print_cyan "Root Filesystem:"
+    echo "  Size: ${root_fs_total}"
+    echo "  Used: ${root_fs_used} (${root_fs_percent})"
+    echo "  Available: ${root_fs_avail}"
     echo
     
     print_cyan "IPv4 Addresses:"
