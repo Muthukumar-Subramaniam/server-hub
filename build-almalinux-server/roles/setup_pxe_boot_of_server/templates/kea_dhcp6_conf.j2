@@ -36,6 +36,10 @@
           {
             "name": "domain-search",
             "data": "{{ ansible_env.dnsbinder_domain }}"
+          },
+          {
+            "name": "bootfile-url",
+            "data": "http://{{ ansible_env.dnsbinder_server_fqdn }}/ipxe/ipxe.efi"
           }
         ]
       }

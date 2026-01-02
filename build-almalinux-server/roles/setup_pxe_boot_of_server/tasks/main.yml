@@ -51,20 +51,14 @@
     path: "/{{ ansible_env.dnsbinder_server_short_name }}.{{ ansible_env.dnsbinder_domain }}/ipxe"
     state: directory
 
-- name: Copy /usr/share/syslinux to /var/lib/tftpboot
-  become: true
-  ansible.posix.synchronize:
-    src: /usr/share/syslinux/
-    dest: /var/lib/tftpboot/
-
-- name: Copy custom-built ipxe.efi to tftpboot directory
+- name: Deploy ipxe.efi for HTTP boot
   become: true
   copy:
     src: ipxe.efi
-    dest: "{{ ipxe_tftp_target }}"
+    dest: "/{{ ansible_env.dnsbinder_server_short_name }}.{{ ansible_env.dnsbinder_domain }}/ipxe/ipxe.efi"
     mode: '0644'
 
-- name: Enable and Start kea-dhcp4,kea-dhcp6,kea-ctrl-agent and tftp.socket
+- name: Enable and Start kea-dhcp4,kea-dhcp6,kea-ctrl-agent
   become: true
   systemd_service:
     name: "{{ item }}"
@@ -74,9 +68,8 @@
     - "kea-dhcp4"
     - "kea-dhcp6"
     - "kea-ctrl-agent"
-    - "tftp.socket"
 
-- name: Restart kea-dhcp4,kea-dhcp6,kea-ctrl-agent and tftp.socket
+- name: Restart kea-dhcp4,kea-dhcp6,kea-ctrl-agent
   become: true
   systemd_service:
     name: "{{ item }}"
@@ -85,7 +78,6 @@
     - "kea-dhcp4"
     - "kea-dhcp6"
     - "kea-ctrl-agent"
-    - "tftp.socket"
 
 - name: Create command sym-link dnsbinder
   become: true

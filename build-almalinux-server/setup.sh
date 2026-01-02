@@ -69,6 +69,12 @@ fi
 
 source /etc/environment
 
+echo -e "\nCreating CNAME record for lab-infra-server . . .\n"
+
+if ! sudo bash /server-hub/named-manage/dnsbinder.sh -cc "lab-infra-server" "${dnsbinder_server_short_name}"; then
+	echo -e "\nWarning: Failed to create CNAME for lab-infra-server\n"
+fi
+
 echo -e "\nSetting motd . . .\n"
 
 cat << EOF | sudo tee /etc/motd &>/dev/null

@@ -49,8 +49,7 @@
             "data": "{{ ansible_env.dnsbinder_broadcast }}"
           }
         ],
-        "next-server": "{{ ansible_env.dnsbinder_server_ipv4_address }}",
-        "boot-file-name": "ipxe.efi"
+        "boot-file-name": "http://{{ ansible_env.dnsbinder_server_fqdn }}/ipxe/ipxe.efi"
       }
     ]
   }

@@ -707,7 +707,7 @@ deploy_lab_infra_server_host() {
 
   REQUIRED_PACKAGES=(
     bash-completion vim git bind-utils bind wget tar net-tools cifs-utils zip
-    tftp-server kea kea-hooks syslinux nginx nginx-mod-stream tmux
+    kea kea-hooks nginx nginx-mod-stream tmux
     rsync sysstat tcpdump traceroute nc samba-client lsof nfs-utils
     nmap tuned tree yum-utils
   )
@@ -743,9 +743,14 @@ deploy_lab_infra_server_host() {
   # Lab Infra DNS configuration
   # ---------------------------
   print_info "Setting up Lab Infra DNS with custom utility dnsbinder (dual-stack)..."
-  if ! sudo bash /server-hub/named-manage/dnsbinder.sh --setup "${lab_infra_domain_name}" "${lab_infra_server_ipv6_ula_subnet}"; then
+  if ! sudo bash /server-hub/named-manage/dnsbinder.sh --setup "${lab_infra_domain_name}"; then
     print_error "Failed to setup DNS with dnsbinder"
     exit 1
+  fi
+
+  print_info "Creating CNAME record for lab-infra-server..."
+  if ! sudo bash /server-hub/named-manage/dnsbinder.sh -cc "lab-infra-server" "${lab_infra_hostname}"; then
+    print_warning "Failed to create CNAME for lab-infra-server"
   fi
 
   # Set mgmt_super_user in environment using lab_infra_admin_username
