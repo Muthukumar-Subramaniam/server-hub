@@ -15,11 +15,12 @@
     src: nfs-exports.j2  
     dest: /etc/exports
 
-- name: Update hostname {{ ansible_facts.env.dnsbinder_server_fqdn }} in /etc/nfs.conf 
+- name: Configure NFS to listen on both IPv4 and IPv6 addresses in /etc/nfs.conf
   become: true
   lineinfile:
     path: /etc/nfs.conf
-    line: "host={{ ansible_facts.env.dnsbinder_server_fqdn }}"
+    line: "host={{ ansible_facts.env.dnsbinder_server_ipv4_address }},{{ ansible_facts.env.dnsbinder_server_ipv6_address }}"
+    regexp: '^host='
     insertafter: '^\[nfsd\]$'
     backup: true
 
