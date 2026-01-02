@@ -82,14 +82,21 @@ when_lab_infra_server_is_host() {
     done
     print_task_done
     
-    # ====== STEP 5: Assign IP address ======
-    print_task "Configuring IP ${lab_infra_server_ipv4_address} netmask ${lab_infra_server_ipv4_netmask} on $lab_bridge_interface_name..."
-    # Add the secondary IP address with netmask
+    # ====== STEP 5: Assign IP addresses (dual-stack) ======
+    print_task "Configuring IPv4 ${lab_infra_server_ipv4_address}/${lab_infra_server_ipv4_netmask} on $lab_bridge_interface_name..."
     if sudo ip addr add "${lab_infra_server_ipv4_address}/${lab_infra_server_ipv4_netmask}" dev "$lab_bridge_interface_name" 2>/dev/null; then
         print_task_done
     else
         print_task_done
-        print_info "IP address may already be assigned"
+        print_info "IPv4 address may already be assigned"
+    fi
+
+    print_task "Configuring IPv6 ${lab_infra_server_ipv6_address}/${lab_infra_server_ipv6_prefix} on $lab_bridge_interface_name..."
+    if sudo ip addr add "${lab_infra_server_ipv6_address}/${lab_infra_server_ipv6_prefix}" dev "$lab_bridge_interface_name" 2>/dev/null; then
+        print_task_done
+    else
+        print_task_done
+        print_info "IPv6 address may already be assigned"
     fi
 
     # ====== STEP 6: Restart named service ======

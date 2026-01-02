@@ -98,7 +98,7 @@ for qemu_kvm_hostname in "${HOSTNAMES[@]}"; do
 
     # Update /etc/hosts
     source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/update-etc-hosts.sh
-    if ! update_etc_hosts "${qemu_kvm_hostname}" "${IPV4_ADDRESS}"; then
+    if ! update_etc_hosts "${qemu_kvm_hostname}" "${IPV4_ADDRESS}" "${IPV6_ADDRESS}"; then
         FAILED_VMS+=("$qemu_kvm_hostname")
         continue
     fi
