@@ -16,6 +16,7 @@
       - zip
       - kea
       - kea-hooks
+      - tftp-server
       - nginx
       - nginx-mod-stream
       - tmux

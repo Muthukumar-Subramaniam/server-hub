@@ -39,7 +39,7 @@
           },
           {
             "name": "bootfile-url",
-            "data": "http://{{ ansible_facts.env.dnsbinder_server_fqdn }}/ipxe/ipxe.efi"
+            "data": "tftp://[{{ ansible_facts.env.dnsbinder_server_ipv6_address }}]/ipxe.efi"
           }
         ]
       }

@@ -58,6 +58,20 @@
     dest: "/{{ ansible_facts.env.dnsbinder_server_short_name }}.{{ ansible_facts.env.dnsbinder_domain }}/ipxe/ipxe.efi"
     mode: '0644'
 
+- name: Deploy ipxe.efi to TFTP directory for PXE boot
+  become: true
+  copy:
+    src: ipxe.efi
+    dest: "/var/lib/tftpboot/ipxe.efi"
+    mode: '0644'
+
+- name: Enable and Start tftp.socket
+  become: true
+  systemd_service:
+    name: tftp.socket
+    state: started
+    enabled: true
+
 - name: Enable and Start kea-dhcp4,kea-dhcp6,kea-ctrl-agent
   become: true
   systemd_service:
