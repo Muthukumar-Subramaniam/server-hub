@@ -2,4 +2,4 @@
 dhcp
 set mymacaddress ${net0/mac:hexhyp}
 echo "iPXE boot from MAC : ${mymacaddress}"
-chain http://{{ ansible_env.dnsbinder_server_ipv4_address }}/ipxe/${mymacaddress}.ipxe || exit
+chain http://{{ ansible_env.dnsbinder_server_fqdn }}/ipxe/${mymacaddress}.ipxe || exit

@@ -1,5 +1,6 @@
 server {
-    listen {{ ansible_env.dnsbinder_server_fqdn }}:80;
+    listen {{ ansible_env.dnsbinder_server_ipv4_address }}:80;
+    listen [{{ ansible_env.dnsbinder_server_ipv6_address }}]:80;
     server_name {{ ansible_env.dnsbinder_server_fqdn }};
 
     root /{{ ansible_env.dnsbinder_server_fqdn }};
