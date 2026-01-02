@@ -781,10 +781,10 @@ deploy_lab_infra_server_host() {
     done < /etc/environment
   fi
 
-  print_info "Reserving DNS Records for DHCP lease..."
+  print_info "Reserving DNS Records for DHCP lease (last 99 IPs: .156-.254)..."
 
-  # Loop through IPs 201–254 to create DHCP lease DNS entries
-  for IPOCTET in $(seq 201 254); do
+  # Loop through IPs 156–254 to create DHCP lease DNS entries (dual-stack A+AAAA)
+  for IPOCTET in $(seq 156 254); do
     if ! sudo bash /server-hub/named-manage/dnsbinder.sh -ci "dhcp-lease${IPOCTET}" "${dnsbinder_last24_subnet}.${IPOCTET}"; then
       print_warning "Failed to create DNS record for dhcp-lease${IPOCTET}"
     fi

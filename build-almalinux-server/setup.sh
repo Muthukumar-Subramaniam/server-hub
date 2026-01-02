@@ -85,9 +85,9 @@ cat << EOF | sudo tee /etc/motd &>/dev/null
 +-------------------------------------------------------------+
 EOF
 
-echo -e "\nReserve Records for DHCP lease DNS . . .\n"
+echo -e "\nReserve Records for DHCP lease DNS (last 99 IPs: .156-.254) . . .\n"
 
-for IP in $(seq 201 254); do
+for IP in $(seq 156 254); do
 	if ! sudo bash /server-hub/named-manage/dnsbinder.sh -ci "dhcp-lease${IP}" "${dnsbinder_last24_subnet}.${IP}"; then
 		echo -e "\nWarning: Failed to create DNS record for dhcp-lease${IP}\n"
 	fi

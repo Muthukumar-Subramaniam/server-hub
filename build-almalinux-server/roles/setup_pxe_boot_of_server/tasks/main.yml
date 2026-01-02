@@ -6,6 +6,12 @@
     src: kea_dhcp4_conf.j2
     dest: /etc/kea/kea-dhcp4.conf
 
+- name: Configure /etc/kea/kea-dhcp6.conf
+  become: true
+  template:
+    src: kea_dhcp6_conf.j2
+    dest: /etc/kea/kea-dhcp6.conf
+
 - name: Configure /etc/kea/kea-ctrl-agent.conf
   become: true
   template:
@@ -58,7 +64,7 @@
     dest: "{{ ipxe_tftp_target }}"
     mode: '0644'
 
-- name: Enable and Start kea-dhcp4,kea-ctrl-agent and tftp.socket
+- name: Enable and Start kea-dhcp4,kea-dhcp6,kea-ctrl-agent and tftp.socket
   become: true
   systemd_service:
     name: "{{ item }}"
@@ -66,16 +72,18 @@
     enabled: true
   loop:
     - "kea-dhcp4"
+    - "kea-dhcp6"
     - "kea-ctrl-agent"
     - "tftp.socket"
 
-- name: Restart kea-dhcp4,kea-ctrl-agent and tftp.socket
+- name: Restart kea-dhcp4,kea-dhcp6,kea-ctrl-agent and tftp.socket
   become: true
   systemd_service:
     name: "{{ item }}"
     state: restarted
   loop:
     - "kea-dhcp4"
+    - "kea-dhcp6"
     - "kea-ctrl-agent"
     - "tftp.socket"
 
