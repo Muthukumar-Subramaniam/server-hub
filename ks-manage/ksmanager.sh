@@ -334,7 +334,7 @@ if $remove_host_requested; then
         kea_dhcp4_existing_config=$(sudo cat "$kea_dhcp4_config_file")
         
         kea_dhcp4_reservations_json=""
-        while read -r kea_hostname kea_hw_address kea_ip_address; do
+        while read -r kea_hostname kea_hw_address kea_ip_address kea_ipv6_address; do
             kea_dhcp4_reservations_json+="{
               \"hostname\": \"$kea_hostname\",
               \"hw-address\": \"$kea_hw_address\",
@@ -927,7 +927,7 @@ fn_update_kea_dhcp_reservations() {
 
   # Build JSON array of DHCPv4 reservations from cache file
   local kea_dhcp4_reservations_json=""
-  while read -r kea_hostname kea_hw_address kea_ip_address; do
+  while read -r kea_hostname kea_hw_address kea_ip_address kea_ipv6_address; do
     kea_dhcp4_reservations_json+="{
       \"hostname\": \"$kea_hostname\",
       \"hw-address\": \"$kea_hw_address\",
@@ -959,11 +959,11 @@ EOF
 
   # Build JSON array of DHCPv6 reservations from cache file
   local kea_dhcp6_reservations_json=""
-  while read -r kea_hostname kea_hw_address kea_ip_address; do
+  while read -r kea_hostname kea_hw_address kea_ip_address kea_ipv6_address; do
     kea_dhcp6_reservations_json+="{
       \"hostname\": \"$kea_hostname\",
       \"hw-address\": \"$kea_hw_address\",
-      \"ip-addresses\": [ \"${ipv6_address}\" ]
+      \"ip-addresses\": [ \"${kea_ipv6_address}\" ]
     },"
   done < "$kea_cache_file"
 
@@ -999,9 +999,6 @@ EOF
         }" \
   "$kea_api_url" &>/dev/null
 
-  # Delete DHCPv4 lease by IP (safe if none exists)
-  curl -s -X POST -H "Content-Type: application/json" \
-    -u "$kea_api_auth" \
   # Delete DHCPv4 lease by IP (safe if none exists)
   curl -s -X POST -H "Content-Type: application/json" \
     -u "$kea_api_auth" \
