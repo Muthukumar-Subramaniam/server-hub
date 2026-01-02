@@ -162,6 +162,7 @@ qlabvmctl reimage-pxe               # 🔄 Reinstall VMs via PXE boot
 ### 🎮 VM Operations
 ```bash
 qlabvmctl list                      # 📊 View all VMs and their status
+qlabvmctl info                      # ℹ️ Display detailed VM information
 qlabvmctl console                   # 🖥️ Connect to VM serial console
 qlabvmctl start                     # ▶️ Power on VMs
 qlabvmctl stop                      # ⏹️ Force power-off VMs
@@ -181,6 +182,11 @@ qlabvmctl disk-detach               # 📤 Detach and save disks for later use
 qlabvmctl disk-delete               # 🗑️ Permanently delete detached disks
 qlabvmctl nic-add                   # 🌐 Add network interfaces to VM
 qlabvmctl nic-remove                # ❌ Remove network interfaces from VM
+```
+
+### 🌐 Network Management
+```bash
+qlabvmctl ipv6-route                # 🛣️ Manage IPv6 default routes (enable/disable/auto/status)
 ```
 
 ### 🌍 Infrastructure Management
