@@ -140,20 +140,22 @@ get_vm_info() {
     local vm_state=$(sudo virsh domstate "$vm_name" 2>/dev/null || echo "unknown")
     
     if [[ "$vm_state" != "running" ]]; then
-        print_yellow "════════════════════════════════════════════════════════════════"
-        print_yellow "VM: $vm_name"
-        print_yellow "State: $vm_state"
-        print_yellow "════════════════════════════════════════════════════════════════"
+        print_yellow "╔════════════════════════════════════════════════════════════════╗"
+        print_yellow "║ VM: $(printf "%-58s" "$vm_name")║"
+        print_yellow "╠════════════════════════════════════════════════════════════════╣"
+        print_yellow "║ State: $(printf "%-55s" "$vm_state")║"
+        print_yellow "╚════════════════════════════════════════════════════════════════╝"
         echo
         return
     fi
     
     # Check SSH availability
     if ! nc -z -w 1 "$vm_name" 22 &>/dev/null; then
-        print_yellow "════════════════════════════════════════════════════════════════"
-        print_yellow "VM: $vm_name"
-        print_yellow "State: $vm_state (SSH not accessible)"
-        print_yellow "════════════════════════════════════════════════════════════════"
+        print_yellow "╔════════════════════════════════════════════════════════════════╗"
+        print_yellow "║ VM: $(printf "%-58s" "$vm_name")║"
+        print_yellow "╠════════════════════════════════════════════════════════════════╣"
+        print_yellow "║ State: $(printf "%-55s" "$vm_state (SSH not accessible)")║"
+        print_yellow "╚════════════════════════════════════════════════════════════════╝"
         echo
         return
     fi
@@ -206,10 +208,11 @@ EOSSH
 )
     
     if [[ -z "$vm_data" ]]; then
-        print_yellow "════════════════════════════════════════════════════════════════"
-        print_yellow "VM: $vm_name"
-        print_yellow "State: $vm_state (Failed to retrieve information)"
-        print_yellow "════════════════════════════════════════════════════════════════"
+        print_yellow "╔════════════════════════════════════════════════════════════════╗"
+        print_yellow "║ VM: $(printf "%-58s" "$vm_name")║"
+        print_yellow "╠════════════════════════════════════════════════════════════════╣"
+        print_yellow "║ State: $(printf "%-55s" "$vm_state (Failed to retrieve information)")║"
+        print_yellow "╚════════════════════════════════════════════════════════════════╝"
         echo
         return
     fi
@@ -218,68 +221,52 @@ EOSSH
     IFS='|' read -r os_distro birthdate uptime mem_total mem_used root_fs_total root_fs_used root_fs_avail root_fs_percent ipv4_addrs ipv6_addrs storage_info <<< "$vm_data"
     
     # Display information
-    print_green "════════════════════════════════════════════════════════════════"
-    print_green "VM: $vm_name"
-    print_green "════════════════════════════════════════════════════════════════"
-    
-    print_cyan "OS Distribution:"
-    echo "  $os_distro"
+    print_green "╔════════════════════════════════════════════════════════════════╗"
+    print_green "║ VM: $(printf "%-58s" "$vm_name")║"
+    print_green "╚════════════════════════════════════════════════════════════════╝"
     echo
     
-    print_cyan "System Birthdate:"
-    echo "  $birthdate"
+    printf "  $(print_cyan "OS:")          %s\n" "$os_distro"
+    printf "  $(print_cyan "Birthdate:")   %s\n" "$birthdate"
+    printf "  $(print_cyan "Uptime:")      %s\n" "$uptime"
     echo
     
-    print_cyan "Uptime:"
-    echo "  $uptime"
+    printf "  $(print_cyan "CPU:")         %s cores\n" "$cpu_cores"
+    printf "  $(print_cyan "Memory:")      %s MB allocated  |  %s MB used / %s MB total\n" "$memory_mb" "$mem_used" "$mem_total"
+    printf "  $(print_cyan "Root FS:")     %s total  |  %s used (%s)  |  %s available\n" "$root_fs_total" "$root_fs_used" "$root_fs_percent" "$root_fs_avail"
     echo
     
-    print_cyan "CPU:"
-    echo "  ${cpu_cores} cores"
-    echo
-    
-    print_cyan "Memory:"
-    echo "  Allocated: ${memory_mb} MB"
-    echo "  Used: ${mem_used} MB / ${mem_total} MB"
-    echo
-    
-    print_cyan "Root Filesystem:"
-    echo "  Size: ${root_fs_total}"
-    echo "  Used: ${root_fs_used} (${root_fs_percent})"
-    echo "  Available: ${root_fs_avail}"
-    echo
-    
-    print_cyan "IPv4 Addresses:"
+    print_cyan "  Network:"
     if [[ -n "$ipv4_addrs" ]]; then
         IFS=',' read -ra ipv4_array <<< "$ipv4_addrs"
-        for ip in "${ipv4_array[@]}"; do
-            echo "  $ip"
+        printf "    IPv4: %s\n" "${ipv4_array[0]}"
+        for ((i=1; i<${#ipv4_array[@]}; i++)); do
+            printf "          %s\n" "${ipv4_array[i]}"
         done
     else
-        echo "  None"
+        printf "    IPv4: None\n"
     fi
-    echo
     
-    print_cyan "IPv6 Addresses:"
     if [[ -n "$ipv6_addrs" ]]; then
         IFS=',' read -ra ipv6_array <<< "$ipv6_addrs"
-        for ip in "${ipv6_array[@]}"; do
-            echo "  $ip"
+        printf "    IPv6: %s\n" "${ipv6_array[0]}"
+        for ((i=1; i<${#ipv6_array[@]}; i++)); do
+            printf "          %s\n" "${ipv6_array[i]}"
         done
     else
-        echo "  None"
+        printf "    IPv6: None\n"
     fi
     echo
     
-    print_cyan "Storage:"
+    print_cyan "  Storage:"
     if [[ -n "$storage_info" ]]; then
         IFS=',' read -ra storage_array <<< "$storage_info"
         for disk in "${storage_array[@]}"; do
             IFS=':' read -r disk_name disk_size <<< "$disk"
-            echo "  /dev/${disk_name}: ${disk_size}"
+            printf "    /dev/%-4s  %s\n" "${disk_name}" "${disk_size}"
         done
     else
-        echo "  N/A"
+        printf "    N/A\n"
     fi
     echo
 }
