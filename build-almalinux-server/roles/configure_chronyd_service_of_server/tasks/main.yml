@@ -11,14 +11,14 @@
 - name: Configure custom NTP server with chrony
   become: true
   blockinfile:
-    marker: "# {mark} ntp-{{ ansible_env.dnsbinder_server_fqdn }}-settings"
+    marker: "# {mark} ntp-{{ ansible_facts.env.dnsbinder_server_fqdn }}-settings"
     path: /etc/chrony.conf
     block: |
       # Use Google's NTP pool as time source
       pool time.google.com iburst
       # Allow NTP client access from local network.
-      bindaddress {{ ansible_env.dnsbinder_server_ipv4_address }}
-      allow {{ ansible_env.dnsbinder_network_cidr }}
+      bindaddress {{ ansible_facts.env.dnsbinder_server_ipv4_address }}
+      allow {{ ansible_facts.env.dnsbinder_network_cidr }}
       # Serve time even if not synchronized to a time source.
       local stratum 10
     insertafter: EOF

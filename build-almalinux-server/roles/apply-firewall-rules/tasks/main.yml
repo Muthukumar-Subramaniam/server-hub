@@ -19,10 +19,10 @@
       Firewalld is running. Proceeding to add firewall rules.
   when: firewalld_status.stdout == "active"
 
-- name: Add local Network CIDR ( {{ ansible_env.dnsbinder_network_cidr }} ) to trusted zone
+- name: Add local Network CIDR ( {{ ansible_facts.env.dnsbinder_network_cidr }} ) to trusted zone
   become: true
   ansible.posix.firewalld:
-    source: "{{ ansible_env.dnsbinder_network_cidr }}"
+    source: "{{ ansible_facts.env.dnsbinder_network_cidr }}"
     zone: trusted
     permanent: true
     immediate: true

@@ -6,12 +6,12 @@
     url: https://raw.githubusercontent.com/git/git/master/contrib/completion/git-prompt.sh
     dest: /root/.git-prompt.sh
 
-- name: Download git-prompt.sh for {{ ansible_env.mgmt_super_user }}
+- name: Download git-prompt.sh for {{ ansible_facts.env.mgmt_super_user }}
   get_url:
     url: https://raw.githubusercontent.com/git/git/master/contrib/completion/git-prompt.sh
-    dest: "/home/{{ ansible_env.mgmt_super_user }}/.git-prompt.sh"
+    dest: "/home/{{ ansible_facts.env.mgmt_super_user }}/.git-prompt.sh"
 
-- name: Append source command for git-prompt.sh in .bashrc of root and {{ ansible_env.mgmt_super_user }}
+- name: Append source command for git-prompt.sh in .bashrc of root and {{ ansible_facts.env.mgmt_super_user }}
   become: true
   lineinfile:
     path: "{{ item }}"
@@ -20,12 +20,12 @@
     backup: true
   loop:
     - "/root/.bashrc"
-    - "/home/{{ ansible_env.mgmt_super_user }}/.bashrc"
+    - "/home/{{ ansible_facts.env.mgmt_super_user }}/.bashrc"
 
-- name: Update PS1 variable in .bashrc for {{ ansible_env.mgmt_super_user }} user
+- name: Update PS1 variable in .bashrc for {{ ansible_facts.env.mgmt_super_user }} user
   become: true
   lineinfile:
-    path: "/home/{{ ansible_env.mgmt_super_user }}/.bashrc"
+    path: "/home/{{ ansible_facts.env.mgmt_super_user }}/.bashrc"
     line: "{{ ps1_variable_mgmt_user }}"
     state: present
 

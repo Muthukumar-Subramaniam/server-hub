@@ -1,22 +1,22 @@
 ---
 # tasks file for configure_nginx_web_server
-- name: Create directory /{{ ansible_env.dnsbinder_server_fqdn }}
+- name: Create directory /{{ ansible_facts.env.dnsbinder_server_fqdn }}
   become: true
   file:
-    path: "/{{ ansible_env.dnsbinder_server_fqdn }}"
+    path: "/{{ ansible_facts.env.dnsbinder_server_fqdn }}"
     state: directory
-    owner: "{{ ansible_env.mgmt_super_user }}"
-    group: "{{ ansible_env.mgmt_super_user }}"
+    owner: "{{ ansible_facts.env.mgmt_super_user }}"
+    group: "{{ ansible_facts.env.mgmt_super_user }}"
 
 - name: Comment out all server blocks in /etc/nginx/nginx.conf
   become: true
   command: sed -i '/server {/,/}/ s/^\([^#]\)/#\1/' /etc/nginx/nginx.conf
 
-- name: Create custom nginx configuration for {{ ansible_env.dnsbinder_server_fqdn }}
+- name: Create custom nginx configuration for {{ ansible_facts.env.dnsbinder_server_fqdn }}
   become: true
   template:
     src: custom_nginx_config.j2 
-    dest: "/etc/nginx/conf.d/{{ ansible_env.dnsbinder_server_fqdn }}.conf"
+    dest: "/etc/nginx/conf.d/{{ ansible_facts.env.dnsbinder_server_fqdn }}.conf"
 
 - name: Ensure drop-in directory exists for nginx
   become: true

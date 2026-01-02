@@ -5,7 +5,7 @@
       "socket-name": "/run/kea/kea4-ctrl-socket"
     },
     "interfaces-config": {
-      "interfaces": [ "{{ ansible_env.mgmt_interface_name }}" ]
+      "interfaces": [ "{{ ansible_facts.env.mgmt_interface_name }}" ]
     },
     "lease-database": {
       "type": "memfile"
@@ -21,35 +21,35 @@
     "subnet4": [
       {
 	"id": 1,
-        "subnet": "{{ ansible_env.dnsbinder_network_cidr }}",
+        "subnet": "{{ ansible_facts.env.dnsbinder_network_cidr }}",
         "pools": [
           {
-            "pool": "{{ ansible_env.dnsbinder_last24_subnet }}.156 - {{ ansible_env.dnsbinder_last24_subnet }}.254"
+            "pool": "{{ ansible_facts.env.dnsbinder_last24_subnet }}.156 - {{ ansible_facts.env.dnsbinder_last24_subnet }}.254"
           }
         ],
         "option-data": [
           {
             "name": "routers",
-            "data": "{{ ansible_env.dnsbinder_gateway }}"
+            "data": "{{ ansible_facts.env.dnsbinder_gateway }}"
           },
           {
             "name": "domain-name-servers",
-            "data": "{{ ansible_env.dnsbinder_server_ipv4_address }}"
+            "data": "{{ ansible_facts.env.dnsbinder_server_ipv4_address }}"
           },
           {
             "name": "domain-name",
-            "data": "{{ ansible_env.dnsbinder_domain }}"
+            "data": "{{ ansible_facts.env.dnsbinder_domain }}"
           },
           {
             "name": "domain-search",
-            "data": "{{ ansible_env.dnsbinder_domain }}"
+            "data": "{{ ansible_facts.env.dnsbinder_domain }}"
           },
           {
             "name": "broadcast-address",
-            "data": "{{ ansible_env.dnsbinder_broadcast }}"
+            "data": "{{ ansible_facts.env.dnsbinder_broadcast }}"
           }
         ],
-        "boot-file-name": "http://{{ ansible_env.dnsbinder_server_fqdn }}/ipxe/ipxe.efi"
+        "boot-file-name": "http://{{ ansible_facts.env.dnsbinder_server_fqdn }}/ipxe/ipxe.efi"
       }
     ]
   }
