@@ -15,7 +15,7 @@ _qlabvmctl_completions() {
     prev="${COMP_WORDS[COMP_CWORD-1]}"
     
     # All available subcommands
-    subcommands="build-golden-image install-golden install-pxe reimage-golden reimage-pxe start stop shutdown restart reboot remove list console resize disk-add disk-resize disk-attach disk-detach disk-delete nic-add nic-remove ipv6-route version"
+    subcommands="build-golden-image install-golden install-pxe reimage-golden reimage-pxe start stop shutdown restart reboot remove list info console resize disk-add disk-resize disk-attach disk-detach disk-delete nic-add nic-remove ipv6-route version"
     
     # Top-level options
     local options="-h --help -v --version"

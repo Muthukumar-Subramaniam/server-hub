@@ -1,0 +1,286 @@
+#!/bin/bash
+#----------------------------------------------------------------------------------------#
+# If you encounter any issues with this script, or have suggestions or feature requests, #
+# please open an issue at: https://github.com/Muthukumar-Subramaniam/server-hub/issues   #
+#----------------------------------------------------------------------------------------#
+# Script Name : kvm-info.sh
+# Description : Display detailed information about VM(s) - IP stack, storage, birthdate, uptime, CPU, memory
+# Usage       : qlabvmctl info [hostname] or qlabvmctl info -H host1,host2,host3
+
+source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/defaults.sh
+
+# SSH options for connecting to VMs
+ssh_options="-o StrictHostKeyChecking=no \
+             -o UserKnownHostsFile=/dev/null \
+             -o LogLevel=QUIET \
+             -o ConnectTimeout=3 \
+             -o PasswordAuthentication=no \
+             -o PubkeyAuthentication=yes \
+             -o PreferredAuthentications=publickey \
+             -o BatchMode=yes"
+
+# Display usage information
+show_usage() {
+    print_cyan "Usage: qlabvmctl info [OPTIONS] [hostname]
+
+Display detailed VM information including IP stack, storage, birthdate, uptime, CPU, and memory.
+
+OPTIONS:
+    -H, --hosts <hosts>     Comma-separated list of hostnames (e.g., vm1,vm2,vm3)
+    -h, --help              Show this help message
+
+ARGUMENTS:
+    hostname                Single hostname to query (optional)
+
+BEHAVIOR:
+    - Without arguments: Shows info for ALL running VMs accessible via SSH
+    - With hostname: Shows info for specified VM
+    - With -H flag: Shows info for specified comma-separated VMs
+
+EXAMPLES:
+    qlabvmctl info                    # Show info for all running VMs
+    qlabvmctl info vm1                # Show info for vm1
+    qlabvmctl info -H vm1,vm2,vm3     # Show info for vm1, vm2, and vm3
+
+INFORMATION DISPLAYED:
+    - Hostname and VM state
+    - CPU cores and memory (allocated/used)
+    - Birthdate (system installation time from /etc/bigbang)
+    - Uptime
+    - IPv4 and IPv6 addresses (all interfaces)
+    - Storage devices and sizes
+    - OS distribution
+"
+}
+
+# Parse command-line arguments
+hosts_list=""
+single_host=""
+
+while [[ $# -gt 0 ]]; do
+    case "$1" in
+        -h|--help)
+            show_usage
+            exit 0
+            ;;
+        -H|--hosts)
+            shift
+            if [[ -z "$1" ]]; then
+                print_error "Option -H/--hosts requires a comma-separated list of hostnames"
+                exit 1
+            fi
+            hosts_list="$1"
+            shift
+            ;;
+        -*)
+            print_error "Unknown option: $1"
+            show_usage
+            exit 1
+            ;;
+        *)
+            if [[ -z "$single_host" ]]; then
+                single_host="$1"
+            else
+                print_error "Multiple positional arguments provided. Use -H for multiple hosts."
+                exit 1
+            fi
+            shift
+            ;;
+    esac
+done
+
+# Determine which VMs to query
+declare -a target_vms
+
+if [[ -n "$hosts_list" ]]; then
+    # Parse comma-separated list
+    IFS=',' read -ra target_vms <<< "$hosts_list"
+elif [[ -n "$single_host" ]]; then
+    target_vms=("$single_host")
+else
+    # Get all running VMs
+    mapfile -t all_vms < <(sudo virsh list --state-running | awk 'NR>2 && $2 != "" {print $2}')
+    
+    # Filter to only those accessible via SSH
+    for vm in "${all_vms[@]}"; do
+        if nc -z -w 1 "$vm" 22 &>/dev/null; then
+            target_vms+=("$vm")
+        fi
+    done
+    
+    if [[ ${#target_vms[@]} -eq 0 ]]; then
+        print_warn "No running VMs accessible via SSH found"
+        exit 0
+    fi
+fi
+
+# Function to get VM info from hypervisor
+get_vm_hypervisor_info() {
+    local vm_name="$1"
+    local cpu_count memory_kb
+    
+    # Check if VM exists
+    if ! sudo virsh dominfo "$vm_name" &>/dev/null; then
+        echo "VM_NOT_FOUND"
+        return
+    fi
+    
+    cpu_count=$(sudo virsh dominfo "$vm_name" | awk '/^CPU\(s\):/ {print $2}')
+    memory_kb=$(sudo virsh dominfo "$vm_name" | awk '/^Max memory:/ {print $3}')
+    memory_mb=$((memory_kb / 1024))
+    
+    echo "${cpu_count}|${memory_mb}"
+}
+
+# Function to gather VM information via SSH
+get_vm_info() {
+    local vm_name="$1"
+    
+    # Check if VM is running
+    local vm_state=$(sudo virsh domstate "$vm_name" 2>/dev/null || echo "unknown")
+    
+    if [[ "$vm_state" != "running" ]]; then
+        print_yellow "════════════════════════════════════════════════════════════════"
+        print_yellow "VM: $vm_name"
+        print_yellow "State: $vm_state"
+        print_yellow "════════════════════════════════════════════════════════════════"
+        echo
+        return
+    fi
+    
+    # Check SSH availability
+    if ! nc -z -w 1 "$vm_name" 22 &>/dev/null; then
+        print_yellow "════════════════════════════════════════════════════════════════"
+        print_yellow "VM: $vm_name"
+        print_yellow "State: $vm_state (SSH not accessible)"
+        print_yellow "════════════════════════════════════════════════════════════════"
+        echo
+        return
+    fi
+    
+    # Get hypervisor info
+    local hypervisor_info=$(get_vm_hypervisor_info "$vm_name")
+    if [[ "$hypervisor_info" == "VM_NOT_FOUND" ]]; then
+        print_red "VM '$vm_name' not found in hypervisor"
+        echo
+        return
+    fi
+    
+    IFS='|' read -r cpu_cores memory_mb <<< "$hypervisor_info"
+    
+    # Gather information from VM
+    local vm_data=$(ssh $ssh_options "${lab_infra_admin_username}@${vm_name}" bash <<'EOSSH'
+# OS Distribution
+os_distro="N/A"
+if [ -f /etc/os-release ]; then
+    source /etc/os-release
+    os_distro="$PRETTY_NAME"
+fi
+
+# Birthdate from /etc/bigbang
+birthdate="N/A"
+if [ -f /etc/bigbang ]; then
+    birthdate=$(cat /etc/bigbang)
+fi
+
+# Uptime
+uptime_info=$(uptime -p 2>/dev/null || uptime | awk -F'up ' '{print $2}' | awk -F',' '{print $1}')
+
+# Memory usage (in MB)
+mem_total=$(awk '/MemTotal/ {printf "%.0f", $2/1024}' /proc/meminfo)
+mem_used=$(awk '/MemTotal/ {total=$2} /MemAvailable/ {avail=$2} END {printf "%.0f", (total-avail)/1024}' /proc/meminfo)
+
+# IP addresses (IPv4 and IPv6)
+ipv4_addrs=$(ip -4 addr show | grep -oP '(?<=inet\s)\d+(\.\d+){3}' | grep -v '^127\.' | tr '\n' ',' | sed 's/,$//')
+ipv6_addrs=$(ip -6 addr show | grep -oP '(?<=inet6\s)[0-9a-f:]+' | grep -v '^::1' | grep -v '^fe80:' | tr '\n' ',' | sed 's/,$//')
+
+# Storage devices
+storage_info=$(lsblk -dno NAME,SIZE,TYPE | grep 'disk' | awk '{printf "%s:%s,", $1, $2}' | sed 's/,$//')
+
+# Output all info separated by |
+echo "${os_distro}|${birthdate}|${uptime_info}|${mem_total}|${mem_used}|${ipv4_addrs}|${ipv6_addrs}|${storage_info}"
+EOSSH
+)
+    
+    if [[ -z "$vm_data" ]]; then
+        print_yellow "════════════════════════════════════════════════════════════════"
+        print_yellow "VM: $vm_name"
+        print_yellow "State: $vm_state (Failed to retrieve information)"
+        print_yellow "════════════════════════════════════════════════════════════════"
+        echo
+        return
+    fi
+    
+    # Parse the data
+    IFS='|' read -r os_distro birthdate uptime mem_total mem_used ipv4_addrs ipv6_addrs storage_info <<< "$vm_data"
+    
+    # Display information
+    print_green "════════════════════════════════════════════════════════════════"
+    print_green "VM: $vm_name"
+    print_green "════════════════════════════════════════════════════════════════"
+    
+    print_cyan "OS Distribution:"
+    echo "  $os_distro"
+    echo
+    
+    print_cyan "System Birthdate:"
+    echo "  $birthdate"
+    echo
+    
+    print_cyan "Uptime:"
+    echo "  $uptime"
+    echo
+    
+    print_cyan "CPU:"
+    echo "  ${cpu_cores} cores"
+    echo
+    
+    print_cyan "Memory:"
+    echo "  Allocated: ${memory_mb} MB"
+    echo "  Used: ${mem_used} MB / ${mem_total} MB"
+    echo
+    
+    print_cyan "IPv4 Addresses:"
+    if [[ -n "$ipv4_addrs" ]]; then
+        IFS=',' read -ra ipv4_array <<< "$ipv4_addrs"
+        for ip in "${ipv4_array[@]}"; do
+            echo "  $ip"
+        done
+    else
+        echo "  None"
+    fi
+    echo
+    
+    print_cyan "IPv6 Addresses:"
+    if [[ -n "$ipv6_addrs" ]]; then
+        IFS=',' read -ra ipv6_array <<< "$ipv6_addrs"
+        for ip in "${ipv6_array[@]}"; do
+            echo "  $ip"
+        done
+    else
+        echo "  None"
+    fi
+    echo
+    
+    print_cyan "Storage:"
+    if [[ -n "$storage_info" ]]; then
+        IFS=',' read -ra storage_array <<< "$storage_info"
+        for disk in "${storage_array[@]}"; do
+            IFS=':' read -r disk_name disk_size <<< "$disk"
+            echo "  /dev/${disk_name}: ${disk_size}"
+        done
+    else
+        echo "  N/A"
+    fi
+    echo
+}
+
+# Main execution
+print_task "Gathering VM information..."
+echo
+
+for vm in "${target_vms[@]}"; do
+    get_vm_info "$vm"
+done
+
+print_task_done "Information gathering complete"

@@ -34,6 +34,7 @@ VM DEPLOYMENT:
 
 VM OPERATIONS:
     list                    List all VMs and their status
+    info                    Display detailed VM information
     console                 Connect to VM serial console
     start                   Start VM(s)
     stop                    Force stop (power off) VM(s)
@@ -92,7 +93,7 @@ main() {
     # Map subcommand to script
     local script_name=""
     case "$subcommand" in
-        start|stop|shutdown|restart|reboot|remove|list|console|resize)
+        start|stop|shutdown|restart|reboot|remove|list|console|resize|info)
             script_name="kvm-${subcommand}.sh"
             ;;
         install-pxe|install-golden|reimage-pxe|reimage-golden)
