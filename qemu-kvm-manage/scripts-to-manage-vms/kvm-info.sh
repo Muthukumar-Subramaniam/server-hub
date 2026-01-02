@@ -140,7 +140,7 @@ get_vm_info() {
     local vm_state=$(sudo virsh domstate "$vm_name" 2>/dev/null || echo "unknown")
     
     if [[ "$vm_state" != "running" ]]; then
-        print_yellow "$(printf '%s ' "$vm_name")$(printf '%.0s─' {1..64})"
+        print_yellow "$vm_name"
         printf "└── $(print_yellow "State:") %s\n" "$vm_state"
         echo
         return
@@ -148,7 +148,7 @@ get_vm_info() {
     
     # Check SSH availability
     if ! nc -z -w 1 "$vm_name" 22 &>/dev/null; then
-        print_yellow "$(printf '%s ' "$vm_name")$(printf '%.0s─' {1..64})"
+        print_yellow "$vm_name"
         printf "└── $(print_yellow "State:") %s\n" "$vm_state (SSH not accessible)"
         echo
         return
@@ -205,7 +205,7 @@ EOSSH
 )
     
     if [[ -z "$vm_data" ]]; then
-        print_yellow "$(printf '%s ' "$vm_name")$(printf '%.0s─' {1..64})"
+        print_yellow "$vm_name"
         printf "└── $(print_yellow "State:") %s\n" "$vm_state (Failed to retrieve information)"
         echo
         return
@@ -215,7 +215,7 @@ EOSSH
     IFS='|' read -r os_distro birthdate uptime load_avg mem_total mem_used root_fs_total root_fs_used root_fs_avail root_fs_percent ipv4_addrs ipv6_addrs storage_info <<< "$vm_data"
     
     # Display information
-    print_green "$(printf '%s ' "$vm_name")$(printf '%.0s─' {1..64})"
+    print_green "$vm_name"
     
     printf "├── $(print_cyan "OS:") %s\n" "$os_distro"
     printf "├── $(print_cyan "Birthdate:") %s\n" "$birthdate"
