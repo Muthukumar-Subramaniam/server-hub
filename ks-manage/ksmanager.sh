@@ -445,6 +445,8 @@ fn_convert_mac_for_ipxe_cfg() {
 
 fn_cache_the_mac() {
 	print_task "Caching MAC address..."
+	# Ensure the cache file exists
+	touch "${ksmanager_hub_dir}"/mac-address-cache
 	if sed -i "/${kickstart_hostname}/d" "${ksmanager_hub_dir}"/mac-address-cache && \
 	   echo "${kickstart_hostname} ${mac_address_of_host} ${ipv4_address} ${ipv6_address}" >> "${ksmanager_hub_dir}"/mac-address-cache; then
 		print_task_done

@@ -117,7 +117,7 @@ fi
 # Function to get VM info from hypervisor
 get_vm_hypervisor_info() {
     local vm_name="$1"
-    local cpu_count memory_kb
+    local cpu_count memory_kb mac_addrs nic_info
     
     # Check if VM exists
     if ! sudo virsh dominfo "$vm_name" &>/dev/null; then
@@ -129,7 +129,15 @@ get_vm_hypervisor_info() {
     memory_kb=$(sudo virsh dominfo "$vm_name" | awk '/^Max memory:/ {print $3}')
     memory_mb=$((memory_kb / 1024))
     
-    echo "${cpu_count}|${memory_mb}"
+    # Get NIC information (interface names, models, and MAC addresses)
+    nic_info=$(sudo virsh dumpxml "$vm_name" | grep -A 5 "<interface type=" | \
+        awk '/<interface type=/ {iface_type=$0} 
+             /<source (bridge|network)=/ {gsub(/.*="/, "", $0); gsub(/".*/, "", $0); source=$0} 
+             /<model type=/ {gsub(/.*type=./, "", $0); gsub(/..*/, "", $0); model=$0} 
+             /<mac address=/ {gsub(/.*address=./, "", $0); gsub(/..*/, "", $0); mac=$0; print source":"model":"mac}' | \
+        tr '\n' ',' | sed 's/,$//')
+    
+    echo "${cpu_count}|${memory_mb}|${nic_info}"
 }
 
 # Function to gather VM information via SSH
@@ -162,7 +170,7 @@ get_vm_info() {
         return
     fi
     
-    IFS='|' read -r cpu_cores memory_mb <<< "$hypervisor_info"
+    IFS='|' read -r cpu_cores memory_mb nic_info <<< "$hypervisor_info"
     
     # Gather information from VM
     local vm_data=$(ssh $ssh_options "${lab_infra_admin_username}@${vm_name}" bash <<'EOSSH'
@@ -192,15 +200,21 @@ mem_used=$(awk '/MemTotal/ {total=$2} /MemAvailable/ {avail=$2} END {printf "%.0
 # Root filesystem usage
 root_fs_info=$(df -h / | awk 'NR==2 {printf "%s|%s|%s|%s", $2, $3, $4, $5}')
 
-# IP addresses (IPv4 and IPv6)
-ipv4_addrs=$(ip -4 addr show | grep -oP '(?<=inet\s)\d+(\.\d+){3}' | grep -v '^127\.' | tr '\n' ',' | sed 's/,$//')
-ipv6_addrs=$(ip -6 addr show | grep -oP '(?<=inet6\s)[0-9a-f:]+' | grep -v '^::1' | grep -v '^fe80:' | tr '\n' ',' | sed 's/,$//')
+# IP addresses with CIDR notation (IPv4 and IPv6)
+ipv4_addrs=$(ip -4 addr show | grep 'inet ' | grep -v '127.0.0.1' | awk '{print $2}' | tr '\n' ',' | sed 's/,$//')
+ipv6_addrs=$(ip -6 addr show | grep 'inet6 ' | grep -v 'inet6 ::1' | grep -v 'inet6 fe80:' | awk '{print $2}' | tr '\n' ',' | sed 's/,$//')
+
+# Default gateways
+ipv4_gateway=$(ip -4 route show default | awk '{print $3; exit}')
+ipv6_gateway=$(ip -6 route show default | awk '{print $3; exit}')
+[[ -z "$ipv4_gateway" ]] && ipv4_gateway="N/A"
+[[ -z "$ipv6_gateway" ]] && ipv6_gateway="N/A"
 
 # Storage devices
 storage_info=$(lsblk -dno NAME,SIZE,TYPE | grep 'disk' | awk '{printf "%s:%s,", $1, $2}' | sed 's/,$//')
 
 # Output all info separated by |
-echo "${os_distro}|${birthdate}|${uptime_info}|${load_avg}|${mem_total}|${mem_used}|${root_fs_info}|${ipv4_addrs}|${ipv6_addrs}|${storage_info}"
+echo "${os_distro}|${birthdate}|${uptime_info}|${load_avg}|${mem_total}|${mem_used}|${root_fs_info}|${ipv4_addrs}|${ipv6_addrs}|${ipv4_gateway}|${ipv6_gateway}|${storage_info}"
 EOSSH
 )
     
@@ -212,7 +226,7 @@ EOSSH
     fi
     
     # Parse the data
-    IFS='|' read -r os_distro birthdate uptime load_avg mem_total mem_used root_fs_total root_fs_used root_fs_avail root_fs_percent ipv4_addrs ipv6_addrs storage_info <<< "$vm_data"
+    IFS='|' read -r os_distro birthdate uptime load_avg mem_total mem_used root_fs_total root_fs_used root_fs_avail root_fs_percent ipv4_addrs ipv6_addrs ipv4_gateway ipv6_gateway storage_info <<< "$vm_data"
     
     # Display information
     print_green "$vm_name"
@@ -226,28 +240,44 @@ EOSSH
     printf "│   └── Root FS: %s total  │  %s used (%s)  │  %s available\n" "$root_fs_total" "$root_fs_used" "$root_fs_percent" "$root_fs_avail"
     
     printf "├── $(print_cyan "Network")\n"
+    if [[ -n "$nic_info" ]]; then
+        IFS=',' read -ra nic_array <<< "$nic_info"
+        printf "│   ├── NICs\n"
+        for ((i=0; i<${#nic_array[@]}; i++)); do
+            IFS=':' read -r bridge model mac <<< "${nic_array[i]}"
+            if [[ $i -eq $((${#nic_array[@]} - 1)) ]]; then
+                printf "│   │   └── %s (%s) - %s\n" "$mac" "$model" "$bridge"
+            else
+                printf "│   │   ├── %s (%s) - %s\n" "$mac" "$model" "$bridge"
+            fi
+        done
+    fi
+    
     if [[ -n "$ipv4_addrs" ]]; then
         IFS=',' read -ra ipv4_array <<< "$ipv4_addrs"
         printf "│   ├── IPv4\n"
         for ((i=0; i<${#ipv4_array[@]}; i++)); do
-            if [[ $i -eq $((${#ipv4_array[@]} - 1)) ]] && [[ -z "$ipv6_addrs" ]]; then
-                printf "│   │   └── %s\n" "${ipv4_array[i]}"
-            else
-                printf "│   │   ├── %s\n" "${ipv4_array[i]}"
-            fi
+            printf "│   │   ├── %s\n" "${ipv4_array[i]}"
         done
+        if [[ "$ipv4_gateway" != "N/A" ]]; then
+            printf "│   │   └── Gateway: %s\n" "$ipv4_gateway"
+        fi
     fi
     
     if [[ -n "$ipv6_addrs" ]]; then
         IFS=',' read -ra ipv6_array <<< "$ipv6_addrs"
         printf "│   └── IPv6\n"
         for ((i=0; i<${#ipv6_array[@]}; i++)); do
-            if [[ $i -eq $((${#ipv6_array[@]} - 1)) ]]; then
+            if [[ $i -eq $((${#ipv6_array[@]} - 1)) ]] && [[ "$ipv6_gateway" == "N/A" ]]; then
                 printf "│       └── %s\n" "${ipv6_array[i]}"
             else
                 printf "│       ├── %s\n" "${ipv6_array[i]}"
             fi
         done
+        if [[ "$ipv6_gateway" != "N/A" ]]; then
+            printf "│       └── Gateway: %s\n" "$ipv6_gateway"
+        fi
+    fi
     elif [[ -n "$ipv4_addrs" ]]; then
         printf "│   └── IPv6: None\n"
     fi
@@ -280,5 +310,3 @@ echo
 for vm in "${target_vms[@]}"; do
     get_vm_info "$vm"
 done
-
-print_task_done "Information gathering complete"
