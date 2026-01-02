@@ -779,13 +779,8 @@ if ! $invoked_with_golden_image; then
 		rsync -a -q "${ksmanager_main_dir}/ks-templates/redhat-based-${version_type}-ks.cfg" "${host_kickstart_dir}"/ 
 	fi
 	if ! $golden_image_creation_not_requested; then
-		if [[ -z "${redhat_based_distro_name}" ]]; then
-			rsync -a -q "${ksmanager_main_dir}/golden-boot-templates/golden-boot-${os_distribution}.service" "${host_kickstart_dir}"/ 
-			rsync -a -q "${ksmanager_main_dir}/golden-boot-templates/golden-boot-${os_distribution}.sh" "${host_kickstart_dir}"/ 
-		else
-			rsync -a -q "${ksmanager_main_dir}/golden-boot-templates/golden-boot-redhat-based.service" "${host_kickstart_dir}"/ 
-			rsync -a -q "${ksmanager_main_dir}/golden-boot-templates/golden-boot-redhat-based.sh" "${host_kickstart_dir}"/ 
-		fi
+		rsync -a -q "${ksmanager_main_dir}/golden-boot-templates/golden-boot.service" "${host_kickstart_dir}"/ 
+		rsync -a -q "${ksmanager_main_dir}/golden-boot-templates/golden-boot.sh" "${host_kickstart_dir}"/ 
 	fi
 fi
 

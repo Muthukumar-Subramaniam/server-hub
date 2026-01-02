@@ -304,9 +304,9 @@
 	/usr/bin/get_golden_image_creation_not_requested || /usr/bin/wget -O /etc/systemd/system/golden-image-setup.service http://get_lab_infra_server_hostname/ksmanager-hub/addons-for-kickstarts/golden-image-setup.service
 	/usr/bin/get_golden_image_creation_not_requested || /usr/bin/wget -O /root/golden-image-setup.sh http://get_lab_infra_server_hostname/ksmanager-hub/addons-for-kickstarts/golden-image-setup.sh
 	/usr/bin/get_golden_image_creation_not_requested || /usr/bin/ln -s /etc/systemd/system/golden-image-setup.service /etc/systemd/system/multi-user.target.wants/golden-image-setup.service
-	/usr/bin/get_golden_image_creation_not_requested || /usr/bin/wget -O /etc/systemd/system/golden-boot-opensuse-leap.service http://get_lab_infra_server_hostname/ksmanager-hub/kickstarts/get_hostname.get_ipv4_domain/golden-boot-opensuse-leap.service
-	/usr/bin/get_golden_image_creation_not_requested || /usr/bin/wget -O /root/golden-boot-opensuse-leap.sh http://get_lab_infra_server_hostname/ksmanager-hub/kickstarts/get_hostname.get_ipv4_domain/golden-boot-opensuse-leap.sh
-	/usr/bin/get_golden_image_creation_not_requested || /usr/bin/ln -s /etc/systemd/system/golden-boot-opensuse-leap.service /etc/systemd/system/multi-user.target.wants/golden-boot-opensuse-leap.service
+	/usr/bin/get_golden_image_creation_not_requested || /usr/bin/wget -O /etc/systemd/system/golden-boot.service http://get_lab_infra_server_hostname/ksmanager-hub/kickstarts/get_hostname.get_ipv4_domain/golden-boot.service
+	/usr/bin/get_golden_image_creation_not_requested || /usr/bin/wget -O /root/golden-boot.sh http://get_lab_infra_server_hostname/ksmanager-hub/kickstarts/get_hostname.get_ipv4_domain/golden-boot.sh
+	/usr/bin/get_golden_image_creation_not_requested || /usr/bin/ln -s /etc/systemd/system/golden-boot.service /etc/systemd/system/multi-user.target.wants/golden-boot.service
 	local_lab_info=$(/usr/bin/echo 'get_ipv4_domain' | /usr/bin/sed "s/\./-/g")
   /usr/bin/mkdir -p /etc/ssh/ssh_config.d && /usr/bin/echo -e "Host *.get_ipv4_domain get_subnets_to_allow_ssh_pub_access\n  IdentityFile ~/.ssh/kvm_lab_global_id_rsa\n  StrictHostKeyChecking no\n  UserKnownHostsFile /dev/null\n  LogLevel QUIET" > /etc/ssh/ssh_config.d/999-kvm-lab-global.conf
 	/usr/bin/ln -s /usr/lib/systemd/system/autofs.service /etc/systemd/system/multi-user.target.wants/autofs.service

@@ -64,9 +64,9 @@ autoinstall:
       - get_golden_image_creation_not_requested || wget -O /etc/systemd/system/golden-image-setup.service http://get_lab_infra_server_hostname/ksmanager-hub/addons-for-kickstarts/golden-image-setup.service
       - get_golden_image_creation_not_requested || wget -O /root/golden-image-setup.sh http://get_lab_infra_server_hostname/ksmanager-hub/addons-for-kickstarts/golden-image-setup.sh
       - get_golden_image_creation_not_requested || ln -s /etc/systemd/system/golden-image-setup.service /etc/systemd/system/multi-user.target.wants/golden-image-setup.service
-      - get_golden_image_creation_not_requested || wget -O /etc/systemd/system/golden-boot-ubuntu-lts.service http://get_lab_infra_server_hostname/ksmanager-hub/kickstarts/get_hostname.get_ipv4_domain/golden-boot-ubuntu-lts.service
-      - get_golden_image_creation_not_requested || wget -O /root/golden-boot-ubuntu-lts.sh http://get_lab_infra_server_hostname/ksmanager-hub/kickstarts/get_hostname.get_ipv4_domain/golden-boot-ubuntu-lts.sh
-      - get_golden_image_creation_not_requested || ln -s /etc/systemd/system/golden-boot-ubuntu-lts.service /etc/systemd/system/multi-user.target.wants/golden-boot-ubuntu-lts.service
+      - get_golden_image_creation_not_requested || wget -O /etc/systemd/system/golden-boot.service http://get_lab_infra_server_hostname/ksmanager-hub/kickstarts/get_hostname.get_ipv4_domain/golden-boot.service
+      - get_golden_image_creation_not_requested || wget -O /root/golden-boot.sh http://get_lab_infra_server_hostname/ksmanager-hub/kickstarts/get_hostname.get_ipv4_domain/golden-boot.sh
+      - get_golden_image_creation_not_requested || ln -s /etc/systemd/system/golden-boot.service /etc/systemd/system/multi-user.target.wants/golden-boot.service
       - mkdir -p /etc/ssh/ssh_config.d && /usr/bin/echo -e "Host *.get_ipv4_domain get_subnets_to_allow_ssh_pub_access\n  IdentityFile ~/.ssh/kvm_lab_global_id_rsa\n  StrictHostKeyChecking no\n  UserKnownHostsFile /dev/null\n  LogLevel QUIET" > /etc/ssh/ssh_config.d/999-kvm-lab-global.conf
       - local_lab_info=$(echo 'get_ipv4_domain' | /usr/bin/sed "s/\./-/g")
       - ln -s /usr/lib/systemd/system/autofs.service /etc/systemd/system/multi-user.target.wants/autofs.service
