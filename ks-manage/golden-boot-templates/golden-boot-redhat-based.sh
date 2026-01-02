@@ -149,13 +149,13 @@ log "Creating new NetworkManager connection for eth0"
 log "  IPv4: ${IPv4_ADDRESS}/${IPv4_CIDR}"
 log "  IPv4 Gateway: ${IPv4_GATEWAY}"
 log "  IPv6: ${IPv6_ADDRESS}/${IPv6_PREFIX}"
-log "  DNS: ${IPv4_DNS_SERVER},8.8.8.8,8.8.4.4"
+log "  DNS: ${IPv4_DNS_SERVER},8.8.8.8,1.1.1.1"
 log "  Search domain: ${IPv4_DNS_DOMAIN}"
 
 if ! nmcli connection add type ethernet ifname eth0 con-name eth0 \
   ipv4.addresses "${IPv4_ADDRESS}"/"${IPv4_CIDR}" \
   ipv4.gateway "${IPv4_GATEWAY}" \
-  ipv4.dns "${IPv4_DNS_SERVER},8.8.8.8,8.8.4.4" \
+  ipv4.dns "${IPv4_DNS_SERVER},8.8.8.8,1.1.1.1" \
   ipv4.dns-search "${IPv4_DNS_DOMAIN}" \
   ipv4.method manual \
   ipv6.addresses "${IPv6_ADDRESS}"/"${IPv6_PREFIX}" \

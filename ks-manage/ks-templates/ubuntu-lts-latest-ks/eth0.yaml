@@ -12,5 +12,5 @@ network:
                 via: get_ipv4_gateway
                 on-link: True
             nameservers:
-              addresses: [get_ipv4_nameserver, 8.8.8.8, 8.8.4.4]
+              addresses: [get_ipv4_nameserver, 8.8.8.8, 1.1.1.1]
               search: [get_ipv4_domain]

@@ -86,7 +86,7 @@ log "Creating netplan configuration for eth0"
 log "  IPv4: ${IPv4_ADDRESS}/${IPv4_CIDR}"
 log "  IPv4 Gateway: ${IPv4_GATEWAY}"
 log "  IPv6: ${IPv6_ADDRESS}/${IPv6_PREFIX}"
-log "  DNS: ${IPv4_DNS_SERVER},8.8.8.8,8.8.4.4"
+log "  DNS: ${IPv4_DNS_SERVER},8.8.8.8,1.1.1.1"
 log "  Search domain: ${IPv4_DNS_DOMAIN}"
 
 cat << EOF > /etc/netplan/eth0.yaml
@@ -104,7 +104,7 @@ network:
                 via: ${IPv4_GATEWAY}
                 on-link: true
             nameservers:
-              addresses: [${IPv4_DNS_SERVER}, 8.8.8.8, 8.8.4.4]
+              addresses: [${IPv4_DNS_SERVER}, 8.8.8.8, 1.1.1.1]
               search: [${IPv4_DNS_DOMAIN}]
 EOF
 

@@ -53,7 +53,7 @@
       <nameservers t="list">
         <nameserver>get_ipv4_nameserver</nameserver>
         <nameserver>8.8.8.8</nameserver>
-        <nameserver>8.8.4.4</nameserver>
+        <nameserver>1.1.1.1</nameserver>
       </nameservers>
       <resolv_conf_policy>auto</resolv_conf_policy>
       <searchlist t="list">
