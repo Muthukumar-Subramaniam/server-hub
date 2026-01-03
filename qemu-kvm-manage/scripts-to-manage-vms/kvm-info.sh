@@ -277,7 +277,6 @@ EOSSH
         if [[ "$ipv6_gateway" != "N/A" ]]; then
             printf "│       └── Gateway: %s\n" "$ipv6_gateway"
         fi
-    fi
     elif [[ -n "$ipv4_addrs" ]]; then
         printf "│   └── IPv6: None\n"
     fi
