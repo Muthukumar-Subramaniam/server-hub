@@ -417,7 +417,7 @@ fi
 
 if $golden_image_creation_not_requested; then
 	fn_check_and_create_host_record "${1}"
-	ipv4_address=$(host "${kickstart_hostname}" "${dnsbinder_server_ipv4_address}" | grep 'has address' | cut -d " " -f 4 | tr -d '[[: space:]]')
+	ipv4_address=$(host "${kickstart_hostname}" "${dnsbinder_server_ipv4_address}" | grep 'has address' | cut -d " " -f 4 | tr -d '[:space:]')
 	
 	# Query DNS for IPv6 address (if dual-stack configured)
 	if [[ ! -z "${ipv6_gateway}" ]]; then

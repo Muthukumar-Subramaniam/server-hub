@@ -707,7 +707,7 @@ deploy_lab_infra_server_host() {
 
   REQUIRED_PACKAGES=(
     bash-completion vim git bind-utils bind wget tar net-tools cifs-utils zip
-    tftp-server kea kea-hooks nginx nginx-mod-stream tmux
+    tftp-server tftp kea kea-hooks nginx nginx-mod-stream tmux
     rsync sysstat tcpdump traceroute nc samba-client lsof nfs-utils
     nmap tuned tree yum-utils
   )

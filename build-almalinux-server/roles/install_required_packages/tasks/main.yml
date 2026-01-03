@@ -17,6 +17,7 @@
       - kea
       - kea-hooks
       - tftp-server
+      - tftp
       - nginx
       - nginx-mod-stream
       - tmux
