@@ -398,7 +398,7 @@ prepare_lab_infra_config() {
   # Write SSH custom config
   SSH_CUSTOM_CONFIG_FILE="/etc/ssh/ssh_config.d/999-kvm-lab-global.conf"
   sudo tee "$SSH_CUSTOM_CONFIG_FILE" &>/dev/null <<EOF
-Host *.${lab_infra_domain_name} ${lab_infra_server_ipv4_address} ${lab_infra_server_ipv6_address} ${subnets_to_allow_ssh_pub_access}
+Host *.${lab_infra_domain_name} ${lab_infra_server_ipv4_address} ${subnets_to_allow_ssh_pub_access}
     IdentityFile ~/.ssh/kvm_lab_global_id_rsa
     StrictHostKeyChecking no
     UserKnownHostsFile /dev/null
