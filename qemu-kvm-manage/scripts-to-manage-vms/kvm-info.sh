@@ -206,7 +206,15 @@ ipv6_gateway=$(ip -6 route show default | awk '{print $3; exit}')
 storage_info=$(lsblk -dno NAME,SIZE,TYPE | grep 'disk' | awk '{printf "%s:%s,", $1, $2}' | sed 's/,$//')
 
 # NIC information (interface:mac)
-nic_info=$(ip -o link show | grep -v 'lo:' | awk '{print $2, $(NF-2)}' | sed 's/:$//' | awk '{printf "%s:%s,", $1, $2}' | sed 's/,$//')
+nic_info=$(ip -o link show | awk '!/lo:/ && /link\/ether/ {
+    gsub(/:$/,"",$2); 
+    for(i=1;i<=NF;i++) {
+        if($i=="link/ether") {
+            printf "%s:%s,", $2, $(i+1); 
+            break
+        }
+    }
+}' | sed 's/,$//')
 
 # Output all info separated by |
 echo "${os_distro}|${birthdate}|${uptime_info}|${load_avg}|${mem_total}|${mem_used}|${root_fs_info}|${ipv4_addrs}|${ipv6_addrs}|${ipv4_gateway}|${ipv6_gateway}|${storage_info}|${nic_info}"
