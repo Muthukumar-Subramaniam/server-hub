@@ -129,15 +129,7 @@ get_vm_hypervisor_info() {
     memory_kb=$(sudo virsh dominfo "$vm_name" | awk '/^Max memory:/ {print $3}')
     memory_mb=$((memory_kb / 1024))
     
-    # Get NIC information (interface names, models, and MAC addresses)
-    nic_info=$(sudo virsh dumpxml "$vm_name" | grep -A 5 "<interface type=" | \
-        awk '/<interface type=/ {iface_type=$0} 
-             /<source (bridge|network)=/ {gsub(/.*="/, "", $0); gsub(/".*/, "", $0); source=$0} 
-             /<model type=/ {gsub(/.*type=./, "", $0); gsub(/..*/, "", $0); model=$0} 
-             /<mac address=/ {gsub(/.*address=./, "", $0); gsub(/..*/, "", $0); mac=$0; print source":"model":"mac}' | \
-        tr '\n' ',' | sed 's/,$//')
-    
-    echo "${cpu_count}|${memory_mb}|${nic_info}"
+    echo "${cpu_count}|${memory_mb}"
 }
 
 # Function to gather VM information via SSH
@@ -170,7 +162,7 @@ get_vm_info() {
         return
     fi
     
-    IFS='|' read -r cpu_cores memory_mb nic_info <<< "$hypervisor_info"
+    IFS='|' read -r cpu_cores memory_mb <<< "$hypervisor_info"
     
     # Gather information from VM
     local vm_data=$(ssh $ssh_options "${lab_infra_admin_username}@${vm_name}" bash <<'EOSSH'
@@ -213,8 +205,11 @@ ipv6_gateway=$(ip -6 route show default | awk '{print $3; exit}')
 # Storage devices
 storage_info=$(lsblk -dno NAME,SIZE,TYPE | grep 'disk' | awk '{printf "%s:%s,", $1, $2}' | sed 's/,$//')
 
+# NIC information (interface:mac)
+nic_info=$(ip -o link show | grep -v 'lo:' | awk '{print $2, $(NF-2)}' | sed 's/:$//' | awk '{printf "%s:%s,", $1, $2}' | sed 's/,$//')
+
 # Output all info separated by |
-echo "${os_distro}|${birthdate}|${uptime_info}|${load_avg}|${mem_total}|${mem_used}|${root_fs_info}|${ipv4_addrs}|${ipv6_addrs}|${ipv4_gateway}|${ipv6_gateway}|${storage_info}"
+echo "${os_distro}|${birthdate}|${uptime_info}|${load_avg}|${mem_total}|${mem_used}|${root_fs_info}|${ipv4_addrs}|${ipv6_addrs}|${ipv4_gateway}|${ipv6_gateway}|${storage_info}|${nic_info}"
 EOSSH
 )
     
@@ -226,7 +221,7 @@ EOSSH
     fi
     
     # Parse the data
-    IFS='|' read -r os_distro birthdate uptime load_avg mem_total mem_used root_fs_total root_fs_used root_fs_avail root_fs_percent ipv4_addrs ipv6_addrs ipv4_gateway ipv6_gateway storage_info <<< "$vm_data"
+    IFS='|' read -r os_distro birthdate uptime load_avg mem_total mem_used root_fs_total root_fs_used root_fs_avail root_fs_percent ipv4_addrs ipv6_addrs ipv4_gateway ipv6_gateway storage_info nic_info <<< "$vm_data"
     
     # Display information
     print_green "$vm_name"
@@ -244,11 +239,11 @@ EOSSH
         IFS=',' read -ra nic_array <<< "$nic_info"
         printf "│   ├── NICs\n"
         for ((i=0; i<${#nic_array[@]}; i++)); do
-            IFS=':' read -r bridge model mac <<< "${nic_array[i]}"
+            IFS=':' read -r iface mac <<< "${nic_array[i]}"
             if [[ $i -eq $((${#nic_array[@]} - 1)) ]]; then
-                printf "│   │   └── %s (%s) - %s\n" "$mac" "$model" "$bridge"
+                printf "│   │   └── %s - %s\n" "$iface" "$mac"
             else
-                printf "│   │   ├── %s (%s) - %s\n" "$mac" "$model" "$bridge"
+                printf "│   │   ├── %s - %s\n" "$iface" "$mac"
             fi
         done
     fi
