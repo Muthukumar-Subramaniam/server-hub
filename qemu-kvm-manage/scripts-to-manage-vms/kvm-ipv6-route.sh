@@ -4,7 +4,7 @@
 # Purpose: Enable/disable IPv6 default gateway when QEMU host has/loses IPv6 internet connectivity
 # Usage: Run from QEMU host to manage routes on all running VMs
 
-set -euo pipefail
+set -uo pipefail
 
 # Source color functions
 source /server-hub/common-utils/color-functions.sh
@@ -14,6 +14,17 @@ if [[ -f /kvm-hub/lab_environment_vars ]]; then
     source /kvm-hub/lab_environment_vars
 else
     print_error "Lab environment not configured. Run deploy-lab-infra-server.sh first."
+    exit 1
+fi
+
+# Validate required variables
+if [[ -z "${lab_infra_server_ipv6_gateway:-}" ]]; then
+    print_error "IPv6 gateway not configured in lab environment."
+    exit 1
+fi
+
+if [[ -z "${lab_infra_admin_username:-}" ]]; then
+    print_error "Admin username not configured in lab environment."
     exit 1
 fi
 
@@ -34,7 +45,7 @@ fn_usage() {
     cat << EOF
 $(print_notify "IPv6 Default Route Manager")
 
-Usage: $(basename "$0") [OPTION]
+Usage: qlabvmctl ipv6-route [OPTION]
 
 Options:
     enable      Enable IPv6 default route on all running VMs
@@ -44,10 +55,10 @@ Options:
     status      Show IPv6 route status for all VMs
 
 Examples:
-    $(basename "$0") enable      # Enable IPv6 default route
-    $(basename "$0") disable     # Remove IPv6 default route
-    $(basename "$0") check       # Test connectivity and show status
-    $(basename "$0") auto        # Auto-configure based on connectivity
+    qlabvmctl ipv6-route enable      # Enable IPv6 default route
+    qlabvmctl ipv6-route disable     # Remove IPv6 default route
+    qlabvmctl ipv6-route check       # Test connectivity and show status
+    qlabvmctl ipv6-route auto        # Auto-configure based on connectivity
 
 Note: This script manages the default IPv6 route. Local IPv6 subnet routes
       are always present regardless of this setting.
@@ -69,7 +80,7 @@ fn_test_ipv6_connectivity() {
 }
 
 fn_get_running_vms() {
-    virsh list --name | grep -v "^$"
+    sudo virsh list --name | grep -v "^$"
 }
 
 fn_vm_is_ssh_ready() {
@@ -265,7 +276,7 @@ fn_check_and_report() {
     print_notify "Recommendation:"
     
     if ping6 -c 2 -W 3 "$IPV6_TEST_HOST" &>/dev/null; then
-        print_info "IPv6 internet is available. Run '$(basename "$0") enable' to enable default routes."
+        print_info "IPv6 internet is available. Run 'qlabvmctl ipv6-route enable' to enable default routes."
     else
         print_info "No IPv6 internet. Current configuration (routes disabled) is optimal."
     fi
