@@ -67,13 +67,12 @@
         <name>eth0</name>
         <prefixlen>get_ipv4_prefix</prefixlen>
         <startmode>auto</startmode>
-      </interface>
-      <interface t="map">
-        <bootproto>static</bootproto>
-        <ipaddr>get_ipv6_address</ipaddr>
-        <name>eth0</name>
-        <prefixlen>get_ipv6_prefix</prefixlen>
-        <startmode>auto</startmode>
+        <aliases t="map">
+          <alias0 t="map">
+            <IPADDR>get_ipv6_address</IPADDR>
+            <PREFIXLEN>get_ipv6_prefix</PREFIXLEN>
+          </alias0>
+        </aliases>
       </interface>
     </interfaces>
     <ipv6 t="boolean">true</ipv6>
