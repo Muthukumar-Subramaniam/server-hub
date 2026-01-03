@@ -69,10 +69,15 @@ fi
 
 source /etc/environment
 
-echo -e "\nCreating CNAME record for lab-infra-server . . .\n"
+# Only create CNAME if server name is not already lab-infra-server
+if [[ "${dnsbinder_server_short_name}" != "lab-infra-server" ]]; then
+	echo -e "\nCreating CNAME record for lab-infra-server . . .\n"
 
-if ! sudo bash /server-hub/named-manage/dnsbinder.sh -cc "lab-infra-server" "${dnsbinder_server_short_name}"; then
-	echo -e "\nWarning: Failed to create CNAME for lab-infra-server\n"
+	if ! sudo bash /server-hub/named-manage/dnsbinder.sh -cc "lab-infra-server" "${dnsbinder_server_short_name}"; then
+		echo -e "\nWarning: Failed to create CNAME for lab-infra-server\n"
+	fi
+else
+	echo -e "\nSkipping CNAME creation (server name is already lab-infra-server) . . .\n"
 fi
 
 echo -e "\nSetting motd . . .\n"

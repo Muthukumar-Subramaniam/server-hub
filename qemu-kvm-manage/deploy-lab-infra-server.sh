@@ -748,9 +748,14 @@ deploy_lab_infra_server_host() {
     exit 1
   fi
 
-  print_info "Creating CNAME record for lab-infra-server..."
-  if ! sudo bash /server-hub/named-manage/dnsbinder.sh -cc "lab-infra-server" "${lab_infra_hostname}"; then
-    print_warning "Failed to create CNAME for lab-infra-server"
+  # Only create CNAME if server name is not already lab-infra-server
+  if [[ "${lab_infra_server_shortname}" != "lab-infra-server" ]]; then
+    print_info "Creating CNAME record for lab-infra-server..."
+    if ! sudo bash /server-hub/named-manage/dnsbinder.sh -cc "lab-infra-server" "${lab_infra_hostname}"; then
+      print_warning "Failed to create CNAME for lab-infra-server"
+    fi
+  else
+    print_info "Skipping CNAME creation (server name is already lab-infra-server)"
   fi
 
   # Set mgmt_super_user in environment using lab_infra_admin_username
