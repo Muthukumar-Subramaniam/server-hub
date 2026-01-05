@@ -173,6 +173,9 @@ print_warning "FYI :
 
 fn_configure_named_dns_server() {
 
+	# Get the directory where dnsbinder script is located
+	v_script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+
 	KVM_HOST_MODE_SET=false
 	if ip link show labbr0 &>/dev/null; then
         	KVM_HOST_MODE_SET=true
@@ -284,8 +287,6 @@ fn_configure_named_dns_server() {
 
 	print_task "Configuring named.conf from template..."
 
-	# Get the directory where dnsbinder script is located
-	v_script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 	v_template_file="${v_script_dir}/named.conf.template"
 	
 	if [[ ! -f "${v_template_file}" ]]; then
@@ -419,7 +420,7 @@ EOF
 		v_file_name="${1}"
 		local serial_number=$(date +%s)
 		sed "s/DNS_HOST_SHORT_NAME/${v_dns_host_short_name}/g; s/DNS_DOMAIN/${v_given_domain}/g; s/0000000000/${serial_number}/g" \
-			"${script_dir}/zone-header.template" >> "${v_file_name}"
+			"${v_script_dir}/zone-header.template" >> "${v_file_name}"
 	}
 
 	v_zone_file_name="${var_zone_dir}/${v_given_domain}-forward.db"
