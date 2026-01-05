@@ -173,8 +173,12 @@ print_warning "FYI :
 
 fn_configure_named_dns_server() {
 
-	# Get the directory where dnsbinder script is located
-	v_script_dir="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+	# Get the directory where dnsbinder script is located (resolve symlinks)
+	v_script_path="${BASH_SOURCE[0]}"
+	while [ -L "${v_script_path}" ]; do
+		v_script_path="$(readlink -f "${v_script_path}")"
+	done
+	v_script_dir="$(cd "$(dirname "${v_script_path}")" && pwd)"
 
 	KVM_HOST_MODE_SET=false
 	if ip link show labbr0 &>/dev/null; then
