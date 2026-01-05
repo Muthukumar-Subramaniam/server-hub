@@ -1,7 +1,33 @@
 #!/bin/bash
 #
-# Migrate existing zone files to new template format
-# Preserves all DNS records while updating SOA header
+# DNS Zone Migration Script - SOA Format Upgrade
+# ===============================================
+#
+# PURPOSE:
+#   Migrates existing DNS zone files to the new SOA template format with
+#   Unix timestamp serials and optimized TTL values for playground environments.
+#
+# APPLICABLE TO:
+#   Users upgrading TO v2.0.4+ from earlier versions (v2.0.3 and below)
+#   that used sequential serial numbers and old SOA timing values.
+#
+# WHAT IT CHANGES:
+#   - Serial numbers: Sequential (e.g., 114) → Unix timestamp (e.g., 1767613902)
+#   - $TTL: 86400 (24h) → 3600 (1h)
+#   - Refresh: 3600 (1h) → 600 (10m)
+#   - Retry: 1800 (30m) → 300 (5m)
+#   - Minimum TTL: 86400 (24h) → 300 (5m)
+#   - Preserves all DNS records (A, AAAA, PTR, CNAME, etc.)
+#
+# SAFE TO RUN:
+#   - Idempotent: Safe to run multiple times (detects already-migrated zones)
+#   - Creates timestamped backup before any changes
+#   - Validates all zones before reloading DNS
+#   - Provides rollback instructions on failure
+#
+# USAGE:
+#   sudo /server-hub/named-manage/migrate-zones-to-new-soa-format.sh
+#
 #
 
 set -e
