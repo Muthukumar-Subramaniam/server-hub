@@ -417,19 +417,9 @@ EOF
 
 	fn_update_dns_server_data_to_zone_file() {
 		v_file_name="${1}"
-		tee -a "${v_file_name}" > /dev/null << EOF
-\$TTL 86400
-@   IN  SOA  ${v_dns_host_short_name}.${v_given_domain}. root.${v_given_domain}. (
-        1	;Serial
-        3600	;Refresh
-        1800	;Retry
-        604800	;Expire
-        86400	;Minimum TTL
-)
-
-;Name Server Information
-@ IN NS ${v_dns_host_short_name}.${v_given_domain}.
-EOF
+		local serial_number=$(date +%s)
+		sed "s/DNS_HOST_SHORT_NAME/${v_dns_host_short_name}/g; s/DNS_DOMAIN/${v_given_domain}/g; s/0000000000/${serial_number}/g" \
+			"${script_dir}/zone-header.template" >> "${v_file_name}"
 	}
 
 	v_zone_file_name="${var_zone_dir}/${v_given_domain}-forward.db"
@@ -750,23 +740,37 @@ fn_update_serial_number_of_zones() {
 
 	${v_if_autorun_false} && print_task "Updating serial numbers of zone files..."
 
+	# Generate new serial using Unix timestamp
+	local new_serial=$(date +%s)
+	
+	# Forward zone
 	v_current_serial_fw_zone=$(grep ';Serial' "${v_fw_zone}" | cut -d ";" -f 1 | tr -d '[:space:]')
-	v_set_new_serial_fw_zone=$(( v_current_serial_fw_zone + 1 ))
-	sed -i "/;Serial/s/${v_current_serial_fw_zone}/${v_set_new_serial_fw_zone}/g" "${v_fw_zone}"
+	# Ensure new serial is greater than current (handles same-second updates)
+	if [[ $new_serial -le $v_current_serial_fw_zone ]]; then
+		new_serial=$(( v_current_serial_fw_zone + 1 ))
+	fi
+	sed -i "/;Serial/s/${v_current_serial_fw_zone}/${new_serial}/g" "${v_fw_zone}"
 
 	if [[ "${1}" != "forward-zone-only" ]]
 	then
+		# PTR zone
 		v_current_serial_ptr_zone=$(grep ';Serial' "${v_ptr_zone}" | cut -d ";" -f 1 | tr -d '[:space:]')
-		v_set_new_serial_ptr_zone=$(( v_current_serial_ptr_zone + 1 ))
-		sed -i "/;Serial/s/${v_current_serial_ptr_zone}/${v_set_new_serial_ptr_zone}/g" "${v_ptr_zone}"
+		local new_serial_ptr=$(date +%s)
+		if [[ $new_serial_ptr -le $v_current_serial_ptr_zone ]]; then
+			new_serial_ptr=$(( v_current_serial_ptr_zone + 1 ))
+		fi
+		sed -i "/;Serial/s/${v_current_serial_ptr_zone}/${new_serial_ptr}/g" "${v_ptr_zone}"
 		
 		# Update IPv6 reverse zone if it exists
 		if [[ ! -z "${dnsbinder_ipv6_ula_subnet}" ]]; then
 			v_ipv6_zone_file="${var_zone_dir}/${v_domain_name}-ipv6-reverse.db"
 			if [[ -f "${v_ipv6_zone_file}" ]]; then
 				v_current_serial_ipv6_zone=$(grep ';Serial' "${v_ipv6_zone_file}" | cut -d ";" -f 1 | tr -d '[:space:]')
-				v_set_new_serial_ipv6_zone=$(( v_current_serial_ipv6_zone + 1 ))
-				sed -i "/;Serial/s/${v_current_serial_ipv6_zone}/${v_set_new_serial_ipv6_zone}/g" "${v_ipv6_zone_file}"
+				local new_serial_ipv6=$(date +%s)
+				if [[ $new_serial_ipv6 -le $v_current_serial_ipv6_zone ]]; then
+					new_serial_ipv6=$(( v_current_serial_ipv6_zone + 1 ))
+				fi
+				sed -i "/;Serial/s/${v_current_serial_ipv6_zone}/${new_serial_ipv6}/g" "${v_ipv6_zone_file}"
 			fi
 		fi
 	fi

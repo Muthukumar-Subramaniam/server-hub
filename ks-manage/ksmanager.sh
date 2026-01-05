@@ -34,6 +34,7 @@ ipv6_gateway="${dnsbinder_ipv6_gateway}"
 ipv6_prefix="${dnsbinder_ipv6_prefix}"
 ipv6_ula_subnet="${dnsbinder_ipv6_ula_subnet}"
 ipv6_address=""  # Will be queried from DNS
+ipv6_nameserver="${dnsbinder_server_ipv6_address}"
 ##rhel_activation_key=$(cat /server-hub/rhel-activation-key.base64 | base64 -d)
 time_of_last_update=$(date +"%Y-%m-%d_%H-%M-%S_%Z")
 dnsbinder_script='/server-hub/named-manage/dnsbinder.sh'
@@ -840,6 +841,10 @@ fn_set_environment() {
 			sed -i "s|get_ipv6_address|${ipv6_address}|g" "${working_file}"
 			sed -i "s/get_ipv6_gateway/${ipv6_gateway}/g" "${working_file}"
 			sed -i "s/get_ipv6_prefix/${ipv6_prefix}/g" "${working_file}"
+		fi
+		# Always replace IPv6 nameserver if configured
+		if [[ ! -z "${ipv6_nameserver}" ]]; then
+			sed -i "s/get_ipv6_nameserver/${ipv6_nameserver}/g" "${working_file}"
 		fi
     	sed -i "s/get_hostname/${kickstart_short_hostname}/g" "${working_file}"
 		sed -i "s/get_lab_infra_server_hostname/${lab_infra_server_hostname}/g" "${working_file}"

@@ -210,17 +210,19 @@ case "${DISTRO_FAMILY}" in
 		if [ "$IPV6_ENABLED" = true ]; then
 			log "  IPv6: ${IPv6_ADDRESS}/${IPv6_PREFIX}"
 		fi
-		log "  DNS: ${IPv4_DNS_SERVER},8.8.8.8,1.1.1.1"
+		log "  DNS: ${IPv4_DNS_SERVER},${IPv6_DNS_SERVER}"
 		log "  Search domain: ${IPv4_DNS_DOMAIN}"
 		
 		if [ "$IPV6_ENABLED" = true ]; then
 			if ! nmcli connection add type ethernet ifname eth0 con-name eth0 \
 			  ipv4.addresses "${IPv4_ADDRESS}"/"${IPv4_CIDR}" \
 			  ipv4.gateway "${IPv4_GATEWAY}" \
-			  ipv4.dns "${IPv4_DNS_SERVER},8.8.8.8,1.1.1.1" \
+			  ipv4.dns "${IPv4_DNS_SERVER}" \
 			  ipv4.dns-search "${IPv4_DNS_DOMAIN}" \
 			  ipv4.method manual \
 			  ipv6.addresses "${IPv6_ADDRESS}"/"${IPv6_PREFIX}" \
+			  ipv6.dns "${IPv6_DNS_SERVER}" \
+			  ipv6.dns-search "${IPv4_DNS_DOMAIN}" \
 			  ipv6.method manual \
 			  connection.autoconnect yes > /dev/null 2>&1; then
 				error_exit "Failed to create NetworkManager connection for eth0"
@@ -229,7 +231,7 @@ case "${DISTRO_FAMILY}" in
 			if ! nmcli connection add type ethernet ifname eth0 con-name eth0 \
 			  ipv4.addresses "${IPv4_ADDRESS}"/"${IPv4_CIDR}" \
 			  ipv4.gateway "${IPv4_GATEWAY}" \
-			  ipv4.dns "${IPv4_DNS_SERVER},8.8.8.8,1.1.1.1" \
+			  ipv4.dns "${IPv4_DNS_SERVER}" \
 			  ipv4.dns-search "${IPv4_DNS_DOMAIN}" \
 			  ipv4.method manual \
 			  ipv6.method disabled \
@@ -255,7 +257,7 @@ case "${DISTRO_FAMILY}" in
 		if [ "$IPV6_ENABLED" = true ]; then
 			log "  IPv6: ${IPv6_ADDRESS}/${IPv6_PREFIX}"
 		fi
-		log "  DNS: ${IPv4_DNS_SERVER},8.8.8.8,1.1.1.1"
+		log "  DNS: ${IPv4_DNS_SERVER},${IPv6_DNS_SERVER}"
 		log "  Search domain: ${IPv4_DNS_DOMAIN}"
 		
 		if [ "$IPV6_ENABLED" = true ]; then
@@ -274,7 +276,7 @@ network:
                 via: ${IPv4_GATEWAY}
                 on-link: true
             nameservers:
-              addresses: [${IPv4_DNS_SERVER}, 8.8.8.8, 1.1.1.1]
+              addresses: [${IPv4_DNS_SERVER}, ${IPv6_DNS_SERVER}]
               search: [${IPv4_DNS_DOMAIN}]
 EOF
 		else
@@ -292,7 +294,7 @@ network:
                 via: ${IPv4_GATEWAY}
                 on-link: true
             nameservers:
-              addresses: [${IPv4_DNS_SERVER}, 8.8.8.8, 1.1.1.1]
+              addresses: [${IPv4_DNS_SERVER}, ${IPv6_DNS_SERVER}]
               search: [${IPv4_DNS_DOMAIN}]
 EOF
 		fi
