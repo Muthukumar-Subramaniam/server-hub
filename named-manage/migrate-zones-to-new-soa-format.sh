@@ -107,6 +107,7 @@ echo -e "${YELLOW}Validating all zone files...${NC}"
 validation_failed=0
 
 for zone_file in "${ZONE_DIR}"/*.db; do
+    [ -f "$zone_file" ] || continue
     zone_name=$(basename "$zone_file" .db)
     
     case "$zone_name" in
@@ -119,17 +120,8 @@ for zone_file in "${ZONE_DIR}"/*.db; do
                 validation_failed=1
             fi
             ;;
-        *-reverse)
-            octets=$(echo "$zone_name" | grep -oP "^\d+\.\d+\.\d+" | awk -F. '{print $3"."$2"."$1}')
-            if named-checkzone "$octets.in-addr.arpa" "$zone_file" >/dev/null 2>&1; then
-                echo -e "${GREEN}✓ Valid: $octets.in-addr.arpa${NC}"
-            else
-                echo -e "${RED}✗ Invalid: $octets.in-addr.arpa${NC}"
-                validation_failed=1
-            fi
-            ;;
         *-ipv6-reverse)
-            ipv6_zone=$(grep "ip6.arpa" /etc/named.conf | grep -v "^#" | cut -d'"' -f2 | head -1)
+            ipv6_zone=$(grep "ip6.arpa" /etc/named.conf | grep "^zone" | cut -d'"' -f2 | head -1)
             if [ -n "$ipv6_zone" ]; then
                 if named-checkzone "$ipv6_zone" "$zone_file" >/dev/null 2>&1; then
                     echo -e "${GREEN}✓ Valid: $ipv6_zone${NC}"
@@ -137,6 +129,17 @@ for zone_file in "${ZONE_DIR}"/*.db; do
                     echo -e "${RED}✗ Invalid: $ipv6_zone${NC}"
                     validation_failed=1
                 fi
+            else
+                echo -e "${YELLOW}⊘ Skipped: IPv6 zone (not configured in named.conf)${NC}"
+            fi
+            ;;
+        *-reverse)
+            octets=$(echo "$zone_name" | grep -oP "^\d+\.\d+\.\d+" | awk -F. '{print $3"."$2"."$1}')
+            if named-checkzone "$octets.in-addr.arpa" "$zone_file" >/dev/null 2>&1; then
+                echo -e "${GREEN}✓ Valid: $octets.in-addr.arpa${NC}"
+            else
+                echo -e "${RED}✗ Invalid: $octets.in-addr.arpa${NC}"
+                validation_failed=1
             fi
             ;;
     esac
