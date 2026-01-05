@@ -395,7 +395,7 @@ prepare_lab_infra_config() {
   # Create SSH config directory if it doesn't exist
   sudo mkdir -p /etc/ssh/ssh_config.d
 
-  # Write SSH custom config
+  # Write SSH custom config (system-wide)
   SSH_CUSTOM_CONFIG_FILE="/etc/ssh/ssh_config.d/999-kvm-lab-global.conf"
   sudo tee "$SSH_CUSTOM_CONFIG_FILE" &>/dev/null <<EOF
 Host *.${lab_infra_domain_name} ${lab_infra_server_ipv4_address} ${subnets_to_allow_ssh_pub_access}
@@ -404,6 +404,37 @@ Host *.${lab_infra_domain_name} ${lab_infra_server_ipv4_address} ${subnets_to_al
     UserKnownHostsFile /dev/null
     LogLevel QUIET
 EOF
+
+  # Also update user's personal SSH config.custom as fallback
+  USER_SSH_DIR="${HOME}/.ssh"
+  USER_SSH_CONFIG_CUSTOM="${USER_SSH_DIR}/config.custom"
+  
+  # Remove old lab config entries if they exist
+  if [[ -f "$USER_SSH_CONFIG_CUSTOM" ]]; then
+    sed -i '/# KVM Lab SSH Config - Start/,/# KVM Lab SSH Config - End/d' "$USER_SSH_CONFIG_CUSTOM"
+  fi
+  
+  # Append new lab config
+  cat >> "$USER_SSH_CONFIG_CUSTOM" <<EOF
+# KVM Lab SSH Config - Start
+Host *.${lab_infra_domain_name} ${lab_infra_server_ipv4_address} ${subnets_to_allow_ssh_pub_access}
+    IdentityFile ~/.ssh/kvm_lab_global_id_rsa
+    StrictHostKeyChecking no
+    UserKnownHostsFile /dev/null
+    LogLevel QUIET
+# KVM Lab SSH Config - End
+EOF
+  
+  # Ensure main config includes config.custom
+  USER_SSH_CONFIG="${USER_SSH_DIR}/config"
+  
+  # Create file if it doesn't exist (won't overwrite existing file)
+  touch "$USER_SSH_CONFIG"
+  
+  # Add Include directive if not already present
+  if ! grep -q "Include.*config.custom" "$USER_SSH_CONFIG"; then
+    sed -i '1i # Include any user specified SSH configuration\nInclude ~/.ssh/config.custom' "$USER_SSH_CONFIG"
+  fi
 
   print_task_done
 
