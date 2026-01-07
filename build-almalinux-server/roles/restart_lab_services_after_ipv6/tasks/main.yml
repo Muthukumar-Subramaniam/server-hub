@@ -46,7 +46,7 @@
       Type=oneshot
       RemainAfterExit=yes
       ExecStart=/usr/local/bin/wait-for-ipv6.sh
-      ExecStart=/usr/bin/systemctl restart nginx.service nfs-server.service kea-dhcp6.service chronyd.service named.service
+      ExecStart=/usr/bin/systemctl restart nginx.service nfs-server.service kea-dhcp6.service radvd.service chronyd.service named.service
       
       [Install]
       WantedBy=multi-user.target

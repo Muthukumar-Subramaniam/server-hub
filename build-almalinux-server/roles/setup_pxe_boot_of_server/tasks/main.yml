@@ -18,6 +18,22 @@
     src: kea_ctrl_agent_conf.j2
     dest: /etc/kea/kea-ctrl-agent.conf
 
+- name: Configure /etc/radvd.conf for IPv6 Router Advertisements
+  become: true
+  template:
+    src: radvd_conf.j2
+    dest: /etc/radvd.conf
+
+- name: Enable IPv6 forwarding for radvd
+  become: true
+  ansible.posix.sysctl:
+    name: net.ipv6.conf.all.forwarding
+    value: '1'
+    state: present
+    sysctl_file: /etc/sysctl.d/99-ipv6-forwarding.conf
+    sysctl_set: true
+    reload: true
+
 - name: Create server-hub mount point under /{{ ansible_facts.env.dnsbinder_server_short_name }}.{{ ansible_facts.env.dnsbinder_domain }}
   file:
     path: "/{{ ansible_facts.env.dnsbinder_server_short_name }}.{{ ansible_facts.env.dnsbinder_domain }}/server-hub"
@@ -72,7 +88,7 @@
     state: started
     enabled: true
 
-- name: Enable and Start kea-dhcp4,kea-dhcp6,kea-ctrl-agent
+- name: Enable and Start kea-dhcp4,kea-dhcp6,kea-ctrl-agent,radvd
   become: true
   systemd_service:
     name: "{{ item }}"
@@ -82,8 +98,9 @@
     - "kea-dhcp4"
     - "kea-dhcp6"
     - "kea-ctrl-agent"
+    - "radvd"
 
-- name: Restart kea-dhcp4,kea-dhcp6,kea-ctrl-agent
+- name: Restart kea-dhcp4,kea-dhcp6,kea-ctrl-agent,radvd
   become: true
   systemd_service:
     name: "{{ item }}"
@@ -92,6 +109,7 @@
     - "kea-dhcp4"
     - "kea-dhcp6"
     - "kea-ctrl-agent"
+    - "radvd"
 
 - name: Create command sym-link dnsbinder
   become: true

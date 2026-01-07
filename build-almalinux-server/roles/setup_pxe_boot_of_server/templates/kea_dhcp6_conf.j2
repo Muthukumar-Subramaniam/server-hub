@@ -23,6 +23,7 @@
       {
         "id": 1,
         "subnet": "{{ ansible_facts.env.dnsbinder_ipv6_ula_subnet }}",
+        "interface": "{{ ansible_facts.env.mgmt_interface_name }}",
         "pools": [
           {
             "pool": "{{ ansible_facts.env.dnsbinder_ipv6_ula_subnet | regex_replace('::/.*$', '') }}:{{ '%02x%02x' | format(ansible_facts.env.dnsbinder_last24_subnet.split('.')[0] | int, ansible_facts.env.dnsbinder_last24_subnet.split('.')[1] | int) }}:{{ '00%02x' | format(ansible_facts.env.dnsbinder_last24_subnet.split('.')[2] | int) }}:{{ '%02x%02x' | format(ansible_facts.env.dnsbinder_last24_subnet.split('.')[0] | int, ansible_facts.env.dnsbinder_last24_subnet.split('.')[1] | int) }}:{{ '%02x9c' | format(ansible_facts.env.dnsbinder_last24_subnet.split('.')[2] | int) }} - {{ ansible_facts.env.dnsbinder_ipv6_ula_subnet | regex_replace('::/.*$', '') }}:{{ '%02x%02x' | format(ansible_facts.env.dnsbinder_last24_subnet.split('.')[0] | int, ansible_facts.env.dnsbinder_last24_subnet.split('.')[1] | int) }}:{{ '00%02x' | format(ansible_facts.env.dnsbinder_last24_subnet.split('.')[2] | int) }}:{{ '%02x%02x' | format(ansible_facts.env.dnsbinder_last24_subnet.split('.')[0] | int, ansible_facts.env.dnsbinder_last24_subnet.split('.')[1] | int) }}:{{ '%02xfe' | format(ansible_facts.env.dnsbinder_last24_subnet.split('.')[2] | int) }}"

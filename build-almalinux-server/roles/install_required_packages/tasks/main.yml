@@ -16,6 +16,7 @@
       - zip
       - kea
       - kea-hooks
+      - radvd
       - tftp-server
       - tftp
       - nginx
