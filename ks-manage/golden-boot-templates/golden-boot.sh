@@ -268,6 +268,7 @@ network:
         eth0:
             dhcp4: false
             dhcp6: false
+            accept-ra: false
             addresses:
               - ${IPv4_ADDRESS}/${IPv4_CIDR}
               - ${IPv6_ADDRESS}/${IPv6_PREFIX}
@@ -287,6 +288,7 @@ network:
         eth0:
             dhcp4: false
             dhcp6: false
+            accept-ra: false
             addresses:
               - ${IPv4_ADDRESS}/${IPv4_CIDR}
             routes:
