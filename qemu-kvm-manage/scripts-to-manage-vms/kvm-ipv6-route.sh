@@ -163,19 +163,20 @@ fn_enable_host_ipv6_forwarding() {
         sudo sysctl -w net.ipv6.conf.${primary_if}.accept_ra=2 &>/dev/null
     fi
     
-    # Add IPv6 NAT masquerading if subnet configured (from lab environment)
-    if [[ ! -z "${lab_infra_server_ipv6_ula_subnet}" ]] && [[ ! -z "${primary_if}" ]]; then
+    # Enable NAT66 for ULA subnet so VMs can reach internet via host's global IPv6
+    if [[ ! -z "${lab_infra_server_ipv6_ula_subnet:-}" ]] && [[ ! -z "${primary_if}" ]]; then
+        # Add NAT66 masquerading for ULA subnet
         if ! sudo ip6tables -t nat -C POSTROUTING -s ${lab_infra_server_ipv6_ula_subnet} -o ${primary_if} -j MASQUERADE 2>/dev/null; then
             sudo ip6tables -t nat -A POSTROUTING -s ${lab_infra_server_ipv6_ula_subnet} -o ${primary_if} -j MASQUERADE &>/dev/null
         fi
         
         # Add forwarding rules
         if ! sudo ip6tables -C FORWARD -m state --state ESTABLISHED,RELATED -j ACCEPT 2>/dev/null; then
-            sudo ip6tables -I FORWARD 1 -m state --state ESTABLISHED,RELATED -j ACCEPT &>/dev/null
+            sudo ip6tables -A FORWARD -m state --state ESTABLISHED,RELATED -j ACCEPT &>/dev/null
         fi
         
         if ! sudo ip6tables -C FORWARD -i labbr0 -o ${primary_if} -j ACCEPT 2>/dev/null; then
-            sudo ip6tables -I FORWARD 2 -i labbr0 -o ${primary_if} -j ACCEPT &>/dev/null
+            sudo ip6tables -A FORWARD -i labbr0 -o ${primary_if} -j ACCEPT &>/dev/null
         fi
     fi
     
@@ -186,7 +187,18 @@ fn_enable_all() {
     print_notify "Enabling IPv6 default route on all running VMs..."
     echo ""
     
-    # First, enable host-level forwarding and NAT
+    # First, test if IPv6 internet is available
+    if ! fn_test_ipv6_connectivity; then
+        echo ""
+        print_error "Cannot enable IPv6 default routes: No IPv6 internet connectivity"
+        print_info "Routes will not be configured until IPv6 internet is available"
+        print_info "Use 'qlabvmctl ipv6-route auto' to auto-configure based on connectivity"
+        return 1
+    fi
+    
+    echo ""
+    
+    # Enable host-level forwarding and NAT
     fn_enable_host_ipv6_forwarding
     echo ""
     
