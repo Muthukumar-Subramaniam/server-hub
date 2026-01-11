@@ -13,7 +13,6 @@ source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/defaults.sh
 # Define port numbers
 PORT_DNS=53
 PORT_DHCPV4=67
-PORT_DHCPV6=547
 PORT_NTP=123
 PORT_TFTP=69
 PORT_NFS=2049
@@ -22,8 +21,7 @@ PORT_WEB=80
 # Define lab infra services (service_name:port:protocol:address)
 services_to_check=(
   "DNS Server:$PORT_DNS:tcp:$lab_infra_server_hostname"
-  "DHCPv4 Server:$PORT_DHCPV4:udp:$lab_infra_server_ipv4_address"
-  "DHCPv6 Server:$PORT_DHCPV6:udp:$lab_infra_server_ipv6_address"
+  "DHCP Server:$PORT_DHCPV4:udp:$lab_infra_server_ipv4_address"
   "NTP Server:$PORT_NTP:udp:$lab_infra_server_hostname"
   "TFTP Server:$PORT_TFTP:udp:$lab_infra_server_hostname"
   "NFS Server:$PORT_NFS:tcp:$lab_infra_server_hostname"

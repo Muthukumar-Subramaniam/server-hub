@@ -235,7 +235,6 @@ when_lab_infra_server_is_vm() {
     # Define port numbers
     local port_dns=53
     local port_dhcpv4=67
-    local port_dhcpv6=547
     local port_ntp=123
     local port_tftp=69
     local port_nfs=2049
@@ -244,8 +243,7 @@ when_lab_infra_server_is_vm() {
     # Define lab infra services (service_name:port:protocol:address)
     local services_to_check=(
         "DNS Server:$port_dns:tcp:$lab_infra_server_hostname"
-        "DHCPv4 Server:$port_dhcpv4:udp:$lab_infra_server_ipv4_address"
-        "DHCPv6 Server:$port_dhcpv6:udp:$lab_infra_server_ipv6_address"
+        "DHCP Server:$port_dhcpv4:udp:$lab_infra_server_ipv4_address"
         "NTP Server:$port_ntp:udp:$lab_infra_server_hostname"
         "TFTP Server:$port_tftp:udp:$lab_infra_server_hostname"
         "NFS Server:$port_nfs:tcp:$lab_infra_server_hostname"
