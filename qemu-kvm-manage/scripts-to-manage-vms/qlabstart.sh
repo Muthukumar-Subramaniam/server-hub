@@ -23,7 +23,7 @@ configure_dns_for_bridge() {
 when_lab_infra_server_is_host() {
     # ====== CONFIGURATION ======
     local lab_bridge_dummy_interface_name="dummy-vnet"
-    local lab_essential_services=("kea-dhcp4" "kea-dhcp6" "radvd" "nfs-server" "tftp.socket")
+    local lab_essential_services=("kea-dhcp4" "kea-dhcp6" "radvd" "nfs-server" "tftp.socket" "nginx")
     
     # ====== CLEANUP ON EXIT ======
     trap 'print_error "Script interrupted!"' SIGINT
@@ -99,6 +99,25 @@ when_lab_infra_server_is_host() {
         print_info "IPv6 address may already be assigned"
     fi
 
+    # ====== STEP 5.1: Wait for IPv6 DAD to complete ======
+    print_task "Waiting for IPv6 address to complete DAD..."
+    local dad_timeout=10
+    local dad_elapsed=0
+    while [[ $dad_elapsed -lt $dad_timeout ]]; do
+        if ip -6 addr show dev "$lab_bridge_interface_name" | grep -q "${lab_infra_server_ipv6_address}.*scope global" && \
+           ! ip -6 addr show dev "$lab_bridge_interface_name" | grep -q "${lab_infra_server_ipv6_address}.*tentative"; then
+            break
+        fi
+        sleep 1
+        ((dad_elapsed++))
+    done
+    if [[ $dad_elapsed -ge $dad_timeout ]]; then
+        print_task_fail
+        print_warning "IPv6 DAD may not have completed, but continuing..."
+    else
+        print_task_done
+    fi
+
     # ====== STEP 6: Restart named service ======
     print_task "Restarting named service..."
     if ! sudo systemctl restart named; then
@@ -108,23 +127,15 @@ when_lab_infra_server_is_host() {
     fi
     print_task_done
     
-    # ====== STEP 7: Restart nginx after named is active ======
-    print_task "Restarting nginx service..."
-    if ! sudo systemctl restart nginx; then
-        print_task_fail
-        print_error "Failed to restart nginx service"
-        return 1
-    fi
-    print_task_done
-    
-    # ====== STEP 8: Restart other dependent services ======
-    print_info "Restarting other dependent lab services..."
+    # ====== STEP 7: Restart dependent services sequentially ======
+    print_info "Restarting dependent lab services sequentially..."
     local failed_services_list=()
     for service_name in "${lab_essential_services[@]}"; do
+        print_task "Restarting $service_name..."
         if sudo systemctl restart "$service_name" 2>/dev/null; then
-            print_success "  $service_name restarted"
+            print_task_done
         else
-            print_error "  $service_name failed to restart"
+            print_task_fail
             failed_services_list+=("$service_name")
         fi
     done
@@ -135,10 +146,10 @@ when_lab_infra_server_is_host() {
         print_warning "Some services failed: ${failed_services_list[*]}"
     fi
     
-    # ====== STEP 9: Verify critical services ======
+    # ====== STEP 8: Verify critical services ======
     print_info "Verifying critical services..."
     local all_services_active=true
-    for service_name in libvirtd named nginx "${lab_essential_services[@]}"; do
+    for service_name in libvirtd named "${lab_essential_services[@]}"; do
         if sudo systemctl is-active --quiet "$service_name"; then
             print_success "  $service_name is active"
         else
