@@ -19,10 +19,20 @@
       Firewalld is running. Proceeding to add firewall rules.
   when: firewalld_status.stdout == "active"
 
-- name: Add local Network CIDR ( {{ ansible_facts.env.dnsbinder_network_cidr }} ) to trusted zone
+- name: Add local IPv4 Network CIDR ( {{ ansible_facts.env.dnsbinder_network_cidr }} ) to trusted zone
   become: true
   ansible.posix.firewalld:
     source: "{{ ansible_facts.env.dnsbinder_network_cidr }}"
+    zone: trusted
+    permanent: true
+    immediate: true
+    state: enabled
+  when: firewalld_status.stdout == "active"
+
+- name: Add local IPv6 Network CIDR ( {{ ansible_facts.env.dnsbinder_ipv6_ula_subnet }} ) to trusted zone
+  become: true
+  ansible.posix.firewalld:
+    source: "{{ ansible_facts.env.dnsbinder_ipv6_ula_subnet }}"
     zone: trusted
     permanent: true
     immediate: true

@@ -332,7 +332,7 @@ prepare_lab_infra_config() {
   fi
   
   # Extract the /64 prefix base (remove host portion)
-  lab_infra_server_ipv6_ula_subnet=$(echo "$lab_infra_server_ipv6_gateway" | sed 's/::[^:]*$/::/')::/${lab_infra_server_ipv6_prefix}
+  lab_infra_server_ipv6_ula_subnet=$(echo "$lab_infra_server_ipv6_gateway" | sed 's/::[^:]*$/::/')/${lab_infra_server_ipv6_prefix}
   
   # Lab Infra Server gets special IPv6 address ::2 (gateway is ::1)
   # Extract IPv6 prefix without host portion (e.g., fd00:1234:1234:1234)
@@ -428,12 +428,19 @@ EOF
   # Ensure main config includes config.custom
   USER_SSH_CONFIG="${USER_SSH_DIR}/config"
   
-  # Create file if it doesn't exist (won't overwrite existing file)
-  touch "$USER_SSH_CONFIG"
-  
   # Add Include directive if not already present
-  if ! grep -q "Include.*config.custom" "$USER_SSH_CONFIG"; then
-    sed -i '1i # Include any user specified SSH configuration\nInclude ~/.ssh/config.custom' "$USER_SSH_CONFIG"
+  if [[ ! -f "$USER_SSH_CONFIG" ]] || ! grep -q "Include.*config.custom" "$USER_SSH_CONFIG"; then
+    # Create or prepend to existing file
+    if [[ -f "$USER_SSH_CONFIG" && -s "$USER_SSH_CONFIG" ]]; then
+      # File exists and is not empty - prepend
+      sed -i '1i # Include any user specified SSH configuration\nInclude ~/.ssh/config.custom\n' "$USER_SSH_CONFIG"
+    else
+      # File doesn't exist or is empty - create with content
+      cat > "$USER_SSH_CONFIG" << 'EOF'
+# Include any user specified SSH configuration
+Include ~/.ssh/config.custom
+EOF
+    fi
   fi
 
   print_task_done
@@ -782,7 +789,7 @@ deploy_lab_infra_server_host() {
   # Only create CNAME if server name is not already lab-infra-server
   if [[ "${lab_infra_server_shortname}" != "lab-infra-server" ]]; then
     print_info "Creating CNAME record for lab-infra-server..."
-    if ! sudo bash /server-hub/named-manage/dnsbinder.sh -cc "lab-infra-server" "${lab_infra_hostname}"; then
+    if ! sudo bash /server-hub/named-manage/dnsbinder.sh -cc "lab-infra-server" "${lab_infra_server_hostname}"; then
       print_warning "Failed to create CNAME for lab-infra-server"
     fi
   else

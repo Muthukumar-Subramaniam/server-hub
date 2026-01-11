@@ -12,20 +12,22 @@ source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/defaults.sh
 
 # Define port numbers
 PORT_DNS=53
-PORT_DHCP=67
+PORT_DHCPV4=67
+PORT_DHCPV6=547
 PORT_NTP=123
 PORT_TFTP=69
 PORT_NFS=2049
 PORT_WEB=80
 
-# Define lab infra services (service_name:port:protocol)
+# Define lab infra services (service_name:port:protocol:address)
 services_to_check=(
-  "DNS Server:$PORT_DNS:tcp"
-  "DHCP Server:$PORT_DHCP:udp"
-  "NTP Server:$PORT_NTP:udp"
-  "TFTP Server:$PORT_TFTP:udp"
-  "NFS Server:$PORT_NFS:tcp"
-  "Web Server:$PORT_WEB:tcp"
+  "DNS Server:$PORT_DNS:tcp:$lab_infra_server_hostname"
+  "DHCPv4 Server:$PORT_DHCPV4:udp:$lab_infra_server_ipv4_address"
+  "DHCPv6 Server:$PORT_DHCPV6:udp:$lab_infra_server_ipv6_address"
+  "NTP Server:$PORT_NTP:udp:$lab_infra_server_hostname"
+  "TFTP Server:$PORT_TFTP:udp:$lab_infra_server_hostname"
+  "NFS Server:$PORT_NFS:tcp:$lab_infra_server_hostname"
+  "Web Server:$PORT_WEB:tcp:$lab_infra_server_hostname"
 )
 
 # -------------------------------------------------------------
@@ -33,7 +35,7 @@ services_to_check=(
 # -------------------------------------------------------------
 max_len=0
 for entry in "${services_to_check[@]}"; do
-    IFS=':' read -r service_name service_port service_proto <<< "$entry"
+    IFS=':' read -r service_name service_port service_proto service_address <<< "$entry"
     (( ${#service_name} > max_len )) && max_len=${#service_name}
 done
 
@@ -42,7 +44,9 @@ done
 # -------------------------------------------------------------
 print_cyan "-------------------------------------------------------------
 KVM Lab Infra Health Check
-Lab Infra Server : ${lab_infra_server_hostname} ( ${lab_infra_server_ipv4_address} )
+Lab Infra Server : ${lab_infra_server_hostname}
+IPv4 Address     : ${lab_infra_server_ipv4_address}
+IPv6 Address     : ${lab_infra_server_ipv6_address}
 -------------------------------------------------------------"
 
 active_services=0
@@ -52,12 +56,12 @@ inactive_services=0
 # Service checks
 # -------------------------------------------------------------
 for entry in "${services_to_check[@]}"; do
-    IFS=':' read -r service_name service_port service_proto <<< "$entry"
+    IFS=':' read -r service_name service_port service_proto service_address <<< "$entry"
 
     if [[ "$service_proto" == "udp" ]]; then
-        nc -z -u -w 3 "$lab_infra_server_hostname" "$service_port" &>/dev/null
+        nc -z -u -w 3 "$service_address" "$service_port" &>/dev/null
     else
-        nc -z -w 3 "$lab_infra_server_hostname" "$service_port" &>/dev/null
+        nc -z -w 3 "$service_address" "$service_port" &>/dev/null
     fi
 
     if [[ $? -eq 0 ]]; then

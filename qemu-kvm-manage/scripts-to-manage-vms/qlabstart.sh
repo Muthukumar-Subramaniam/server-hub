@@ -234,26 +234,28 @@ when_lab_infra_server_is_vm() {
     
     # Define port numbers
     local port_dns=53
-    local port_dhcp=67
+    local port_dhcpv4=67
+    local port_dhcpv6=547
     local port_ntp=123
     local port_tftp=69
     local port_nfs=2049
     local port_web=80
     
-    # Define lab infra services (service_name:port:protocol)
+    # Define lab infra services (service_name:port:protocol:address)
     local services_to_check=(
-        "DNS Server:$port_dns:tcp"
-        "DHCP Server:$port_dhcp:udp"
-        "NTP Server:$port_ntp:udp"
-        "TFTP Server:$port_tftp:udp"
-        "NFS Server:$port_nfs:tcp"
-        "Web Server:$port_web:tcp"
+        "DNS Server:$port_dns:tcp:$lab_infra_server_hostname"
+        "DHCPv4 Server:$port_dhcpv4:udp:$lab_infra_server_ipv4_address"
+        "DHCPv6 Server:$port_dhcpv6:udp:$lab_infra_server_ipv6_address"
+        "NTP Server:$port_ntp:udp:$lab_infra_server_hostname"
+        "TFTP Server:$port_tftp:udp:$lab_infra_server_hostname"
+        "NFS Server:$port_nfs:tcp:$lab_infra_server_hostname"
+        "Web Server:$port_web:tcp:$lab_infra_server_hostname"
     )
     
     # Calculate max length for alignment
     local max_len=0
     for entry in "${services_to_check[@]}"; do
-        IFS=':' read -r service_name service_port service_proto <<< "$entry"
+        IFS=':' read -r service_name service_port service_proto service_address <<< "$entry"
         (( ${#service_name} > max_len )) && max_len=${#service_name}
     done
     
@@ -262,12 +264,12 @@ when_lab_infra_server_is_vm() {
     local all_services_active=true
     
     for entry in "${services_to_check[@]}"; do
-        IFS=':' read -r service_name service_port service_proto <<< "$entry"
+        IFS=':' read -r service_name service_port service_proto service_address <<< "$entry"
         
         if [[ "$service_proto" == "udp" ]]; then
-            nc -z -u -w 3 "$lab_infra_server_hostname" "$service_port" &>/dev/null
+            nc -z -u -w 3 "$service_address" "$service_port" &>/dev/null
         else
-            nc -z -w 3 "$lab_infra_server_hostname" "$service_port" &>/dev/null
+            nc -z -w 3 "$service_address" "$service_port" &>/dev/null
         fi
         
         if [[ $? -eq 0 ]]; then
