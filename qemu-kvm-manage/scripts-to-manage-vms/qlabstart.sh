@@ -23,7 +23,7 @@ configure_dns_for_bridge() {
 when_lab_infra_server_is_host() {
     # ====== CONFIGURATION ======
     local lab_bridge_dummy_interface_name="dummy-vnet"
-    local lab_essential_services=("kea-dhcp4" "kea-dhcp6" "radvd" "nfs-server" "nginx" "tftp.socket")
+    local lab_essential_services=("kea-dhcp4" "kea-dhcp6" "radvd" "nfs-server" "tftp.socket")
     
     # ====== CLEANUP ON EXIT ======
     trap 'print_error "Script interrupted!"' SIGINT
@@ -108,8 +108,17 @@ when_lab_infra_server_is_host() {
     fi
     print_task_done
     
-    # ====== STEP 7: Restart dependent services ======
-    print_info "Restarting dependent lab services..."
+    # ====== STEP 7: Restart nginx after named is active ======
+    print_task "Restarting nginx service..."
+    if ! sudo systemctl restart nginx; then
+        print_task_fail
+        print_error "Failed to restart nginx service"
+        return 1
+    fi
+    print_task_done
+    
+    # ====== STEP 8: Restart other dependent services ======
+    print_info "Restarting other dependent lab services..."
     local failed_services_list=()
     for service_name in "${lab_essential_services[@]}"; do
         if sudo systemctl restart "$service_name" 2>/dev/null; then
@@ -126,10 +135,10 @@ when_lab_infra_server_is_host() {
         print_warning "Some services failed: ${failed_services_list[*]}"
     fi
     
-    # ====== STEP 8: Verify critical services ======
+    # ====== STEP 9: Verify critical services ======
     print_info "Verifying critical services..."
     local all_services_active=true
-    for service_name in libvirtd named "${lab_essential_services[@]}"; do
+    for service_name in libvirtd named nginx "${lab_essential_services[@]}"; do
         if sudo systemctl is-active --quiet "$service_name"; then
             print_success "  $service_name is active"
         else
