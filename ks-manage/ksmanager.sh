@@ -664,8 +664,8 @@ fn_select_os_distro() {
   1)  Latest  (AlmaLinux 10, Rocky 10, Ubuntu 24.04, openSUSE 15.6, etc.)
   2)  Previous (AlmaLinux 9, Rocky 9, Ubuntu 22.04, openSUSE 15.5, etc.)
   q)  Quit"
-
-        read -p "Enter option number (default: Latest): " version_choice
+        echo -n "Enter option number (default: Latest): "
+        read version_choice
 
         case "${version_choice}" in
             1 | "" ) version_type="latest" ;;
@@ -694,8 +694,8 @@ fn_select_os_distro() {
     menu+="  q)  Quit"
     
     print_notify "$menu"
-
-    read -p "Enter option number (default: AlmaLinux): " os_distribution
+    echo -n "Enter option number (default: AlmaLinux): "
+    read os_distribution
 
     case "${os_distribution}" in
         1 | "" ) os_distribution="almalinux" ;;

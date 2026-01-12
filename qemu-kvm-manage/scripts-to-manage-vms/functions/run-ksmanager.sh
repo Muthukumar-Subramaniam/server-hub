@@ -1,6 +1,7 @@
 run_ksmanager() {
     local hostname="$1"
     local ksmanager_options="$2"
+    local cleanup_on_cancel="${3:-false}"  # Third parameter: whether to cleanup on cancel (default: false)
     local log_file
 
     # For --create-golden-image mode, hostname is not provided upfront
@@ -41,6 +42,15 @@ run_ksmanager() {
 
     # Check if user cancelled (exit code 130 or cancellation message in log)
     if [[ $ksmanager_exit_code -eq 130 ]] || grep -q "Operation cancelled by user" "$log_file"; then
+        # Cleanup: remove DNS and MAC records only if this is a new install (not reimage)
+        if [[ "$cleanup_on_cancel" == "true" ]] && [[ -n "$hostname" ]]; then
+            print_info "Cleaning up resources for '${hostname}' due to cancellation..."
+            if $lab_infra_server_mode_is_host; then
+                ksmanager "${hostname}" --remove-host &>/dev/null || true
+            else
+                ssh -o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "${lab_infra_admin_username}@${lab_infra_server_hostname}" "ksmanager ${hostname} --remove-host" &>/dev/null || true
+            fi
+        fi
         rm -f "$log_file"
         return 1
     fi

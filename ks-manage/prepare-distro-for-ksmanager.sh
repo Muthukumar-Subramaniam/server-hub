@@ -108,7 +108,8 @@ fn_select_os_distro() {
   menu+="  q)  Quit"
   
   print_notify "$menu"
-  read -p "Enter option number (default: AlmaLinux): " os_distribution
+  echo -n "Enter option number (default: AlmaLinux): "
+  read os_distribution
   case "$os_distribution" in
     1 | "" ) DISTRO="almalinux" ;;
     2 ) DISTRO="rocky" ;;
@@ -247,7 +248,8 @@ What would you like to do?
   1) Setup Distro
   2) Cleanup Distro
   q) Quit"
-  read -p "Enter option (default: 1): " action
+  echo -n "Enter option (default: 1): "
+  read action
   case "$action" in
     1 | "" ) MODE="--setup" ; MENU_TITLE="setup" ;;
     2 ) MODE="--cleanup" ; MENU_TITLE="cleanup" ;;
@@ -259,7 +261,8 @@ What would you like to do?
   print_info "Which version do you want to ${MENU_TITLE}?
   1) Latest (default)
   2) Previous"
-  read -p "Enter option: " version_choice
+  echo -n "Enter option: "
+  read version_choice
   case "$version_choice" in
     1 | "" ) VERSION_VARIANT="latest" ;;
     2 ) VERSION_VARIANT="previous" ;;

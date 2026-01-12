@@ -84,7 +84,8 @@ for qemu_kvm_hostname in "${HOSTNAMES[@]}"; do
     ksmanager_opts="--qemu-kvm --mac ${GENERATED_MAC}"
     [[ -n "$OS_DISTRO" ]] && ksmanager_opts="$ksmanager_opts --distro $OS_DISTRO"
     [[ -n "$VERSION_TYPE" ]] && ksmanager_opts="$ksmanager_opts --version $VERSION_TYPE"
-    if ! run_ksmanager "${qemu_kvm_hostname}" "$ksmanager_opts"; then
+    cleanup_on_cancel=true  # Cleanup DNS/MAC if user cancels during install
+    if ! run_ksmanager "${qemu_kvm_hostname}" "$ksmanager_opts" "$cleanup_on_cancel"; then
         FAILED_VMS+=("$qemu_kvm_hostname")
         continue
     fi
