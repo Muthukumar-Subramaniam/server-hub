@@ -46,10 +46,11 @@ run_ksmanager() {
         if [[ "$cleanup_on_cancel" == "true" ]] && [[ -n "$hostname" ]]; then
             print_info "Cleaning up resources for '${hostname}' due to cancellation..."
             if $lab_infra_server_mode_is_host; then
-                ksmanager "${hostname}" --remove-host &>/dev/null || true
+                ksmanager "${hostname}" --remove-host || true
             else
-                ssh -o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "${lab_infra_admin_username}@${lab_infra_server_hostname}" "ksmanager ${hostname} --remove-host" &>/dev/null || true
+                ssh -o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "${lab_infra_admin_username}@${lab_infra_server_hostname}" "ksmanager ${hostname} --remove-host" || true
             fi
+            print_info "Cleanup completed for '${hostname}' due to cancellation.\n"
         fi
         rm -f "$log_file"
         return 1
