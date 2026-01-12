@@ -2,6 +2,30 @@
 
 This document guides the automated release process. When the user says "release", follow these steps in order.
 
+## Step 0: Check If There's Anything to Release
+
+**CRITICAL FIRST STEP** - Before doing anything else:
+
+1. Get commits since last release:
+```bash
+git log $(git describe --tags --abbrev=0)..HEAD --oneline
+```
+
+2. **Analyze if commits are user-facing changes:**
+   - ✅ **Release these**: Bug fixes, new features, enhancements, performance improvements, UI/UX changes
+   - ❌ **DO NOT release these**: 
+     - Changes to `RELEASE_PROCESS.md` or `.github/` directory
+     - Changes to `create-release-tarball.sh` or CI/CD scripts
+     - Documentation about the release process itself
+     - Internal tooling or meta changes
+
+3. **If no user-facing changes exist:**
+   - Respond: "Nothing to release. No user-facing changes since [last version]."
+   - **STOP** - do not proceed with release steps
+
+4. **Only if user-facing changes exist:**
+   - Proceed to Pre-Release Checklist
+
 ## Pre-Release Checklist
 1. Ensure all changes are committed
 2. Run syntax checks on modified shell scripts
