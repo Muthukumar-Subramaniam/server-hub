@@ -802,17 +802,9 @@ fn_reload_named_dns_service() {
 	else
 		print_task_fail
 	fi
-        
-	if [[  "${v_action_requested}" == "create" ]]
-	then
-		if "${cname_record_true}"
-		then
-			print_success "Successfully created cname record ${v_input_cname}.${v_domain_name}"
-		else
-			print_success "Successfully created host record ${v_host_record}.${v_domain_name}"
-		fi
-	 
-	elif [[ "${v_action_requested}" == "delete" ]]
+
+	# For delete operations (no validation needed), show success after reload
+	if [[ "${v_action_requested}" == "delete" ]]
 	then
 		if "${cname_record_true}"
 		then
@@ -820,23 +812,34 @@ fn_reload_named_dns_service() {
 		else
 			print_success "Successfully deleted host record ${v_host_record}.${v_domain_name}"
 		fi
-
-	elif [[ "${v_action_requested}" == "rename" ]]
-	then
-        	print_success "Successfully renamed host ${v_host_record}.${v_domain_name} to ${v_rename_record}.${v_domain_name}"
 	fi
 
 	if "${cname_record_true}" && [[ "${v_action_requested}" == "create" ]]
 	then
 		print_task "Validating CNAME record..."
-		if host ${v_input_cname}.${v_domain_name} &>/dev/null
-		then
+		
+		# Retry mechanism: wait up to 2 seconds for DNS to propagate
+		local retry_count=0
+		local max_retries=4
+		local query_success=false
+		
+		while [[ ${retry_count} -lt ${max_retries} ]]; do
+			if dig @127.0.0.1 +short +time=1 +tries=1 CNAME ${v_input_cname}.${v_domain_name} | grep -q '.'; then
+				query_success=true
+				break
+			fi
+			sleep 0.5
+			((retry_count++))
+		done
+		
+		if ${query_success}; then
 			print_task_done
+			print_success "Successfully created cname record ${v_input_cname}.${v_domain_name}"
 		else
 			print_task_fail
 		fi
 
-		print_info "FYI :\n$(host ${v_input_cname}.${v_domain_name})"
+		print_info "FYI : ${v_input_cname}.${v_domain_name} is an alias for $(dig @127.0.0.1 +short CNAME ${v_input_cname}.${v_domain_name})"
 
 		return
 	fi
@@ -846,37 +849,113 @@ fn_reload_named_dns_service() {
 
 		print_task "Validating forward look up..."
 
+		# Retry mechanism: wait up to 2 seconds for DNS to propagate
+		local retry_count=0
+		local max_retries=4
+		local query_success=false
+		
 		if  [[ "${v_action_requested}" == "rename" ]]
 		then
-			if host ${v_rename_record}.${v_domain_name} &>/dev/null
-			then
-				print_task_done
-			else
-				print_task_fail
+			while [[ ${retry_count} -lt ${max_retries} ]]; do
+				if dig @127.0.0.1 +short +time=1 +tries=1 A ${v_rename_record}.${v_domain_name} | grep -q '^[0-9]'; then
+					query_success=true
+					break
+				fi
+				sleep 0.5
+				((retry_count++))
+			done
+			
+			# Also validate AAAA record if IPv6 is configured
+			if ${query_success} && [[ ! -z "${dnsbinder_ipv6_ula_subnet}" ]]; then
+				retry_count=0
+				query_success=false
+				while [[ ${retry_count} -lt ${max_retries} ]]; do
+					if dig @127.0.0.1 +short +time=1 +tries=1 AAAA ${v_rename_record}.${v_domain_name} | grep -q ':'; then
+						query_success=true
+						break
+					fi
+					sleep 0.5
+					((retry_count++))
+				done
 			fi
 		else
-			if host ${v_host_record}.${v_domain_name} &>/dev/null
-			then
-				print_task_done
-			else
-				print_task_fail
+			while [[ ${retry_count} -lt ${max_retries} ]]; do
+				if dig @127.0.0.1 +short +time=1 +tries=1 A ${v_host_record}.${v_domain_name} | grep -q '^[0-9]'; then
+					query_success=true
+					break
+				fi
+				sleep 0.5
+				((retry_count++))
+			done
+			
+			# Also validate AAAA record if IPv6 is configured
+			if ${query_success} && [[ ! -z "${dnsbinder_ipv6_ula_subnet}" ]]; then
+				retry_count=0
+				query_success=false
+				while [[ ${retry_count} -lt ${max_retries} ]]; do
+					if dig @127.0.0.1 +short +time=1 +tries=1 AAAA ${v_host_record}.${v_domain_name} | grep -q ':'; then
+						query_success=true
+						break
+					fi
+					sleep 0.5
+					((retry_count++))
+				done
 			fi
+		fi
+		
+		if ${query_success}; then
+			print_task_done
+		else
+			print_task_fail
 		fi
 
 		print_task "Validating reverse look up..."
 
-		if host ${v_current_ip_of_host_record} &>/dev/null
-		then
+		# Retry mechanism for reverse lookup (max 2 seconds)
+		retry_count=0
+		max_retries=4
+		query_success=false
+		
+		while [[ ${retry_count} -lt ${max_retries} ]]; do
+			if dig @127.0.0.1 +short +time=1 +tries=1 -x ${v_current_ip_of_host_record} | grep -q '.'; then
+				query_success=true
+				break
+			fi
+			sleep 0.5
+			((retry_count++))
+		done
+		
+		if ${query_success}; then
                 	print_task_done
                 else
                 	print_task_fail
                 fi
 
+		# Print success messages after validation
+		if [[  "${v_action_requested}" == "create" ]]
+		then
+			print_success "Successfully created host record ${v_host_record}.${v_domain_name}"
+		elif [[ "${v_action_requested}" == "delete" ]]
+		then
+			print_success "Successfully deleted host record ${v_host_record}.${v_domain_name}"
+		elif [[ "${v_action_requested}" == "rename" ]]
+		then
+			print_success "Successfully renamed host ${v_host_record}.${v_domain_name} to ${v_rename_record}.${v_domain_name}"
+		fi
+
 		if  [[ "${v_action_requested}" == "rename" ]]
                 then
-			print_info "FYI : $(host ${v_rename_record}.${v_domain_name})"
+			if [[ ! -z "${dnsbinder_ipv6_ula_subnet}" ]]; then
+				print_info "FYI : ${v_rename_record}.${v_domain_name}\n             ├── IPv4: $(dig @127.0.0.1 +short A ${v_rename_record}.${v_domain_name})\n             └── IPv6: $(dig @127.0.0.1 +short AAAA ${v_rename_record}.${v_domain_name})"
+			else
+				print_info "FYI : ${v_rename_record}.${v_domain_name}\n             └── IPv4: $(dig @127.0.0.1 +short A ${v_rename_record}.${v_domain_name})"
+			fi
 		else
-			print_info "FYI : $(host ${v_host_record}.${v_domain_name})"
+			if [[ ! -z "${dnsbinder_ipv6_ula_subnet}" ]]; then
+				print_info "FYI : ${v_host_record}.${v_domain_name}\n             ├── IPv4: $(dig @127.0.0.1 +short A ${v_host_record}.${v_domain_name})\n             └── IPv6: $(dig @127.0.0.1 +short AAAA ${v_host_record}.${v_domain_name})"
+			else
+				print_info "FYI : ${v_host_record}.${v_domain_name}\n             └── IPv4: $(dig @127.0.0.1 +short A ${v_host_record}.${v_domain_name})"
+			fi
 		fi
 	fi
 }
@@ -1083,7 +1162,7 @@ fn_create_host_record() {
 				if grep "^${host_part_of_ipv4_provided} " "${v_current_ptr_zone_file}" &>/dev/null  	
 				then
 					print_error "Record already exists for provided IPv4 address ${ipv4_provided} !"
-					host  ${ipv4_provided}
+					dig @127.0.0.1 +short -x ${ipv4_provided}
 					print_warning "Please try again with another IPv4 address ! "
 					exit 1
 				else
@@ -1871,7 +1950,8 @@ fn_delete_cname_record() {
 
 	while :
 	do
-		print_warning "CNAME Record to be deleted : $(grep 'alias' <<< $(host ${v_input_cname}.${v_domain_name})) "
+		local cname_target=$(dig @127.0.0.1 +short CNAME ${v_input_cname}.${v_domain_name} | head -1)
+		print_warning "CNAME Record to be deleted : ${v_input_cname}.${v_domain_name} is an alias for ${cname_target}"
 		if [[ ! ${v_input_delete_confirmation} == "-y" ]]
 		then
 			read -p "Please confirm deletion of cname record \"${v_input_cname}.${v_domain_name}\" (y/n) : " v_confirmation
