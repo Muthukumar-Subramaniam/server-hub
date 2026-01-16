@@ -403,7 +403,22 @@ EOF
     # 6. Remove DNS record
     if host "${cleanup_hostname}" "${dnsbinder_server_ipv4_address}" &>/dev/null; then
         sudo "${dnsbinder_script}" -dy "${cleanup_hostname}"
-        if ! host "${cleanup_hostname}" "${dnsbinder_server_ipv4_address}" &>/dev/null; then
+        
+        # Verify deletion with retry mechanism (max 1 second)
+        retry_count=0
+        max_retries=2
+        record_deleted=false
+        
+        while [[ ${retry_count} -lt ${max_retries} ]]; do
+            if ! dig @127.0.0.1 +short +time=1 +tries=1 A "${cleanup_hostname}" | grep -q '^[0-9]'; then
+                record_deleted=true
+                break
+            fi
+            sleep 0.5
+            ((retry_count++))
+        done
+        
+        if ${record_deleted}; then
             print_info "Removed DNS record"
         else
             print_warning "DNS record may not have been removed properly"
