@@ -217,11 +217,18 @@ fn_configure_named_dns_server() {
 
 	print_task "Fetching network information from the system..."
 
-	if $KVM_HOST_MODE_SET; then
+	if [[ "${KVM_HOST_MODE_SET}" == "true" ]]; then
 		source /kvm-hub/lab_environment_vars
 		v_dns_host_short_name="${lab_infra_server_hostname%%.*}"
 		v_primary_interface='labbr0'
 		v_primary_ip=$lab_infra_server_ipv4_address
+		
+		if [[ -z "${v_primary_ip}" ]]; then
+			print_error "Critical: lab_infra_server_ipv4_address is not defined in /kvm-hub/lab_environment_vars."
+			print_error "DNS server IP address is required for dig queries."
+			exit 1
+		fi
+		
 		v_network_gateway=$lab_infra_server_ipv4_gateway
 		# Extract IPv6 information for dual-stack support
 		v_ipv6_address=$lab_infra_server_ipv6_address
@@ -235,6 +242,12 @@ fn_configure_named_dns_server() {
 		v_primary_interface=$(ip r | grep default | awk '{ print $5 }')
 		v_primary_ip=$(ip r | grep -v default | grep "${v_primary_interface}" | head -n 1 | awk '{ print $9 }')
 		v_network_gateway=$(ip r | grep default | awk '{ print $3 }')
+		
+		if [[ -z "${v_primary_ip}" ]]; then
+			print_error "Critical: Failed to detect primary IP address from network interface."
+			print_error "DNS server IP address is required for dig queries."
+			exit 1
+		fi
 		
 		# Auto-detect IPv6 from system (lab infra server VM must have IPv6 configured)
 		# Try to get IPv6 from primary interface (exclude link-local fe80 and loopback ::1)
@@ -299,14 +312,14 @@ fn_configure_named_dns_server() {
 	fi
 
 	# Prepare listen addresses
-	if $KVM_HOST_MODE_SET; then
+	if [[ "${KVM_HOST_MODE_SET}" == "true" ]]; then
 		v_listen_ipv4="${v_primary_ip}"
 	else
 		v_listen_ipv4="127.0.0.1; ${v_primary_ip}"
 	fi
 
 	if [[ ! -z "${v_ipv6_address}" ]]; then
-		if $KVM_HOST_MODE_SET; then
+		if [[ "${KVM_HOST_MODE_SET}" == "true" ]]; then
 			v_listen_ipv6="${v_ipv6_address}"
 		else
 			v_listen_ipv6="::1; ${v_ipv6_address}"
@@ -565,7 +578,7 @@ print(ptr)
 
 	print_task_done
 
-	if ! $KVM_HOST_MODE_SET; then
+	if [[ "${KVM_HOST_MODE_SET}" != "true" ]]; then
 		print_task "Updating Network Manager to point the local dns server and domain..."
 		v_active_connection_name=$(nmcli connection show --active | grep "${v_primary_interface}" | head -n 1 | awk '{ print $1 }')
 		nmcli connection modify "${v_active_connection_name}" ipv4.dns-search "${v_given_domain}" &>/dev/null
@@ -594,7 +607,7 @@ print(ptr)
 
 	print_task "Make named service as a dependency for network-online.target..."
 
-	if ! $KVM_HOST_MODE_SET; then
+	if [[ "${KVM_HOST_MODE_SET}" != "true" ]]; then
 		if [ ! -f /etc/systemd/system/network-online.target.wants/named.service ]; then
 			ln -s /usr/lib/systemd/system/named.service /etc/systemd/system/network-online.target.wants/named.service 
 		fi
@@ -824,7 +837,7 @@ fn_reload_named_dns_service() {
 		local query_success=false
 		
 		while [[ ${retry_count} -lt ${max_retries} ]]; do
-			if dig @127.0.0.1 +short +time=1 +tries=1 CNAME ${v_input_cname}.${v_domain_name} | grep -q '.'; then
+			if dig @"${dnsbinder_server_ipv4_address}" +short +time=1 +tries=1 CNAME ${v_input_cname}.${v_domain_name} | grep -q '.'; then
 				query_success=true
 				break
 			fi
@@ -839,7 +852,7 @@ fn_reload_named_dns_service() {
 			print_task_fail
 		fi
 
-		print_info "FYI : ${v_input_cname}.${v_domain_name} is an alias for $(dig @127.0.0.1 +short CNAME ${v_input_cname}.${v_domain_name})"
+		print_info "FYI : ${v_input_cname}.${v_domain_name} is an alias for $(dig @"${dnsbinder_server_ipv4_address}" +short CNAME ${v_input_cname}.${v_domain_name} | sed 's/\.$//')"
 
 		return
 	fi
@@ -857,7 +870,7 @@ fn_reload_named_dns_service() {
 		if  [[ "${v_action_requested}" == "rename" ]]
 		then
 			while [[ ${retry_count} -lt ${max_retries} ]]; do
-				if dig @127.0.0.1 +short +time=1 +tries=1 A ${v_rename_record}.${v_domain_name} | grep -q '^[0-9]'; then
+				if dig @"${dnsbinder_server_ipv4_address}" +short +time=1 +tries=1 A ${v_rename_record}.${v_domain_name} | grep -q '^[0-9]'; then
 					query_success=true
 					break
 				fi
@@ -870,7 +883,7 @@ fn_reload_named_dns_service() {
 				retry_count=0
 				query_success=false
 				while [[ ${retry_count} -lt ${max_retries} ]]; do
-					if dig @127.0.0.1 +short +time=1 +tries=1 AAAA ${v_rename_record}.${v_domain_name} | grep -q ':'; then
+					if dig @"${dnsbinder_server_ipv4_address}" +short +time=1 +tries=1 AAAA ${v_rename_record}.${v_domain_name} | grep -q ':'; then
 						query_success=true
 						break
 					fi
@@ -880,7 +893,7 @@ fn_reload_named_dns_service() {
 			fi
 		else
 			while [[ ${retry_count} -lt ${max_retries} ]]; do
-				if dig @127.0.0.1 +short +time=1 +tries=1 A ${v_host_record}.${v_domain_name} | grep -q '^[0-9]'; then
+				if dig @"${dnsbinder_server_ipv4_address}" +short +time=1 +tries=1 A ${v_host_record}.${v_domain_name} | grep -q '^[0-9]'; then
 					query_success=true
 					break
 				fi
@@ -893,7 +906,7 @@ fn_reload_named_dns_service() {
 				retry_count=0
 				query_success=false
 				while [[ ${retry_count} -lt ${max_retries} ]]; do
-					if dig @127.0.0.1 +short +time=1 +tries=1 AAAA ${v_host_record}.${v_domain_name} | grep -q ':'; then
+					if dig @"${dnsbinder_server_ipv4_address}" +short +time=1 +tries=1 AAAA ${v_host_record}.${v_domain_name} | grep -q ':'; then
 						query_success=true
 						break
 					fi
@@ -917,7 +930,7 @@ fn_reload_named_dns_service() {
 		query_success=false
 		
 		while [[ ${retry_count} -lt ${max_retries} ]]; do
-			if dig @127.0.0.1 +short +time=1 +tries=1 -x ${v_current_ip_of_host_record} | grep -q '.'; then
+			if dig @"${dnsbinder_server_ipv4_address}" +short +time=1 +tries=1 -x ${v_current_ip_of_host_record} | grep -q '.'; then
 				query_success=true
 				break
 			fi
@@ -946,15 +959,15 @@ fn_reload_named_dns_service() {
 		if  [[ "${v_action_requested}" == "rename" ]]
                 then
 			if [[ ! -z "${dnsbinder_ipv6_ula_subnet}" ]]; then
-				print_info "FYI : ${v_rename_record}.${v_domain_name}\n             ├── IPv4: $(dig @127.0.0.1 +short A ${v_rename_record}.${v_domain_name})\n             └── IPv6: $(dig @127.0.0.1 +short AAAA ${v_rename_record}.${v_domain_name})"
+				print_info "FYI : ${v_rename_record}.${v_domain_name}\n             ├── IPv4: $(dig @"${dnsbinder_server_ipv4_address}" +short A ${v_rename_record}.${v_domain_name} | head -1)\n             └── IPv6: $(dig @"${dnsbinder_server_ipv4_address}" +short AAAA ${v_rename_record}.${v_domain_name} | head -1)"
 			else
-				print_info "FYI : ${v_rename_record}.${v_domain_name}\n             └── IPv4: $(dig @127.0.0.1 +short A ${v_rename_record}.${v_domain_name})"
+				print_info "FYI : ${v_rename_record}.${v_domain_name}\n             └── IPv4: $(dig @"${dnsbinder_server_ipv4_address}" +short A ${v_rename_record}.${v_domain_name} | head -1)"
 			fi
 		else
 			if [[ ! -z "${dnsbinder_ipv6_ula_subnet}" ]]; then
-				print_info "FYI : ${v_host_record}.${v_domain_name}\n             ├── IPv4: $(dig @127.0.0.1 +short A ${v_host_record}.${v_domain_name})\n             └── IPv6: $(dig @127.0.0.1 +short AAAA ${v_host_record}.${v_domain_name})"
+				print_info "FYI : ${v_host_record}.${v_domain_name}\n             ├── IPv4: $(dig @"${dnsbinder_server_ipv4_address}" +short A ${v_host_record}.${v_domain_name} | head -1)\n             └── IPv6: $(dig @"${dnsbinder_server_ipv4_address}" +short AAAA ${v_host_record}.${v_domain_name} | head -1)"
 			else
-				print_info "FYI : ${v_host_record}.${v_domain_name}\n             └── IPv4: $(dig @127.0.0.1 +short A ${v_host_record}.${v_domain_name})"
+				print_info "FYI : ${v_host_record}.${v_domain_name}\n             └── IPv4: $(dig @"${dnsbinder_server_ipv4_address}" +short A ${v_host_record}.${v_domain_name} | head -1)"
 			fi
 		fi
 	fi
@@ -977,7 +990,13 @@ fn_set_ptr_zone() {
 	do
     		if [[ "${v_current_ip_of_host_record}" =~ ${arr_subnets[i]} ]]
 		then
-        		${v_if_autorun_false} && print_info "Match found with IP ${v_current_ip_of_host_record} for host record ${v_host_record}.${v_domain_name}"
+        		if ${v_if_autorun_false}; then
+				if [[ ! -z "${dnsbinder_ipv6_ula_subnet}" ]] && [[ ! -z "${v_current_ipv6_of_host_record}" ]]; then
+					print_info "Match found for host record ${v_host_record}.${v_domain_name}\n             ├── IPv4: ${v_current_ip_of_host_record}\n             └── IPv6: ${v_current_ipv6_of_host_record}"
+				else
+					print_info "Match found with IP ${v_current_ip_of_host_record} for host record ${v_host_record}.${v_domain_name}"
+				fi
+			fi
         		v_ptr_zone="${arr_ptr_zones[i]}"
         		break
     		fi
@@ -1158,11 +1177,11 @@ fn_create_host_record() {
 			host_part_of_ipv4_provided="${ipv4_octet4}"
 			
 			if [[ "${v_current_subnet}" == "${subnet_part_of_ipv4_provided}" ]]
-			then	
+			then
 				if grep "^${host_part_of_ipv4_provided} " "${v_current_ptr_zone_file}" &>/dev/null  	
 				then
 					print_error "Record already exists for provided IPv4 address ${ipv4_provided} !"
-					dig @127.0.0.1 +short -x ${ipv4_provided}
+					dig @"${dnsbinder_server_ipv4_address}" +short -x ${ipv4_provided} | sed 's/\.$//'
 					print_warning "Please try again with another IPv4 address ! "
 					exit 1
 				else
@@ -1438,6 +1457,7 @@ fn_delete_host_record() {
 
 	v_capture_host_record=$(grep "^${v_host_record} .*IN A " "${v_fw_zone}" ) 
 	v_current_ip_of_host_record=$(grep "^${v_host_record} .*IN A " ${v_fw_zone} | awk '{print $NF}' | tr -d '[:space:]')
+	v_current_ipv6_of_host_record=$(grep "^${v_host_record} .*IN AAAA" ${v_fw_zone} | awk '{print $NF}' | tr -d '[:space:]')
 	v_capture_ptr_prefix=$(awk -F. '{ print $4 }' <<< ${v_current_ip_of_host_record} )
 
 	fn_set_ptr_zone
@@ -1950,7 +1970,7 @@ fn_delete_cname_record() {
 
 	while :
 	do
-		local cname_target=$(dig @127.0.0.1 +short CNAME ${v_input_cname}.${v_domain_name} | head -1)
+		local cname_target=$(dig @"${dnsbinder_server_ipv4_address}" +short CNAME ${v_input_cname}.${v_domain_name} | head -1 | sed 's/\.$//')
 		print_warning "CNAME Record to be deleted : ${v_input_cname}.${v_domain_name} is an alias for ${cname_target}"
 		if [[ ! ${v_input_delete_confirmation} == "-y" ]]
 		then

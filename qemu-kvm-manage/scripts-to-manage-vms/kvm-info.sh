@@ -93,10 +93,17 @@ done
 declare -a target_vms
 
 if [[ -n "$hosts_list" ]]; then
-    # Parse comma-separated list
-    IFS=',' read -ra target_vms <<< "$hosts_list"
+    # Parse comma-separated list and validate hostnames
+    IFS=',' read -ra hosts_array <<< "$hosts_list"
+    source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/validate-and-process-hostnames.sh
+    if ! validate_and_process_hostnames hosts_array; then
+        exit 1
+    fi
+    target_vms=("${VALIDATED_HOSTS[@]}")
 elif [[ -n "$single_host" ]]; then
-    target_vms=("$single_host")
+    # Validate and normalize single hostname
+    source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/input-hostname.sh "$single_host"
+    target_vms=("$qemu_kvm_hostname")
 else
     # Get all running VMs
     mapfile -t all_vms < <(sudo virsh list --state-running | awk 'NR>2 && $2 != "" {print $2}')

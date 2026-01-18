@@ -20,6 +20,12 @@ if [[ "$USER" != "$mgmt_super_user" ]]; then
     	exit 1
 fi
 
+if [[ -z "${dnsbinder_server_ipv4_address}" ]]; then
+	print_error "Critical: dnsbinder_server_ipv4_address is not defined in /etc/environment."
+	print_error "DNS server IP address is required for dig queries."
+	exit 1
+fi
+
 ipv4_domain="${dnsbinder_domain}"
 ipv4_network_cidr="${dnsbinder_network_cidr}"
 ipv4_netmask="${dnsbinder_netmask}"
@@ -106,14 +112,14 @@ fn_check_and_create_host_record() {
 	# Extract short hostname for use with tools that need it
 	kickstart_short_hostname="${kickstart_hostname%%.*}"
 
-	if ! host "${kickstart_hostname}" "${dnsbinder_server_ipv4_address}" &>/dev/null
+	if ! dig @"${dnsbinder_server_ipv4_address}" +short +time=1 +tries=1 A "${kickstart_hostname}" | grep -q '^[0-9]'
 	then
 		print_info "No DNS record found for \"${kickstart_hostname}\"."
 		
 		if $invoked_with_qemu_kvm; then
 			sudo "${dnsbinder_script}" -c "${kickstart_hostname}"
 
-			if ! host "${kickstart_hostname}" "${dnsbinder_server_ipv4_address}" &>/dev/null; then
+			if ! dig @"${dnsbinder_server_ipv4_address}" +short +time=1 +tries=1 A "${kickstart_hostname}" | grep -q '^[0-9]'; then
 				print_error "Failed to create DNS record for \"${kickstart_hostname}\"."
 				exit 1
 			fi
@@ -126,7 +132,7 @@ fn_check_and_create_host_record() {
 				then
 					sudo "${dnsbinder_script}" -c "${kickstart_hostname}"
 
-					if ! host "${kickstart_hostname}" "${dnsbinder_server_ipv4_address}" &>/dev/null; then
+					if ! dig @"${dnsbinder_server_ipv4_address}" +short +time=1 +tries=1 A "${kickstart_hostname}" | grep -q '^[0-9]'; then
 						print_error "Failed to create DNS record for \"${kickstart_hostname}\"."
 						exit 1
 					fi
@@ -144,7 +150,10 @@ fn_check_and_create_host_record() {
 		fi
 	else
 		print_info "DNS record found for \"${kickstart_hostname}\"."
-		print_info "$(host ${kickstart_hostname} ${dnsbinder_server_ipv4_address} | grep -E 'has address|has IPv6 address')"
+		local ipv4=$(dig @"${dnsbinder_server_ipv4_address}" +short A "${kickstart_hostname}" | head -1)
+		local ipv6=$(dig @"${dnsbinder_server_ipv4_address}" +short AAAA "${kickstart_hostname}" | head -1)
+		[[ -n "${ipv4}" ]] && print_info "${kickstart_hostname} has address ${ipv4}"
+		[[ -n "${ipv6}" ]] && print_info "${kickstart_hostname} has IPv6 address ${ipv6}"
 	fi
 }
 
@@ -401,7 +410,7 @@ EOF
     fi
     
     # 6. Remove DNS record
-    if host "${cleanup_hostname}" "${dnsbinder_server_ipv4_address}" &>/dev/null; then
+    if dig @"${dnsbinder_server_ipv4_address}" +short +time=1 +tries=1 A "${cleanup_hostname}" | grep -q '^[0-9]'; then
         sudo "${dnsbinder_script}" -dy "${cleanup_hostname}"
         
         # Verify deletion with retry mechanism (max 1 second)
@@ -410,7 +419,7 @@ EOF
         record_deleted=false
         
         while [[ ${retry_count} -lt ${max_retries} ]]; do
-            if ! dig @127.0.0.1 +short +time=1 +tries=1 A "${cleanup_hostname}" | grep -q '^[0-9]'; then
+            if ! dig @"${dnsbinder_server_ipv4_address}" +short +time=1 +tries=1 A "${cleanup_hostname}" | grep -q '^[0-9]'; then
                 record_deleted=true
                 break
             fi
@@ -433,11 +442,11 @@ fi
 
 if $golden_image_creation_not_requested; then
 	fn_check_and_create_host_record "${1}"
-	ipv4_address=$(host "${kickstart_hostname}" "${dnsbinder_server_ipv4_address}" | grep 'has address' | cut -d " " -f 4 | tr -d '[:space:]')
+	ipv4_address=$(dig @"${dnsbinder_server_ipv4_address}" +short +time=1 +tries=1 A "${kickstart_hostname}" | head -1 | tr -d '[:space:]')
 	
 	# Query DNS for IPv6 address (if dual-stack configured)
 	if [[ ! -z "${ipv6_gateway}" ]]; then
-		ipv6_address=$(host "${kickstart_hostname}" "${dnsbinder_server_ipv4_address}" | grep 'has IPv6 address' | awk '{print $NF}' | tr -d '[:space:]')
+		ipv6_address=$(dig @"${dnsbinder_server_ipv4_address}" +short +time=1 +tries=1 AAAA "${kickstart_hostname}" | head -1 | tr -d '[:space:]')
 	fi
 fi
 
@@ -777,11 +786,11 @@ fi
 
 if ! $golden_image_creation_not_requested; then
 	fn_check_and_create_host_record "${os_distribution}-golden-image-${version_type}"
-	ipv4_address=$(host "${kickstart_hostname}" "${dnsbinder_server_ipv4_address}" | grep 'has address' | cut -d " " -f 4 | tr -d '[[:space:]]')
+	ipv4_address=$(dig @"${dnsbinder_server_ipv4_address}" +short +time=1 +tries=1 A "${kickstart_hostname}" | head -1 | tr -d '[[:space:]]')
 	
 	# Query DNS for IPv6 address (if dual-stack configured)
 	if [[ ! -z "${ipv6_gateway}" ]]; then
-		ipv6_address=$(host "${kickstart_hostname}" "${dnsbinder_server_ipv4_address}" | grep 'has IPv6 address' | awk '{print $NF}' | tr -d '[:space:]')
+		ipv6_address=$(dig @"${dnsbinder_server_ipv4_address}" +short +time=1 +tries=1 AAAA "${kickstart_hostname}" | head -1 | tr -d '[:space:]')
 	fi
 	
 	fn_check_and_create_mac_if_required
