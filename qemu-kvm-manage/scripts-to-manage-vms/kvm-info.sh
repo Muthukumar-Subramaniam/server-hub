@@ -183,11 +183,11 @@ fi
 # Birthdate from /etc/bigbang
 birthdate="N/A"
 if [ -f /etc/bigbang ]; then
-    birthdate=$(cat /etc/bigbang)
+    birthdate=$(</etc/bigbang)
 fi
 
 # Uptime
-uptime_info=$(uptime -p 2>/dev/null || uptime | awk -F'up ' '{print $2}' | awk -F',' '{print $1}')
+uptime_info=$(uptime -p 2>/dev/null || uptime | awk -F'up ' '{split($2,a,","); print a[1]}')
 
 # Load average
 load_avg=$(awk '{printf "%s, %s, %s", $1, $2, $3}' /proc/loadavg)
@@ -210,7 +210,7 @@ ipv6_gateway=$(ip -6 route show default | awk '{print $3; exit}')
 [[ -z "$ipv6_gateway" ]] && ipv6_gateway="N/A"
 
 # Storage devices
-storage_info=$(lsblk -dno NAME,SIZE,TYPE | grep 'disk' | awk '{printf "%s:%s,", $1, $2}' | sed 's/,$//')
+storage_info=$(lsblk -dno NAME,SIZE,TYPE | awk '/disk/ {printf "%s%s:%s", (n++?",":""), $1, $2}')
 
 # NIC information (interface:mac)
 nic_info=$(ip -o link show | awk '!/lo:/ && /link\/ether/ {

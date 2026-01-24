@@ -370,13 +370,13 @@ while true; do
             print_info "Resizing all additional disks:"
             for disk in "${AVAILABLE_DISKS[@]}"; do
                 disk_path="${DISK_PATHS[$disk]}"
-                disk_size=$(sudo qemu-img info "$disk_path" | grep "virtual size" | grep -o '[0-9]\+ GiB' | cut -d' ' -f1)
+                disk_size=$(sudo qemu-img info "$disk_path" | awk '/virtual size/ {for(i=1;i<=NF;i++) if($i ~ /^[0-9]+$/ && $(i+1)=="GiB") {print $i; exit}}')
                 echo "  - $disk: ${disk_size} GiB"
             done
         else
             # Show current size for single disk
             SELECTED_DISK_PATH="${DISK_PATHS[$SELECTED_DISK]}"
-            current_disk_gib=$(sudo qemu-img info "$SELECTED_DISK_PATH" | grep "virtual size" | grep -o '[0-9]\+ GiB' | cut -d' ' -f1)
+            current_disk_gib=$(sudo qemu-img info "$SELECTED_DISK_PATH" | awk '/virtual size/ {for(i=1;i<=NF;i++) if($i ~ /^[0-9]+$/ && $(i+1)=="GiB") {print $i; exit}}')
             print_info "Current size of $SELECTED_DISK: ${current_disk_gib} GiB"
         fi
         print_info "Allowed sizes for increase: Steps of 5 GiB — e.g., 5, 10, 15... up to 50 GiB"
@@ -407,7 +407,7 @@ while true; do
         # Resize all additional disks
         for disk in "${AVAILABLE_DISKS[@]}"; do
             disk_path="${DISK_PATHS[$disk]}"
-            current_disk_gib=$(sudo qemu-img info "$disk_path" | grep "virtual size" | grep -o '[0-9]\+ GiB' | cut -d' ' -f1)
+            current_disk_gib=$(sudo qemu-img info "$disk_path" | awk '/virtual size/ {for(i=1;i<=NF;i++) if($i ~ /^[0-9]+$/ && $(i+1)=="GiB") {print $i; exit}}')
             
             print_task "Growing $disk by ${grow_size_gib} GiB..." nskip
             if error_msg=$(sudo qemu-img resize "$disk_path" +${grow_size_gib}G 2>&1); then
@@ -429,7 +429,7 @@ while true; do
         for disk in "${SELECTED_DISKS_ARRAY[@]}"; do
             disk=$(echo "$disk" | xargs)  # Trim whitespace
             disk_path="${DISK_PATHS[$disk]}"
-            current_disk_gib=$(sudo qemu-img info "$disk_path" | grep "virtual size" | grep -o '[0-9]\+ GiB' | cut -d' ' -f1)
+            current_disk_gib=$(sudo qemu-img info "$disk_path" | awk '/virtual size/ {for(i=1;i<=NF;i++) if($i ~ /^[0-9]+$/ && $(i+1)=="GiB") {print $i; exit}}')
             
             print_task "Growing $disk by ${grow_size_gib} GiB..." nskip
             if error_msg=$(sudo qemu-img resize "$disk_path" +${grow_size_gib}G 2>&1); then
@@ -449,7 +449,7 @@ while true; do
     else
         # Resize single disk
         SELECTED_DISK_PATH="${DISK_PATHS[$SELECTED_DISK]}"
-        current_disk_gib=$(sudo qemu-img info "$SELECTED_DISK_PATH" | grep "virtual size" | grep -o '[0-9]\+ GiB' | cut -d' ' -f1)
+        current_disk_gib=$(sudo qemu-img info "$SELECTED_DISK_PATH" | awk '/virtual size/ {for(i=1;i<=NF;i++) if($i ~ /^[0-9]+$/ && $(i+1)=="GiB") {print $i; exit}}')
         
         print_task "Growing $SELECTED_DISK by ${grow_size_gib} GiB..." nskip
         if error_msg=$(sudo qemu-img resize "$SELECTED_DISK_PATH" +${grow_size_gib}G 2>&1); then

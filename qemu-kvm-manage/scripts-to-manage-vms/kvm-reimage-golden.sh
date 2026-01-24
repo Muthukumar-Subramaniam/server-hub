@@ -244,7 +244,7 @@ for qemu_kvm_hostname in "${HOSTNAMES[@]}"; do
         get_current_disk_size "$qemu_kvm_hostname"
         current_disk_gib="${CURRENT_DISK_SIZE:-20}"
         
-        golden_disk_gib=$(sudo qemu-img info "${golden_qcow2_disk_path}" 2>/dev/null | grep "virtual size" | grep -o '[0-9]\+ GiB' | cut -d' ' -f1)
+        golden_disk_gib=$(sudo qemu-img info "${golden_qcow2_disk_path}" 2>/dev/null | awk '/virtual size/ {for(i=1;i<=NF;i++) if($i ~ /^[0-9]+$/ && $(i+1)=="GiB") {print $i; exit}}')
         golden_disk_gib="${golden_disk_gib:-20}"
         
         # Delete existing qcow2 disk and recreate with appropriate size

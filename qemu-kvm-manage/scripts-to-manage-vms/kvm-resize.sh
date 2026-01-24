@@ -402,7 +402,7 @@ resize_vm_disk() {
         exit 1
     fi
 
-    current_disk_gib=$(sudo qemu-img info "${vm_qcow2_disk_path}" | grep "virtual size" | grep -o '[0-9]\+ GiB' | cut -d' ' -f1)
+    current_disk_gib=$(sudo qemu-img info "${vm_qcow2_disk_path}" | awk '/virtual size/ {for(i=1;i<=NF;i++) if($i ~ /^[0-9]+$/ && $(i+1)=="GiB") {print $i; exit}}')
 
     # Get disk increase size from argument or prompt
     if [[ -n "$gib_arg" ]]; then
