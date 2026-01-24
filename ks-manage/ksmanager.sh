@@ -222,7 +222,7 @@ if $remove_host_requested; then
         cached_ipv6=$(grep "^${cleanup_hostname} " "${ksmanager_hub_dir}/mac-address-cache" 2>/dev/null | cut -d " " -f 4)
         
         if [[ -n "$cached_mac" ]]; then
-            ipxe_cfg_mac=$(echo "${cached_mac}" | tr ':' '-' | tr 'A-F' 'a-f')
+            ipxe_cfg_mac=$(echo "${cached_mac}" | tr ':A-F' '-a-f')
         fi
     fi
     
@@ -465,7 +465,7 @@ fn_validate_mac() {
 
 fn_convert_mac_for_ipxe_cfg() {
 	# Convert MAC address to required format to append with ipxe.cfg file
-	ipxe_cfg_mac_address=$(echo "${mac_address_of_host}" | tr ':' '-' | tr 'A-F' 'a-f')
+	ipxe_cfg_mac_address=$(echo "${mac_address_of_host}" | tr ':A-F' '-a-f')
 }
 
 fn_cache_the_mac() {

@@ -92,7 +92,7 @@ for qemu_kvm_hostname in "${HOSTNAMES[@]}"; do
             print_error "Golden image not found for '${OS_DISTRO}' (${VERSION_TYPE})"
             print_info "Available golden images:"
             if ls /kvm-hub/golden-images-disk-store/*.qcow2 &>/dev/null; then
-                ls -1 /kvm-hub/golden-images-disk-store/*.qcow2 | xargs -n1 basename | sed -E 's/^(.+)-golden-image-(latest|previous)\..*$/\1 (\2)/' | sort -u | sed 's/^/  - /'
+                for f in /kvm-hub/golden-images-disk-store/*.qcow2; do basename "$f"; done | sed -E 's/^(.+)-golden-image-(latest|previous)\..*$/\1 (\2)/' | sort -u | sed 's/^/  - /'
             else
                 echo "  (none)"
             fi

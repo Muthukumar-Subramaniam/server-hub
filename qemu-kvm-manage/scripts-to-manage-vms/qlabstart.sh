@@ -71,7 +71,7 @@ when_lab_infra_server_is_host() {
     print_task "Waiting for $lab_bridge_interface_name to come UP..."
     local bridge_up_timeout_seconds=30
     local bridge_up_elapsed_seconds=0
-    while [[ "$(cat /sys/class/net/$lab_bridge_interface_name/operstate 2>/dev/null)" != "up" ]]; do
+    while [[ "$(</sys/class/net/$lab_bridge_interface_name/operstate 2>/dev/null)" != "up" ]]; do
         if [ $bridge_up_elapsed_seconds -ge $bridge_up_timeout_seconds ]; then
             print_task_fail
             print_error "Timeout waiting for $lab_bridge_interface_name to come up"

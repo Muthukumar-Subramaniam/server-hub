@@ -200,8 +200,8 @@ mem_used=$(awk '/MemTotal/ {total=$2} /MemAvailable/ {avail=$2} END {printf "%.0
 root_fs_info=$(df -h / | awk 'NR==2 {printf "%s|%s|%s|%s", $2, $3, $4, $5}')
 
 # IP addresses with CIDR notation (IPv4 and IPv6)
-ipv4_addrs=$(ip -4 addr show | grep 'inet ' | grep -v '127.0.0.1' | awk '{print $2}' | tr '\n' ',' | sed 's/,$//')
-ipv6_addrs=$(ip -6 addr show | grep 'inet6 ' | grep -v 'inet6 ::1' | grep -v 'inet6 fe80:' | awk '{print $2}' | tr '\n' ',' | sed 's/,$//')
+ipv4_addrs=$(ip -4 addr show | awk '/inet / && !/127.0.0.1/ {printf "%s%s", (n++?",":""), $2}')
+ipv6_addrs=$(ip -6 addr show | awk '/inet6 / && !/::1/ && !/fe80:/ {printf "%s%s", (n++?",":""), $2}')
 
 # Default gateways
 ipv4_gateway=$(ip -4 route show default | awk '{print $3; exit}')

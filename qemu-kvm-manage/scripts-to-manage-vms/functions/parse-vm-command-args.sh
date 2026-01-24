@@ -164,7 +164,7 @@ parse_vm_command_args() {
     if [[ ${#HOSTNAMES[@]} -gt 0 ]]; then
         validated_hosts=()
         for vm_name in "${HOSTNAMES[@]}"; do
-            vm_name=$(echo "$vm_name" | xargs) # Trim whitespace
+            vm_name=${vm_name// /}  # Trim all whitespace
             [[ -z "$vm_name" ]] && continue  # Skip empty entries
             # Use input-hostname.sh to validate and normalize
             source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/input-hostname.sh "$vm_name"

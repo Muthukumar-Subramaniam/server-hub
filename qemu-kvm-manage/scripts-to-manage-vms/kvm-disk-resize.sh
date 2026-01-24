@@ -228,7 +228,7 @@ while true; do
     # Validate disk target argument if provided
     if [[ -n "$disk_target_arg" ]]; then
         # Normalize to lowercase
-        disk_target_arg=$(echo "$disk_target_arg" | tr '[:upper:]' '[:lower:]')
+        disk_target_arg=${disk_target_arg,,}
         
         # Check if user wants to resize all disks
         if [[ "$disk_target_arg" == "all" ]]; then

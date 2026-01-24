@@ -18,7 +18,7 @@ validate_and_process_hostnames() {
     # Validate and normalize all hostnames
     local validated_hosts=()
     for vm_name in "${input_array[@]}"; do
-        vm_name=$(echo "$vm_name" | xargs) # Trim whitespace
+        vm_name=${vm_name// /}  # Trim all whitespace
         [[ -z "$vm_name" ]] && continue  # Skip empty entries
         # Use input-hostname.sh to validate and normalize
         source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/input-hostname.sh "$vm_name"

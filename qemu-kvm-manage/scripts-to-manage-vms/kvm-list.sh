@@ -92,7 +92,7 @@ wait
 # Collect results in original order
 for vm_name in "${vm_list[@]}"; do
     if [[ -f "$tmp_dir/$vm_name" ]]; then
-        results+=("$(cat "$tmp_dir/$vm_name")")
+        results+=("$(<"$tmp_dir/$vm_name")")
     fi
 done
 

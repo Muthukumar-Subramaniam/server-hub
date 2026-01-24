@@ -251,7 +251,7 @@ fn_configure_named_dns_server() {
 		
 		# Auto-detect IPv6 from system (lab infra server VM must have IPv6 configured)
 		# Try to get IPv6 from primary interface (exclude link-local fe80 and loopback ::1)
-		v_ipv6_address=$(ip -6 addr show "${v_primary_interface}" | grep -oP 'inet6\s+\Kfd[0-9a-f:]+' | grep -v 'fe80' | grep -v '::1' | head -1)
+		v_ipv6_address=$(ip -6 addr show "${v_primary_interface}" | awk '/inet6 fd[0-9a-f:]+/ && !/fe80/ && !/::1/ {sub(/inet6 /, ""); sub(/\/.*/, ""); print; exit}')
 		if [[ ! -z "${v_ipv6_address}" ]]; then
 			# Extract prefix length
 			v_ipv6_prefix=$(ip -6 addr show "${v_primary_interface}" | grep -oP 'fd[0-9a-f:]+/\K[0-9]+' | head -1)
