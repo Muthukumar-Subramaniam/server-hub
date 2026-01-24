@@ -64,12 +64,6 @@ if [[ ! -d "$DETACHED_DIR" ]]; then
     exit 1
 fi
 
-# Warning about potentially deleting lab infra server disks
-print_warning "You are about to permanently delete disk(s) from detached storage."
-print_warning "Some disks may belong to the lab infra server: $lab_infra_server_hostname"
-print_info "Ensure you know which disks you are deleting before proceeding."
-echo ""
-
 # Get list of available detached disks
 print_info "Scanning detached disks..."
 declare -a AVAILABLE_DISKS
@@ -102,16 +96,29 @@ if [[ -n "$disks_arg" ]]; then
     done
     print_info "Using specified disks: ${DISKS_TO_DELETE[*]}"
 else
-    # Interactive mode - show available disks
+    # Interactive mode - show available disks with lab infra highlighting
     print_notify "Available detached disks:"
     for i in "${!AVAILABLE_DISKS[@]}"; do
         disk="${AVAILABLE_DISKS[$i]}"
         disk_path="$DETACHED_DIR/$disk"
+        disk_size=""
         if [[ -f "$disk_path" ]]; then
             disk_size=$(du -h "$disk_path" | awk '{print $1}')
-            echo "  $((i+1))) $disk ($disk_size)"
+        fi
+        
+        # Highlight lab infra server disks
+        if [[ "$disk" =~ ^${lab_infra_server_hostname}_vd[b-z]\.qcow2$ ]]; then
+            if [[ -n "$disk_size" ]]; then
+                print_yellow "  $((i+1))) $disk ($disk_size) [LAB INFRA SERVER]"
+            else
+                print_yellow "  $((i+1))) $disk [LAB INFRA SERVER]"
+            fi
         else
-            echo "  $((i+1))) $disk"
+            if [[ -n "$disk_size" ]]; then
+                echo "  $((i+1))) $disk ($disk_size)"
+            else
+                echo "  $((i+1))) $disk"
+            fi
         fi
     done
     echo "  q) Quit"
@@ -145,19 +152,54 @@ else
     fi
 fi
 
+# Check if any selected disks belong to lab infra server
+lab_infra_disks=()
+for disk in "${DISKS_TO_DELETE[@]}"; do
+    if [[ "$disk" =~ ^${lab_infra_server_hostname}_vd[b-z]\.qcow2$ ]]; then
+        lab_infra_disks+=("$disk")
+    fi
+done
+
 # Confirm deletion
 print_warning "WARNING: The following disk(s) will be PERMANENTLY DELETED:"
 for disk in "${DISKS_TO_DELETE[@]}"; do
     disk_path="$DETACHED_DIR/$disk"
+    disk_size=""
     if [[ -f "$disk_path" ]]; then
         disk_size=$(du -h "$disk_path" | awk '{print $1}')
-        echo "  - $disk ($disk_size) at $disk_path"
+    fi
+    
+    # Highlight lab infra server disks
+    if [[ "$disk" =~ ^${lab_infra_server_hostname}_vd[b-z]\.qcow2$ ]]; then
+        if [[ -n "$disk_size" ]]; then
+            print_yellow "  - $disk ($disk_size) [LAB INFRA SERVER]"
+        else
+            print_yellow "  - $disk [LAB INFRA SERVER]"
+        fi
     else
-        echo "  - $disk at $disk_path"
+        if [[ -n "$disk_size" ]]; then
+            echo "  - $disk ($disk_size)"
+        else
+            echo "  - $disk"
+        fi
     fi
 done
 
 print_warning "This action CANNOT be undone!"
+
+# Special confirmation for lab infra server disks
+if [[ ${#lab_infra_disks[@]} -gt 0 ]]; then
+    echo ""
+    print_warning "⚠️  WARNING: You are deleting ${#lab_infra_disks[@]} disk(s) from the lab infra server!"
+    print_warning "These disks belonged to: $lab_infra_server_hostname"
+    print_warning "Ensure you have backups before proceeding."
+    read -rp "Type 'delete-lab-infra-disks' to confirm deletion of lab infra server disks: " lab_confirm
+    if [[ "$lab_confirm" != "delete-lab-infra-disks" ]]; then
+        print_info "Operation cancelled by user."
+        exit 0
+    fi
+fi
+
 read -rp "Type 'DELETE' in uppercase to confirm permanent deletion: " confirm
 if [[ "$confirm" != "DELETE" ]]; then
     print_info "Operation cancelled."
