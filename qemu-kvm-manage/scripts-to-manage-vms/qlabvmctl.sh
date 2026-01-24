@@ -18,11 +18,19 @@ SCRIPT_DIR="/server-hub/qemu-kvm-manage/scripts-to-manage-vms"
 # Version - read from project_version.json
 VERSION=$(grep -o '"message": *"[^"]*"' /server-hub/project_version.json | cut -d'"' -f4)
 
+# Show version
+show_version() {
+    print_cyan "qlabvmctl - QEMU/KVM Lab VM Management Tool
+├─ Version    : $VERSION
+├─ Repository : https://github.com/Muthukumar-Subramaniam/server-hub
+└─ Issues     : https://github.com/Muthukumar-Subramaniam/server-hub/issues"
+}
+
 # Display usage information
 show_usage() {
-    print_cyan "qlabvmctl - QEMU/KVM Lab VM Control Interface
-
-USAGE:
+    show_version
+    echo ""
+    print_cyan "USAGE:
     qlabvmctl <subcommand> [options] [arguments]
 
 VM DEPLOYMENT:
@@ -65,12 +73,6 @@ NOTES:
     - Use 'qlabstart' to start the lab infrastructure
     - Use 'qlabhealth' to check lab infrastructure health
     - Use 'qlabdnsbinder' to manage DNS records for lab infrastructure"
-}
-
-# Show version
-show_version() {
-    print_cyan "qlabvmctl version $VERSION"
-    print_cyan "QEMU/KVM Lab VM Management Tool"
 }
 
 # Main logic
