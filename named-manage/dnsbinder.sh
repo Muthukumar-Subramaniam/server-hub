@@ -20,8 +20,8 @@ fi
 
 v_tmp_file_dnsbinder="/tmp/tmp_file_dnsbinder"
 
-v_domain_name=$(if [ -f /etc/named.conf ];then grep 'zones-are-managed-by-dnsbinder' /etc/named.conf | awk '{print $2}';fi)
-dnsbinder_network=$(if [ -f /etc/named.conf ];then grep 'dnsbinder-network' /etc/named.conf | awk '{print $3}';fi)
+v_domain_name=$(if [ -f /etc/named.conf ];then awk '/zones-are-managed-by-dnsbinder/ {print $2}' /etc/named.conf;fi)
+dnsbinder_network=$(if [ -f /etc/named.conf ];then awk '/dnsbinder-network/ {print $3}' /etc/named.conf;fi)
 var_zone_dir='/var/named/dnsbinder-managed-zone-files'
 v_fw_zone="${var_zone_dir}/${v_domain_name}-forward.db"
 
@@ -130,8 +130,8 @@ fn_split_network_into_cidr24subnets() {
 	fi
 
 	# Extract network and CIDR from input
-	v_network=$(echo "${v_network_and_cidr}" | cut -d "/" -f 1)
-	v_cidr=$(echo "${v_network_and_cidr}" | cut -d "/" -f 2)
+	v_network="${v_network_and_cidr%/*}"
+	v_cidr="${v_network_and_cidr#*/}"
 
 	fn_cidr_prefix_to_netmask "${v_cidr}"
 	
@@ -146,8 +146,8 @@ fn_split_network_into_cidr24subnets() {
 }
 
 if [[ ! -z "${dnsbinder_network}" ]]; then
-	v_splited_subnets=$(ls "${var_zone_dir}"/*-reverse.db | grep -v "ipv6-reverse.db" | awk -F'/' '{print $NF}' | awk -F'.' '{print $1"."$2"."$3}' | sort -n)
-	v_total_ptr_zones=$(ls "${var_zone_dir}"/*-reverse.db | grep -v "ipv6-reverse.db" | wc -l)
+	v_splited_subnets=$(ls "${var_zone_dir}"/*-reverse.db 2>/dev/null | awk -F'/' '!/ipv6-reverse\.db$/ {split($NF,a,"."); print a[1]"."a[2]"."a[3]}' | sort -n)
+	v_total_ptr_zones=$(ls "${var_zone_dir}"/*-reverse.db 2>/dev/null | grep -vc "ipv6-reverse.db")
 
 	v_zone_number=1
 	for v_subnet_part in ${v_splited_subnets}
@@ -239,9 +239,9 @@ fn_configure_named_dns_server() {
 		fi
 	else
 		v_dns_host_short_name=$(hostname -s)
-		v_primary_interface=$(ip r | grep default | awk '{ print $5 }')
-		v_primary_ip=$(ip r | grep -v default | grep "${v_primary_interface}" | head -n 1 | awk '{ print $9 }')
-		v_network_gateway=$(ip r | grep default | awk '{ print $3 }')
+		v_primary_interface=$(ip r | awk '/default/ {print $5; exit}')
+		v_primary_ip=$(ip r | awk -v iface="${v_primary_interface}" '$0 !~ /default/ && $0 ~ iface {print $9; exit}')
+		v_network_gateway=$(ip r | awk '/default/ {print $3; exit}')
 		
 		if [[ -z "${v_primary_ip}" ]]; then
 			print_error "Critical: Failed to detect primary IP address from network interface."
