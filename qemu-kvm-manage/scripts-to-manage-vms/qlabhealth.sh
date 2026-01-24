@@ -40,11 +40,18 @@ done
 # -------------------------------------------------------------
 # Header
 # -------------------------------------------------------------
+if $lab_infra_server_mode_is_host; then
+    lab_infra_server_mode="HOST"
+else
+    lab_infra_server_mode="VM"
+fi
+
 print_cyan "-------------------------------------------------------------
 KVM Lab Infra Health Check
-Lab Infra Server : ${lab_infra_server_hostname}
-IPv4 Address     : ${lab_infra_server_ipv4_address}
-IPv6 Address     : ${lab_infra_server_ipv6_address}
+Lab Infra Server Mode: ${lab_infra_server_mode}
+Lab Infra Server     : ${lab_infra_server_hostname}
+IPv4 Address         : ${lab_infra_server_ipv4_address}
+IPv6 Address         : ${lab_infra_server_ipv6_address}
 -------------------------------------------------------------"
 
 active_services=0
