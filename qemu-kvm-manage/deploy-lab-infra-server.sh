@@ -311,19 +311,17 @@ prepare_lab_infra_config() {
     print_error "Failed to get network info from virsh"
     exit 1
   }
-  lab_infra_server_ipv4_gateway=$(echo "$qemu_kvm_default_net_info" | awk -F"'" '/<ip address=/ {print $2}')
-  lab_infra_server_ipv4_netmask=$(echo "$qemu_kvm_default_net_info" | awk -F"'" '/<ip address=/ {print $4}')
+  read -r lab_infra_server_ipv4_gateway lab_infra_server_ipv4_netmask <<< "$(awk -F"'" '/<ip address=/ {print $2, $4; exit}' <<< "$qemu_kvm_default_net_info")"
   
   if [[ -z "$lab_infra_server_ipv4_gateway" || -z "$lab_infra_server_ipv4_netmask" ]]; then
     print_error "Failed to extract network information from virsh output"
     exit 1
   fi
   
-  lab_infra_server_ipv4_address=$(echo "$lab_infra_server_ipv4_gateway" | awk -F. '{ printf "%d.%d.%d.%d", $1, $2, $3, $4+1 }')
+  lab_infra_server_ipv4_address=$(awk -F. '{ printf "%d.%d.%d.%d", $1, $2, $3, $4+1 }' <<< "$lab_infra_server_ipv4_gateway")
 
   # Extract IPv6 ULA configuration (required for dual-stack)
-  lab_infra_server_ipv6_gateway=$(echo "$qemu_kvm_default_net_info" | awk -F"'" '/<ip family=.ipv6/ {print $4}')
-  lab_infra_server_ipv6_prefix=$(echo "$qemu_kvm_default_net_info" | awk -F"'" '/<ip family=.ipv6/ {print $6}')
+  read -r lab_infra_server_ipv6_gateway lab_infra_server_ipv6_prefix <<< "$(awk -F"'" '/<ip family=.ipv6/ {print $4, $6; exit}' <<< "$qemu_kvm_default_net_info")"
   
   if [[ -z "$lab_infra_server_ipv6_gateway" || -z "$lab_infra_server_ipv6_prefix" ]]; then
     print_error "IPv6 configuration not found in QEMU/KVM default network!"
@@ -332,18 +330,24 @@ prepare_lab_infra_config() {
   fi
   
   # Extract the /64 prefix base (remove host portion)
-  lab_infra_server_ipv6_ula_subnet=$(echo "$lab_infra_server_ipv6_gateway" | sed 's/::[^:]*$/::/')/${lab_infra_server_ipv6_prefix}
+  lab_infra_server_ipv6_ula_subnet=$(sed 's/::[^:]*$/::/' <<< "$lab_infra_server_ipv6_gateway")/${lab_infra_server_ipv6_prefix}
   
   # Lab Infra Server gets special IPv6 address ::2 (gateway is ::1)
   # Extract IPv6 prefix without host portion (e.g., fd00:1234:1234:1234)
-  ipv6_prefix_base=$(echo "$lab_infra_server_ipv6_gateway" | sed 's/::[^:]*$//')
+  ipv6_prefix_base=$(sed 's/::[^:]*$//' <<< "$lab_infra_server_ipv6_gateway")
   
   # Assign ::2 as the infrastructure server address
   lab_infra_server_ipv6_address="${ipv6_prefix_base}::2"
 
   # Calculate IPv4 subnet in CIDR notation
   IFS=. read -r m1 m2 m3 m4 <<< "$lab_infra_server_ipv4_netmask"
-  cidr_prefix=$(( $(echo "obase=2; $((m1)); $((m2)); $((m3)); $((m4))" | bc | tr -d '\n' | tr -cd '1' | wc -c) ))
+  cidr_prefix=$(awk -v m1="$m1" -v m2="$m2" -v m3="$m3" -v m4="$m4" 'BEGIN {
+    for(i=1;i<=4;i++) {
+      val=(i==1?m1:i==2?m2:i==3?m3:m4);
+      for(b=7;b>=0;b--) if(and(val,lshift(1,b))) bits++
+    }
+    print bits
+  }')
   IFS=. read -r o1 o2 o3 o4 <<< "$lab_infra_server_ipv4_gateway"
   network_o1=$((o1 & m1))
   network_o2=$((o2 & m2))

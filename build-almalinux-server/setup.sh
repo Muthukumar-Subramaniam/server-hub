@@ -129,7 +129,7 @@ if ! ip link | grep -q eth0; then
 		[[ -f "$v_interface_file" ]] || continue
 		filename=$(basename "$v_interface_file")
         	sudo mv "$v_interface_file" "/etc/NetworkManager/system-connections/eth$v_count.nmconnection"
-        	v_interface=$(echo "$filename" | /bin/cut -d "." -f 1)
+        	v_interface="${filename%%.*}"
         	sudo sed -i "s/\b${v_interface}\b/eth$v_count/g" "/etc/NetworkManager/system-connections/eth$v_count.nmconnection"
         	v_count=$((v_count+1))
 	done
