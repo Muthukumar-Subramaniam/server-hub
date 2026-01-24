@@ -47,7 +47,7 @@ dnsbinder_script='/server-hub/named-manage/dnsbinder.sh'
 ksmanager_main_dir='/server-hub/ks-manage'
 ksmanager_hub_dir="/${lab_infra_server_hostname}/ksmanager-hub"
 ipxe_web_dir="/${lab_infra_server_hostname}/ipxe"
-shadow_password_super_mgmt_user=$(sudo grep "${mgmt_super_user}" /etc/shadow | cut -d ":" -f 2)
+shadow_password_super_mgmt_user=$(sudo awk -F: -v user="${mgmt_super_user}" '$1 == user {print $2}' /etc/shadow)
 if [ -d "/kvm-hub" ]; then
 	if [ -f "/kvm-hub/lab_environment_vars" ]; then
 		source /kvm-hub/lab_environment_vars
@@ -217,12 +217,12 @@ if $remove_host_requested; then
     
     # Get MAC address and IP before removal
     if [ -f "${ksmanager_hub_dir}/mac-address-cache" ]; then
-        cached_mac=$(grep "^${cleanup_hostname} " "${ksmanager_hub_dir}/mac-address-cache" 2>/dev/null | cut -d " " -f 2)
-        cached_ip=$(grep "^${cleanup_hostname} " "${ksmanager_hub_dir}/mac-address-cache" 2>/dev/null | cut -d " " -f 3)
-        cached_ipv6=$(grep "^${cleanup_hostname} " "${ksmanager_hub_dir}/mac-address-cache" 2>/dev/null | cut -d " " -f 4)
+        cached_info=$(awk -v host="^${cleanup_hostname} " '$0 ~ host {print $2" "$3" "$4}' "${ksmanager_hub_dir}/mac-address-cache" 2>/dev/null)
+        read -r cached_mac cached_ip cached_ipv6 <<< "$cached_info"
         
         if [[ -n "$cached_mac" ]]; then
-            ipxe_cfg_mac=$(echo "${cached_mac}" | tr ':A-F' '-a-f')
+            ipxe_cfg_mac="${cached_mac//:/-}"
+            ipxe_cfg_mac="${ipxe_cfg_mac,,}"
         fi
     fi
     
@@ -442,11 +442,11 @@ fi
 
 if $golden_image_creation_not_requested; then
 	fn_check_and_create_host_record "${1}"
-	ipv4_address=$(dig @"${dnsbinder_server_ipv4_address}" +short +time=1 +tries=1 A "${kickstart_hostname}" | head -1 | tr -d '[:space:]')
+	ipv4_address=$(dig @"${dnsbinder_server_ipv4_address}" +short +time=1 +tries=1 A "${kickstart_hostname}" | awk 'NR==1 {gsub(/[[:space:]]/, ""); print}')
 	
 	# Query DNS for IPv6 address (if dual-stack configured)
 	if [[ ! -z "${ipv6_gateway}" ]]; then
-		ipv6_address=$(dig @"${dnsbinder_server_ipv4_address}" +short +time=1 +tries=1 AAAA "${kickstart_hostname}" | head -1 | tr -d '[:space:]')
+		ipv6_address=$(dig @"${dnsbinder_server_ipv4_address}" +short +time=1 +tries=1 AAAA "${kickstart_hostname}" | awk 'NR==1 {gsub(/[[:space:]]/, ""); print}')
 	fi
 fi
 
@@ -465,7 +465,8 @@ fn_validate_mac() {
 
 fn_convert_mac_for_ipxe_cfg() {
 	# Convert MAC address to required format to append with ipxe.cfg file
-	ipxe_cfg_mac_address=$(echo "${mac_address_of_host}" | tr ':A-F' '-a-f')
+	ipxe_cfg_mac_address="${mac_address_of_host//:/-}"
+	ipxe_cfg_mac_address="${ipxe_cfg_mac_address,,}"
 }
 
 fn_cache_the_mac() {
@@ -559,7 +560,7 @@ fi
 
 if grep ^"${kickstart_hostname} " "${ksmanager_hub_dir}"/mac-address-cache &>/dev/null
 then
-	mac_address_of_host=$(grep ^"${kickstart_hostname} " "${ksmanager_hub_dir}"/mac-address-cache | cut -d " " -f 2 )
+	mac_address_of_host=$(awk -v host="^${kickstart_hostname} " '$0 ~ host {print $2}' "${ksmanager_hub_dir}"/mac-address-cache)
 
 	print_info "MAC Address ${mac_address_of_host} found for ${kickstart_hostname} in cache."
 	while :
@@ -786,11 +787,11 @@ fi
 
 if ! $golden_image_creation_not_requested; then
 	fn_check_and_create_host_record "${os_distribution}-golden-image-${version_type}"
-	ipv4_address=$(dig @"${dnsbinder_server_ipv4_address}" +short +time=1 +tries=1 A "${kickstart_hostname}" | head -1 | tr -d '[[:space:]]')
+	ipv4_address=$(dig @"${dnsbinder_server_ipv4_address}" +short +time=1 +tries=1 A "${kickstart_hostname}" | awk 'NR==1 {gsub(/[[:space:]]/, ""); print}')
 	
 	# Query DNS for IPv6 address (if dual-stack configured)
 	if [[ ! -z "${ipv6_gateway}" ]]; then
-		ipv6_address=$(dig @"${dnsbinder_server_ipv4_address}" +short +time=1 +tries=1 AAAA "${kickstart_hostname}" | head -1 | tr -d '[:space:]')
+		ipv6_address=$(dig @"${dnsbinder_server_ipv4_address}" +short +time=1 +tries=1 AAAA "${kickstart_hostname}" | awk 'NR==1 {gsub(/[[:space:]]/, ""); print}')
 	fi
 	
 	fn_check_and_create_mac_if_required
