@@ -895,10 +895,9 @@ fn_set_environment() {
 
 	if [ -d "${input_dir_or_file}" ]
 	then
-		for working_file in $(find "${input_dir_or_file}" -type f )
-		do
+		while IFS= read -r -d '' working_file; do
 			fn_update_dynamic_parameters "${working_file}"
-		done
+		done < <(find "${input_dir_or_file}" -type f -print0)
 
 	elif [ -f "${input_dir_or_file}" ]
 	then

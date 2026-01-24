@@ -61,8 +61,9 @@ mkdir -p /etc/systemd/network
 
 log "Creating .link files for predictable interface naming"
 V_count=0
-for v_interface in $(ls /sys/class/net | grep -v lo)
-do
+for v_interface in /sys/class/net/*; do
+	v_interface=$(basename "$v_interface")
+	[[ "$v_interface" == "lo" ]] && continue
 	mac_addr=$(ip link show "$v_interface" | grep link/ether | awk '{print $2}')
 	log "Creating link file for interface $v_interface (MAC: $mac_addr) -> eth$V_count"
 	echo -e "[Match]\nMACAddress=$mac_addr\n\n[Link]\nName=eth$V_count" > /etc/systemd/network/7$V_count-eth$V_count.link
@@ -170,8 +171,9 @@ case "${DISTRO_FAMILY}" in
 esac
 
 log "Bringing down all network interfaces"
-for v_interface in $(ls /sys/class/net | grep -v lo)
-do
+for v_interface in /sys/class/net/*; do
+	v_interface=$(basename "$v_interface")
+	[[ "$v_interface" == "lo" ]] && continue
 	log "  Bringing down interface: $v_interface"
 	ip link set $v_interface down
 done
@@ -194,8 +196,9 @@ fi
 log "eth0 interface is available"
 
 log "Bringing up all network interfaces"
-for v_interface in $(ls /sys/class/net | grep -v lo)
-do
+for v_interface in /sys/class/net/*; do
+	v_interface=$(basename "$v_interface")
+	[[ "$v_interface" == "lo" ]] && continue
 	log "  Bringing up interface: $v_interface"
 	ip link set $v_interface up
 done
