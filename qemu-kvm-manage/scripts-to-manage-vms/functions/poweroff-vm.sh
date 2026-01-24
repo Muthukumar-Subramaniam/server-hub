@@ -35,7 +35,7 @@ poweroff_vm() {
     fi
     
     # Check if VM is running
-    if ! sudo virsh list | awk '{print $2}' | grep -Fxq "$vm_hostname"; then
+    if ! sudo virsh list | awk -v vm="$vm_hostname" '$2 == vm {found=1; exit} END {exit !found}'; then
         return 0  # Not running, nothing to do
     fi
     

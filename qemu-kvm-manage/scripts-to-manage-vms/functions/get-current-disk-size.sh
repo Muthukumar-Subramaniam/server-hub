@@ -31,10 +31,7 @@ get_current_disk_size() {
     fi
     
     # Extract disk size from qemu-img info output
-    CURRENT_DISK_SIZE=$(sudo qemu-img info "${vm_disk_path}" 2>/dev/null | \
-                        grep "virtual size" | \
-                        grep -o '[0-9]\+ GiB' | \
-                        cut -d' ' -f1)
+    CURRENT_DISK_SIZE=$(sudo qemu-img info "${vm_disk_path}" 2>/dev/null | awk '/virtual size/ {for(i=1;i<=NF;i++) if($i ~ /^[0-9]+$/ && $(i+1)=="GiB") {print $i; exit}}')
     
     if [[ -z "$CURRENT_DISK_SIZE" ]]; then
         print_warning "Could not determine current disk size for \"$vm_hostname\"."

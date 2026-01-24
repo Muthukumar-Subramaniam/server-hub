@@ -24,7 +24,7 @@ check_vm_exists() {
     fi
     
     local vm_exists=false
-    if sudo virsh list --all | awk '{print $2}' | grep -Fxq "$vm_hostname"; then
+    if sudo virsh list --all | awk -v vm="$vm_hostname" '$2 == vm {found=1; exit} END {exit !found}'; then
         vm_exists=true
     fi
     
