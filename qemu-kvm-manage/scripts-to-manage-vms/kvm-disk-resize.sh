@@ -241,7 +241,8 @@ while true; do
             
             # Validate each disk in the list
             for disk in "${SELECTED_DISKS_ARRAY[@]}"; do
-                disk=$(echo "$disk" | xargs)  # Trim whitespace
+                disk="${disk#"${disk%%[![:space:]]*}"}"  # Trim leading
+                disk="${disk%"${disk##*[![:space:]]}"}"  # Trim trailing
                 FOUND=false
                 for available_disk in "${ADDITIONAL_DISKS[@]}"; do
                     if [[ "$disk" == "$available_disk" ]]; then
@@ -427,7 +428,8 @@ while true; do
     elif [[ "${RESIZE_MULTIPLE:-false}" == true ]]; then
         # Resize multiple specific disks (comma-separated)
         for disk in "${SELECTED_DISKS_ARRAY[@]}"; do
-            disk=$(echo "$disk" | xargs)  # Trim whitespace
+            disk="${disk#"${disk%%[![:space:]]*}"}"  # Trim leading
+            disk="${disk%"${disk##*[![:space:]]}"}"  # Trim trailing
             disk_path="${DISK_PATHS[$disk]}"
             current_disk_gib=$(sudo qemu-img info "$disk_path" | awk '/virtual size/ {for(i=1;i<=NF;i++) if($i ~ /^[0-9]+$/ && $(i+1)=="GiB") {print $i; exit}}')
             

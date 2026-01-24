@@ -179,9 +179,9 @@ while IFS='|' read -r type network model mac; do
     # Skip header and empty lines
     [[ -z "$mac" || "$mac" == "-" ]] && continue
     # Clean up whitespace
-    mac=$(echo "$mac" | xargs)
-    type=$(echo "$type" | xargs)
-    network=$(echo "$network" | xargs)
+    mac="${mac#"${mac%%[![:space:]]*}"}"; mac="${mac%"${mac##*[![:space:]]}"}"  # Trim
+    type="${type#"${type%%[![:space:]]*}"}"; type="${type%"${type##*[![:space:]]}"}"  # Trim
+    network="${network#"${network%%[![:space:]]*}"}"; network="${network%"${network##*[![:space:]]}"}"  # Trim
     [[ -z "$mac" ]] && continue
     AVAILABLE_NICS+=("$mac|$type|$network")
 done < <(sudo virsh domiflist "$qemu_kvm_hostname" | awk 'NR>2 && NF>=5 {print $2"|"$3"|"$4"|"$5}')
@@ -206,12 +206,13 @@ if [[ -n "$macs_arg" ]]; then
     IFS=',' read -ra MACS_TO_REMOVE <<< "$macs_arg"
     
     # Get primary NIC MAC (first one)
-    primary_mac=$(echo "${AVAILABLE_NICS[0]}" | cut -d'|' -f1)
+    primary_mac="${AVAILABLE_NICS[0]%%|*}"
     
     # Validate each MAC
     for mac in "${MACS_TO_REMOVE[@]}"; do
         # Remove whitespace
-        mac=$(echo "$mac" | xargs)
+        mac="${mac#"${mac%%[![:space:]]*}"}"  # Trim leading
+        mac="${mac%"${mac##*[![:space:]]}"}"  # Trim trailing
         
         # Check if trying to remove primary NIC
         if [[ "$mac" == "$primary_mac" ]]; then
@@ -223,7 +224,7 @@ if [[ -n "$macs_arg" ]]; then
         # Check if MAC exists
         found=false
         for nic in "${AVAILABLE_NICS[@]}"; do
-            nic_mac=$(echo "$nic" | cut -d'|' -f1)
+            nic_mac="${nic%%|*}"
             if [[ "$nic_mac" == "$mac" ]]; then
                 found=true
                 break
@@ -276,7 +277,7 @@ else
             print_error "Invalid NIC number: $num"
             exit 1
         fi
-        mac=$(echo "${AVAILABLE_NICS[$idx]}" | cut -d'|' -f1)
+        mac="${AVAILABLE_NICS[$idx]%%|*}"
         MACS_TO_REMOVE+=("$mac")
     done
     print_info "Selected MACs: ${MACS_TO_REMOVE[*]}"

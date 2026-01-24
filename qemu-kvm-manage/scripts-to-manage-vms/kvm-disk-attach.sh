@@ -217,7 +217,8 @@ if [[ -n "$disks_arg" ]]; then
     # Validate each disk
     for disk in "${DISKS_TO_ATTACH[@]}"; do
         # Remove whitespace
-        disk=$(echo "$disk" | xargs)
+        disk="${disk#"${disk%%[![:space:]]*}"}"  # Trim leading
+        disk="${disk%"${disk##*[![:space:]]}"}"  # Trim trailing
         
         # Check if disk exists in detached directory
         if [[ ! -f "$DETACHED_DIR/$disk" ]]; then

@@ -57,8 +57,9 @@ check_vm() {
                 2>/dev/null </dev/null || true)
 
             if [[ -n "$ssh_output" ]]; then
-                current_os_state=$(echo "$ssh_output" | sed -n '1p')
-                os_distro=$(echo "$ssh_output" | sed -n '2p')
+                mapfile -t ssh_lines <<< "$ssh_output"
+                current_os_state="${ssh_lines[0]}"
+                os_distro="${ssh_lines[1]}"
             else
                 current_os_state="SSH-Not-Ready"
             fi

@@ -202,7 +202,8 @@ if [[ -n "$disks_arg" ]]; then
     # Validate each disk
     for disk in "${DISKS_TO_DETACH[@]}"; do
         # Remove whitespace
-        disk=$(echo "$disk" | xargs)
+        disk="${disk#"${disk%%[![:space:]]*}"}"  # Trim leading
+        disk="${disk%"${disk##*[![:space:]]}"}"  # Trim trailing
         
         if [[ "$disk" == "vda" ]]; then
             print_error "Cannot detach OS disk vda."
