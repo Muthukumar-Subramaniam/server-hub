@@ -102,7 +102,7 @@ if [[ -n "$hosts_list" ]]; then
     target_vms=("${VALIDATED_HOSTS[@]}")
 elif [[ -n "$single_host" ]]; then
     # Validate and normalize single hostname
-    source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/input-hostname.sh "$single_host"
+    source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/input-hostname.sh "$single_host" "ALLOW_SELF_REFERENCE"
     target_vms=("$qemu_kvm_hostname")
 else
     # Get all running VMs

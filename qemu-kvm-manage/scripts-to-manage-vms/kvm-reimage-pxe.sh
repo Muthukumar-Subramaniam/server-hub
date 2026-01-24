@@ -67,6 +67,15 @@ for qemu_kvm_hostname in "${HOSTNAMES[@]}"; do
         continue
     fi
 
+    # Check for self-referential operation
+    if [[ -n "${KVM_TOOL_EXECUTED_FROM:-}" && "${KVM_TOOL_EXECUTED_FROM}" == "${qemu_kvm_hostname}" ]]; then
+        print_error "Cannot reimage VM '$qemu_kvm_hostname': Operation blocked to avoid self-referential KVM actions."
+        print_info "You are running a KVM reimage action for the lab infra server from the infra server itself."
+        print_info "To perform this operation, run it from the Linux workstation hosting the QEMU/KVM setup."
+        FAILED_VMS+=("$qemu_kvm_hostname")
+        continue
+    fi
+
     # Prevent reimaging of lab infra server
     source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/check-lab-infra-protection.sh
     if ! check_lab_infra_protection "$qemu_kvm_hostname"; then
