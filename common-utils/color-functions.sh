@@ -9,48 +9,28 @@ MAKE_IT_MAGENTA='\033[0;35m'
 RESET_COLOR='\033[0m' # Reset to default color
 
 print_error() {
-	if [[ -z "${2:-}" ]] || [[ "${2:-}" != "nskip" ]] 
-	then
-		echo -e "${MAKE_IT_RED}[ERROR] ${1}${RESET_COLOR}"
-	else
-		echo -ne "${MAKE_IT_RED}[ERROR] ${1}${RESET_COLOR}"
-	fi
+	local flag="-e"; [[ "${2:-}" == "nskip" ]] && flag="-ne"
+	echo $flag "${MAKE_IT_RED}[ERROR] ${1}${RESET_COLOR}"
 }
 
 print_success() {
-	if [[ -z "${2:-}" ]] || [[ "${2:-}" != "nskip" ]] 
-	then
-		echo -e "${MAKE_IT_GREEN}[SUCCESS] ${1}${RESET_COLOR}"
-	else
-		echo -ne "${MAKE_IT_GREEN}[SUCCESS] ${1}${RESET_COLOR}"
-	fi
+	local flag="-e"; [[ "${2:-}" == "nskip" ]] && flag="-ne"
+	echo $flag "${MAKE_IT_GREEN}[SUCCESS] ${1}${RESET_COLOR}"
 }
 
 print_warning() {
-	if [[ -z "${2:-}" ]] || [[ "${2:-}" != "nskip" ]] 
-	then
-		echo -e "${MAKE_IT_MAGENTA}[WARN] ${1}${RESET_COLOR}"
-	else
-		echo -ne "${MAKE_IT_MAGENTA}[WARN] ${1}${RESET_COLOR}"
-	fi
+	local flag="-e"; [[ "${2:-}" == "nskip" ]] && flag="-ne"
+	echo $flag "${MAKE_IT_MAGENTA}[WARN] ${1}${RESET_COLOR}"
 }
 
 print_notify() {
-	if [[ -z "${2:-}" ]] || [[ "${2:-}" != "nskip" ]] 
-	then
-		echo -e "${MAKE_IT_WHITE}${1}${RESET_COLOR}"
-	else
-		echo -ne "${MAKE_IT_WHITE}${1}${RESET_COLOR}"
-	fi
+	local flag="-e"; [[ "${2:-}" == "nskip" ]] && flag="-ne"
+	echo $flag "${MAKE_IT_WHITE}${1}${RESET_COLOR}"
 }
 
 print_info() {
-	if [[ -z "${2:-}" ]] || [[ "${2:-}" != "nskip" ]] 
-	then
-		echo -e "${MAKE_IT_CYAN}[INFO] ${1}${RESET_COLOR}"
-	else
-		echo -ne "${MAKE_IT_CYAN}[INFO] ${1}${RESET_COLOR}"
-	fi
+	local flag="-e"; [[ "${2:-}" == "nskip" ]] && flag="-ne"
+	echo $flag "${MAKE_IT_CYAN}[INFO] ${1}${RESET_COLOR}"
 }
 
 # Task-level operations (always use nskip to allow same-line completion)
@@ -75,12 +55,8 @@ print_skip() {
 }
 
 print_yellow() {
-	if [[ -z "${2:-}" ]] || [[ "${2:-}" != "nskip" ]] 
-	then
-		echo -e "${MAKE_IT_YELLOW}${1}${RESET_COLOR}"
-	else
-		echo -ne "${MAKE_IT_YELLOW}${1}${RESET_COLOR}"
-	fi
+	local flag="-e"; [[ "${2:-}" == "nskip" ]] && flag="-ne"
+	echo $flag "${MAKE_IT_YELLOW}${1}${RESET_COLOR}"
 }
 
 print_ready() {
@@ -93,55 +69,31 @@ print_summary() {
 
 # Color-only print functions (no labels)
 print_red() {
-	if [[ -z "${2:-}" ]] || [[ "${2:-}" != "nskip" ]] 
-	then
-		echo -e "${MAKE_IT_RED}${1}${RESET_COLOR}"
-	else
-		echo -ne "${MAKE_IT_RED}${1}${RESET_COLOR}"
-	fi
+	local flag="-e"; [[ "${2:-}" == "nskip" ]] && flag="-ne"
+	echo $flag "${MAKE_IT_RED}${1}${RESET_COLOR}"
 }
 
 print_green() {
-	if [[ -z "${2:-}" ]] || [[ "${2:-}" != "nskip" ]] 
-	then
-		echo -e "${MAKE_IT_GREEN}${1}${RESET_COLOR}"
-	else
-		echo -ne "${MAKE_IT_GREEN}${1}${RESET_COLOR}"
-	fi
+	local flag="-e"; [[ "${2:-}" == "nskip" ]] && flag="-ne"
+	echo $flag "${MAKE_IT_GREEN}${1}${RESET_COLOR}"
 }
 
 print_blue() {
-	if [[ -z "${2:-}" ]] || [[ "${2:-}" != "nskip" ]] 
-	then
-		echo -e "${MAKE_IT_BLUE}${1}${RESET_COLOR}"
-	else
-		echo -ne "${MAKE_IT_BLUE}${1}${RESET_COLOR}"
-	fi
+	local flag="-e"; [[ "${2:-}" == "nskip" ]] && flag="-ne"
+	echo $flag "${MAKE_IT_BLUE}${1}${RESET_COLOR}"
 }
 
 print_cyan() {
-	if [[ -z "${2:-}" ]] || [[ "${2:-}" != "nskip" ]] 
-	then
-		echo -e "${MAKE_IT_CYAN}${1}${RESET_COLOR}"
-	else
-		echo -ne "${MAKE_IT_CYAN}${1}${RESET_COLOR}"
-	fi
+	local flag="-e"; [[ "${2:-}" == "nskip" ]] && flag="-ne"
+	echo $flag "${MAKE_IT_CYAN}${1}${RESET_COLOR}"
 }
 
 print_magenta() {
-	if [[ -z "${2:-}" ]] || [[ "${2:-}" != "nskip" ]] 
-	then
-		echo -e "${MAKE_IT_MAGENTA}${1}${RESET_COLOR}"
-	else
-		echo -ne "${MAKE_IT_MAGENTA}${1}${RESET_COLOR}"
-	fi
+	local flag="-e"; [[ "${2:-}" == "nskip" ]] && flag="-ne"
+	echo $flag "${MAKE_IT_MAGENTA}${1}${RESET_COLOR}"
 }
 
 print_white() {
-	if [[ -z "${2:-}" ]] || [[ "${2:-}" != "nskip" ]] 
-	then
-		echo -e "${MAKE_IT_WHITE}${1}${RESET_COLOR}"
-	else
-		echo -ne "${MAKE_IT_WHITE}${1}${RESET_COLOR}"
-	fi
+	local flag="-e"; [[ "${2:-}" == "nskip" ]] && flag="-ne"
+	echo $flag "${MAKE_IT_WHITE}${1}${RESET_COLOR}"
 }
