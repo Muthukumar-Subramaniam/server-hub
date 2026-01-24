@@ -158,7 +158,7 @@ fn_enable_host_ipv6_forwarding() {
     sudo sysctl -w net.ipv6.conf.all.forwarding=1 &>/dev/null
     
     # Keep accepting Router Advertisements on primary interface
-    local primary_if=$(ip route | grep default | awk '{print $5}' | head -n 1)
+    local primary_if=$(ip route | awk '/default/ {print $5; exit}')
     if [[ ! -z "${primary_if}" ]]; then
         sudo sysctl -w net.ipv6.conf.${primary_if}.accept_ra=2 &>/dev/null
     fi

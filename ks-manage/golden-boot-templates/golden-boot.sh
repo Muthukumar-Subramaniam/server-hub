@@ -64,7 +64,7 @@ V_count=0
 for v_interface in /sys/class/net/*; do
 	v_interface=$(basename "$v_interface")
 	[[ "$v_interface" == "lo" ]] && continue
-	mac_addr=$(ip link show "$v_interface" | grep link/ether | awk '{print $2}')
+	mac_addr=$(ip link show "$v_interface" | awk '/link\/ether/ {print $2}')
 	log "Creating link file for interface $v_interface (MAC: $mac_addr) -> eth$V_count"
 	echo -e "[Match]\nMACAddress=$mac_addr\n\n[Link]\nName=eth$V_count" > /etc/systemd/network/7$V_count-eth$V_count.link
 	V_count=$((V_count+1))

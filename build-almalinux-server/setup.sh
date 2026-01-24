@@ -112,7 +112,7 @@ if ! ip link | grep -q eth0; then
 	V_count=0
 	while IFS= read -r v_interface; do
 		if [[ "$v_interface" != "lo" ]]; then
-			mac_addr=$(ip link show "$v_interface" 2>/dev/null | grep 'link/ether' | awk '{print $2}')
+			mac_addr=$(ip link show "$v_interface" 2>/dev/null | awk '/link\/ether/ {print $2}')
 			if [[ -n "$mac_addr" ]]; then
 				echo -e "[Match]\nMACAddress=$mac_addr\n\n[Link]\nName=eth$V_count" | sudo tee "/etc/systemd/network/7$V_count-eth$V_count.link" &>/dev/null
 				V_count=$((V_count+1))

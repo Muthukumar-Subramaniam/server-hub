@@ -58,15 +58,15 @@ migrate_zone_file() {
     echo -e "${YELLOW}Processing: ${zone_name}${NC}"
     
     # Check if already migrated (Unix timestamp is 10 digits starting with 1 or 2)
-    local current_serial=$(grep ";Serial" "$zone_file" | awk '{print $1}')
+    local current_serial=$(awk '/;Serial/ {print $1}' "$zone_file")
     if [[ "$current_serial" =~ ^[12][0-9]{9}$ ]]; then
         echo -e "${GREEN}✓ Already migrated (Serial: ${current_serial})${NC}"
         return 0
     fi
     
     # Extract domain info from zone file
-    local dns_host_short=$(grep "^@.*SOA" "$zone_file" | awk '{print $4}' | cut -d'.' -f1)
-    local dns_domain=$(grep "^@.*SOA" "$zone_file" | awk '{print $4}' | cut -d'.' -f2- | sed 's/\.$//')
+    local dns_host_short=$(awk '/^@.*SOA/ {split($4,a,"."); print a[1]; exit}' "$zone_file")
+    local dns_domain=$(awk '/^@.*SOA/ {n=split($4,a,"."); for(i=2;i<=n;i++) printf "%s%s", a[i], (i<n?"."):""; exit}' "$zone_file")
     
     # Generate new serial (Unix timestamp)
     local new_serial=$(date +%s)

@@ -194,7 +194,7 @@ fn_shutdown_or_poweroff() {
 }
 
 validate_memory_args() {
-    host_mem_kib=$(grep MemTotal /proc/meminfo | awk '{print $2}')
+    host_mem_kib=$(awk '/MemTotal/ {print $2}' /proc/meminfo)
     host_mem_gib=$(( host_mem_kib / 1024 / 1024 ))
     (( host_mem_gib % 2 != 0 )) && host_mem_gib=$(( host_mem_gib + 1 ))
 

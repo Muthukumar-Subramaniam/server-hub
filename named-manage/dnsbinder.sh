@@ -1456,8 +1456,8 @@ fn_delete_host_record() {
 	fi
 
 	v_capture_host_record=$(grep "^${v_host_record} .*IN A " "${v_fw_zone}" ) 
-	v_current_ip_of_host_record=$(grep "^${v_host_record} .*IN A " ${v_fw_zone} | awk '{print $NF}' | tr -d '[:space:]')
-	v_current_ipv6_of_host_record=$(grep "^${v_host_record} .*IN AAAA" ${v_fw_zone} | awk '{print $NF}' | tr -d '[:space:]')
+	v_current_ip_of_host_record=$(awk -v host="^${v_host_record} " '$0 ~ host && /IN A / {gsub(/[[:space:]]/,"",$NF); print $NF}' "${v_fw_zone}")
+	v_current_ipv6_of_host_record=$(awk -v host="^${v_host_record} " '$0 ~ host && /IN AAAA/ {gsub(/[[:space:]]/,"",$NF); print $NF}' "${v_fw_zone}")
 	v_capture_ptr_prefix=$(awk -F. '{ print $4 }' <<< ${v_current_ip_of_host_record} )
 
 	fn_set_ptr_zone
@@ -1532,7 +1532,7 @@ fn_rename_host_record() {
 	fi
 
 	v_host_record_exist=$(grep "^$v_host_record .*IN A " $v_fw_zone)
-	v_current_ip_of_host_record=$(grep "^$v_host_record .*IN A " $v_fw_zone | awk '{print $NF}' | tr -d '[[:space:]]')
+	v_current_ip_of_host_record=$(awk -v host="^$v_host_record " '$0 ~ host && /IN A / {gsub(/[[:space:]]/,"",$NF); print $NF}' "$v_fw_zone")
 
 	fn_set_ptr_zone
 
@@ -1709,8 +1709,8 @@ fn_handle_multiple_host_record() {
 	        
 		if [[ ${v_action_required} == "create" ]]
 		then
-			v_ip_address=$(grep -w "^${v_host_record} " "${v_fw_zone}" | grep "IN A " | awk '{print $NF}' | tr -d '[:space:]')
-			v_ipv6_address=$(grep -w "^${v_host_record} " "${v_fw_zone}" | grep "IN AAAA " | awk '{print $NF}' | tr -d '[:space:]')
+			v_ip_address=$(awk -v host="^${v_host_record} " '$0 ~ host && /IN A / {gsub(/[[:space:]]/,"",$NF); print $NF}' "${v_fw_zone}")
+			v_ipv6_address=$(awk -v host="^${v_host_record} " '$0 ~ host && /IN AAAA / {gsub(/[[:space:]]/,"",$NF); print $NF}' "${v_fw_zone}")
 	
 			if [[ -z "${v_ip_address}" ]]; then
 	        		v_ip_address="N/A"
