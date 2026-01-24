@@ -84,6 +84,12 @@ done
 # Use argument or prompt for hostname
 source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/input-hostname.sh "$vm_hostname_arg"
 
+# Lab infra server warning (not blocking, just notify)
+if [[ "$qemu_kvm_hostname" == "$lab_infra_server_hostname" ]]; then
+    print_warning "You are resizing a disk on the lab infra server: $lab_infra_server_hostname"
+    print_info "This requires shutting down the lab infra server temporarily."
+fi
+
 # Check if VM exists in 'virsh list --all'
 if ! sudo virsh list --all | awk '{print $2}' | grep -Fxq "$qemu_kvm_hostname"; then
     print_error "VM \"$qemu_kvm_hostname\" does not exist."

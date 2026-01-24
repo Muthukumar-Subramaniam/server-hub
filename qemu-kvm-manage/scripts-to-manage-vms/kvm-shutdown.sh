@@ -149,8 +149,18 @@ fi
 # Use argument or prompt for hostname
 source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/input-hostname.sh "$vm_hostname_arg"
 
-# Warning prompt unless force flag is used
-if [[ "$force_shutdown" == false ]]; then
+# Lab infra server protection
+if [[ "$qemu_kvm_hostname" == "$lab_infra_server_hostname" ]]; then
+    print_warning "You are about to shutdown the lab infra server: $lab_infra_server_hostname!"
+    print_warning "This will stop all lab services (DNS, DHCP, NFS, TFTP, Web)."
+    print_warning "All VMs in the lab will lose connectivity to these services."
+    read -r -p "If you understand the impact, confirm by typing 'shutdown-lab-infra-server': " confirmation
+    if [[ "$confirmation" != "shutdown-lab-infra-server" ]]; then
+        print_info "Operation cancelled by user."
+        exit 1
+    fi
+elif [[ "$force_shutdown" == false ]]; then
+    # Warning prompt unless force flag is used
     source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/confirm-vm-operation.sh
     if ! confirm_vm_operation "shutdown" "send graceful shutdown signal to" "Guest OS will attempt to shutdown cleanly (requires guest tools)." 1 "$qemu_kvm_hostname"; then
         exit 0

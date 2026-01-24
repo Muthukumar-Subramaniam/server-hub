@@ -69,6 +69,18 @@ done
 # Use argument or prompt for hostname
 source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/input-hostname.sh "$vm_hostname_arg"
 
+# Lab infra server protection
+if [[ "$qemu_kvm_hostname" == "$lab_infra_server_hostname" ]]; then
+    print_warning "You are about to remove NIC(s) from the lab infra server: $lab_infra_server_hostname!"
+    print_warning "Removing the primary network interface will break lab connectivity."
+    print_warning "This operation requires shutting down the lab infra server temporarily."
+    read -r -p "If you understand the impact, confirm by typing 'remove-nic-from-lab-infra': " confirmation
+    if [[ "$confirmation" != "remove-nic-from-lab-infra" ]]; then
+        print_info "Operation cancelled by user."
+        exit 1
+    fi
+fi
+
 # Check if VM exists
 if ! sudo virsh list --all | awk '{print $2}' | grep -Fxq "$qemu_kvm_hostname"; then
     print_error "VM \"$qemu_kvm_hostname\" does not exist."

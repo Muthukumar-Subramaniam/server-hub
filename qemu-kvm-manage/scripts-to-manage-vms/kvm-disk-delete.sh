@@ -64,6 +64,12 @@ if [[ ! -d "$DETACHED_DIR" ]]; then
     exit 1
 fi
 
+# Warning about potentially deleting lab infra server disks
+print_warning "You are about to permanently delete disk(s) from detached storage."
+print_warning "Some disks may belong to the lab infra server: $lab_infra_server_hostname"
+print_info "Ensure you know which disks you are deleting before proceeding."
+echo ""
+
 # Get list of available detached disks
 print_info "Scanning detached disks..."
 declare -a AVAILABLE_DISKS
