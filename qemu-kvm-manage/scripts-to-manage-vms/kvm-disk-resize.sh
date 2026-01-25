@@ -406,7 +406,13 @@ while true; do
     # Perform the disk resize
     if [[ "$RESIZE_ALL" == true ]]; then
         # Resize all additional disks
-        for disk in "${AVAILABLE_DISKS[@]}"; do
+        # Use AVAILABLE_DISKS in interactive mode, ADDITIONAL_DISKS in automated mode
+        DISKS_TO_RESIZE=("${AVAILABLE_DISKS[@]}")
+        if [[ "$INTERACTIVE_MODE" == false ]]; then
+            DISKS_TO_RESIZE=("${ADDITIONAL_DISKS[@]}")
+        fi
+        
+        for disk in "${DISKS_TO_RESIZE[@]}"; do
             disk_path="${DISK_PATHS[$disk]}"
             current_disk_gib=$(sudo qemu-img info "$disk_path" | awk '/virtual size/ {for(i=1;i<=NF;i++) if($i ~ /^[0-9]+$/ && $(i+1)=="GiB") {print $i; exit}}')
             
