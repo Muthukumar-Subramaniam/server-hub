@@ -84,6 +84,74 @@ fn_cidr_prefix_to_netmask() {
     done
 }
 
+fn_calculate_ipv6_network() {
+    local ipv6_address="${1}"
+    local prefix_length="${2}"
+    
+    # Expand IPv6 address to full form (handle :: compression)
+    local addr="${ipv6_address}"
+    
+    # Count existing colons
+    local colon_count=$(echo "${addr}" | tr -cd ':' | wc -c)
+    
+    # Handle :: expansion
+    if [[ "${addr}" == *"::"* ]]; then
+        local missing_groups=$((7 - colon_count + 1))
+        local replacement=":"
+        for ((i=0; i<missing_groups; i++)); do
+            replacement+=":0"
+        done
+        addr="${addr/::/${replacement}:}"
+    fi
+    
+    # Handle leading/trailing colons after expansion
+    addr="${addr#:}"
+    addr="${addr%:}"
+    
+    # Split into groups and pad with zeros
+    IFS=':' read -ra groups <<< "${addr}"
+    local expanded=""
+    for group in "${groups[@]}"; do
+        expanded+=$(printf "%04x" $((16#${group:-0})))
+    done
+    
+    # Calculate how many hex digits to keep (4 bits per hex digit)
+    local hex_digits_to_keep=$((prefix_length / 4))
+    local remaining_bits=$((prefix_length % 4))
+    
+    # Extract network portion
+    local network_hex="${expanded:0:$hex_digits_to_keep}"
+    
+    # Handle remaining bits if prefix is not a multiple of 4
+    if [[ $remaining_bits -gt 0 ]]; then
+        local next_hex_char="${expanded:$hex_digits_to_keep:1}"
+        local next_value=$((16#${next_hex_char:-0}))
+        # Create mask for remaining bits (e.g., 3 bits = 1110 = 0xe)
+        local mask=$(( (0xf << (4 - remaining_bits)) & 0xf ))
+        local masked_value=$((next_value & mask))
+        network_hex+=$(printf "%x" $masked_value)
+    fi
+    
+    # Pad with zeros to get full 32 hex digits
+    network_hex=$(printf "%-32s" "$network_hex" | tr ' ' '0')
+    
+    # Format as IPv6 (insert colons every 4 chars)
+    local formatted=""
+    for ((i=0; i<32; i+=4)); do
+        formatted+="${network_hex:$i:4}"
+        [[ $i -lt 28 ]] && formatted+=":"
+    done
+    
+    # Compress consecutive zeros (find longest run of :0000: groups)
+    local compressed="${formatted}"
+    # Replace leading zeros in each group
+    compressed=$(echo "${compressed}" | sed 's/:0\{1,3\}\([0-9a-f]\)/:\1/g; s/^0\{1,3\}\([0-9a-f]\)/\1/')
+    # Replace longest sequence of :0: with ::
+    compressed=$(echo "${compressed}" | sed 's/\(:\(0:\)\{2,\}\)/::/' | sed 's/^0::/::/' | sed 's/::0$/::/')
+    
+    echo "${compressed}"
+}
+
 fn_split_network_into_cidr24subnets() {
 
 	v_network_and_cidr="${1}"
@@ -257,10 +325,11 @@ fn_configure_named_dns_server() {
 			v_ipv6_prefix=$(ip -6 addr show "${v_primary_interface}" | grep -oP 'fd[0-9a-f:]+/\K[0-9]+' | head -1)
 			# Build ULA subnet
 			if [[ ! -z "${v_ipv6_address}" && ! -z "${v_ipv6_prefix}" ]]; then
-				v_ipv6_base=$(echo "${v_ipv6_address}" | sed 's/::[^:]*$/::/')
-				v_ipv6_ula_subnet="${v_ipv6_base}/${v_ipv6_prefix}"
+				# Calculate the network address properly by applying the prefix mask
+				v_ipv6_network=$(fn_calculate_ipv6_network "${v_ipv6_address}" "${v_ipv6_prefix}")
+				v_ipv6_ula_subnet="${v_ipv6_network}/${v_ipv6_prefix}"
 				# Gateway is always ::1 in the subnet (no default route needed for detection)
-				v_ipv6_gateway="${v_ipv6_base%::}::1"
+				v_ipv6_gateway="${v_ipv6_network%::}::1"
 			fi
 		fi
 		
