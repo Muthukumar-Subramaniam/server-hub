@@ -280,7 +280,7 @@ while true; do
     else
         # Prompt for disk selection
         # Filter out already resized disks
-        declare -a AVAILABLE_DISKS
+        AVAILABLE_DISKS=()
         for disk in "${ADDITIONAL_DISKS[@]}"; do
             ALREADY_RESIZED=false
             for resized in "${RESIZED_DISKS[@]}"; do
