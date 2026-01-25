@@ -154,12 +154,6 @@ fn_shutdown_or_poweroff() {
     esac
 }
 
-if ! sudo virsh list  | awk '{print $2}' | grep -Fxq "$qemu_kvm_hostname"; then
-    print_info "VM \"$qemu_kvm_hostname\" is not running. Proceeding further."
-else
-    fn_shutdown_or_poweroff
-fi
-
 VM_DIR="/kvm-hub/vms/${qemu_kvm_hostname}"
 DETACHED_DIR="/kvm-hub/detached-data-disks"
 
@@ -186,6 +180,13 @@ done < <(sudo find "$DETACHED_DIR" -maxdepth 1 -type f -name "*.qcow2" 2>/dev/nu
 if [[ ${#AVAILABLE_DISKS[@]} -eq 0 ]]; then
     print_warning "No detached disks found in $DETACHED_DIR"
     exit 0
+fi
+
+# Now that we confirmed there are disks to attach, check VM state and shut down if needed
+if ! sudo virsh list  | awk '{print $2}' | grep -Fxq "$qemu_kvm_hostname"; then
+    print_info "VM \"$qemu_kvm_hostname\" is not running. Proceeding further."
+else
+    fn_shutdown_or_poweroff
 fi
 
 # Get currently attached disk targets to find next available target
