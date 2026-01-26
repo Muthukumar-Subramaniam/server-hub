@@ -148,7 +148,7 @@ DISK_PATH="${golden_image_path}"
 NVRAM_PATH="/kvm-hub/golden-images-disk-store/${qemu_kvm_hostname}_VARS.fd"
 
 # Run virt-install with console attachment (don't use shared function to avoid complexity)
-if ! sudo virt-install \
+if ! sudo /usr/local/bin/virt-install \
   --name ${qemu_kvm_hostname} \
   --features acpi=on,apic=on \
   --memory 2048 \

@@ -311,17 +311,19 @@ prepare_lab_infra_config() {
     print_error "Failed to get network info from virsh"
     exit 1
   }
-  read -r lab_infra_server_ipv4_gateway lab_infra_server_ipv4_netmask <<< "$(awk -F"'" '/<ip address=/ {print $2, $4; exit}' <<< "$qemu_kvm_default_net_info")"
+  lab_infra_server_ipv4_gateway=$(echo "$qemu_kvm_default_net_info" | awk -F"'" '/<ip address=/ {print $2}')
+  lab_infra_server_ipv4_netmask=$(echo "$qemu_kvm_default_net_info" | awk -F"'" '/<ip address=/ {print $4}')
   
   if [[ -z "$lab_infra_server_ipv4_gateway" || -z "$lab_infra_server_ipv4_netmask" ]]; then
     print_error "Failed to extract network information from virsh output"
     exit 1
   fi
   
-  lab_infra_server_ipv4_address=$(awk -F. '{ printf "%d.%d.%d.%d", $1, $2, $3, $4+1 }' <<< "$lab_infra_server_ipv4_gateway")
+  lab_infra_server_ipv4_address=$(echo "$lab_infra_server_ipv4_gateway" | awk -F. '{ printf "%d.%d.%d.%d", $1, $2, $3, $4+1 }')
 
   # Extract IPv6 ULA configuration (required for dual-stack)
-  read -r lab_infra_server_ipv6_gateway lab_infra_server_ipv6_prefix <<< "$(awk -F"'" '/<ip family=.ipv6/ {print $4, $6; exit}' <<< "$qemu_kvm_default_net_info")"
+  lab_infra_server_ipv6_gateway=$(echo "$qemu_kvm_default_net_info" | awk -F"'" '/<ip family=.ipv6/ {print $4}')
+  lab_infra_server_ipv6_prefix=$(echo "$qemu_kvm_default_net_info" | awk -F"'" '/<ip family=.ipv6/ {print $6}')
   
   if [[ -z "$lab_infra_server_ipv6_gateway" || -z "$lab_infra_server_ipv6_prefix" ]]; then
     print_error "IPv6 configuration not found in QEMU/KVM default network!"
@@ -330,11 +332,11 @@ prepare_lab_infra_config() {
   fi
   
   # Extract the /64 prefix base (remove host portion)
-  lab_infra_server_ipv6_ula_subnet=$(sed 's/::[^:]*$/::/' <<< "$lab_infra_server_ipv6_gateway")/${lab_infra_server_ipv6_prefix}
+  lab_infra_server_ipv6_ula_subnet=$(echo "$lab_infra_server_ipv6_gateway" | sed 's/::[^:]*$/::/')/${lab_infra_server_ipv6_prefix}
   
   # Lab Infra Server gets special IPv6 address ::2 (gateway is ::1)
   # Extract IPv6 prefix without host portion (e.g., fd00:1234:1234:1234)
-  ipv6_prefix_base=$(sed 's/::[^:]*$//' <<< "$lab_infra_server_ipv6_gateway")
+  ipv6_prefix_base=$(echo "$lab_infra_server_ipv6_gateway" | sed 's/::[^:]*$//')
   
   # Assign ::2 as the infrastructure server address
   lab_infra_server_ipv6_address="${ipv6_prefix_base}::2"
@@ -580,7 +582,7 @@ deploy_lab_infra_server_vm() {
   print_info "Buckle up! We are about to view the Infra Server VM (${lab_infra_server_hostname}) deployment from console!"
   source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/select-ovmf.sh
 
-  sudo virt-install \
+  sudo /usr/local/bin/virt-install \
     --name "${lab_infra_server_hostname}" \
     --features acpi=on,apic=on \
     --memory 2048 \

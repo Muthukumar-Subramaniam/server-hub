@@ -1332,7 +1332,31 @@ fn_create_host_record() {
 	then
 		sed -i "/^broadcast /i \\${v_add_host_record}" "${v_fw_zone}"
 	else
-		sed -i "/${v_previous_ip}$/a \\${v_add_host_record}" "${v_fw_zone}"
+		# Find the actual last A record in the forward zone for proper insertion
+		# v_previous_ip might not exist in forward zone if there are gaps
+		IFS=. read -r s1 s2 s3 last_octet <<< "${v_previous_ip}"
+		local found_insertion_point=false
+		
+		# Try to find v_previous_ip first
+		if grep -q "${v_previous_ip}$" "${v_fw_zone}"; then
+			sed -i "/${v_previous_ip}$/a \\${v_add_host_record}" "${v_fw_zone}"
+			found_insertion_point=true
+		else
+			# Search backwards for an existing A record in the same /24 subnet
+			for ((search_octet=last_octet-1; search_octet>=0; search_octet--)); do
+				search_ip="${s1}.${s2}.${s3}.${search_octet}"
+				if grep -q "${search_ip}$" "${v_fw_zone}"; then
+					sed -i "/${search_ip}$/a \\${v_add_host_record}" "${v_fw_zone}"
+					found_insertion_point=true
+					break
+				fi
+			done
+		fi
+		
+		# Fallback: insert before broadcast if no insertion point found
+		if ! ${found_insertion_point}; then
+			sed -i "/^broadcast /i \\${v_add_host_record}" "${v_fw_zone}"
+		fi
 	fi
 
 	##################  End of  A Record Create Section ############################
