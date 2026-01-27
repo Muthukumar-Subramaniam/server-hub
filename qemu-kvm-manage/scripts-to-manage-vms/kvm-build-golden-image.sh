@@ -15,20 +15,20 @@ VERSION_TYPE=""
 fn_show_help() {
     print_cyan "Usage: qlabvmctl build-golden-image [OPTIONS]
 Description:
-  Creates a golden image disk by installing a VM via PXE boot.
-  The VM will be automatically removed after the disk is created.
+    Creates a golden image disk by installing a VM via PXE boot.
+    The VM will be automatically removed after the disk is created.
 
 Options:
-  -d, --distro         Specify OS distribution
-                       (almalinux, rocky, oraclelinux, centos-stream, rhel, ubuntu-lts, opensuse-leap)
-  -v, --version        Specify OS version: latest (default) or previous
-  -h, --help           Show this help message
+    -d, --distro         Specify OS distribution
+                                            (almalinux, rocky, oraclelinux, centos-stream, rhel, ubuntu-lts, opensuse-leap)
+    -v, --version        Specify OS version: latest (default) or previous
+    -h, --help           Show this help message
 
 Examples:
-  qlabvmctl build-golden-image                       # Build golden image (will prompt for distro)
-  qlabvmctl build-golden-image -d almalinux          # Build AlmaLinux 10 (latest) golden image
-  qlabvmctl build-golden-image -d rocky -v previous  # Build Rocky Linux 9 (previous) golden image
-  qlabvmctl build-golden-image --distro ubuntu-lts   # Build Ubuntu LTS 24.04 (latest) golden image
+    qlabvmctl build-golden-image                       # Build golden image (will prompt for distro)
+    qlabvmctl build-golden-image -d almalinux          # Build AlmaLinux 10 (latest) golden image
+    qlabvmctl build-golden-image -d rocky -v previous  # Build Rocky Linux 9 (previous) golden image
+    qlabvmctl build-golden-image --distro ubuntu-lts   # Build Ubuntu LTS 24.04 (latest) golden image
 "
 }
 
@@ -149,19 +149,19 @@ NVRAM_PATH="/kvm-hub/golden-images-disk-store/${qemu_kvm_hostname}_VARS.fd"
 
 # Run virt-install with console attachment (don't use shared function to avoid complexity)
 if ! sudo /usr/local/bin/virt-install \
-  --name ${qemu_kvm_hostname} \
-  --features acpi=on,apic=on \
-  --memory 2048 \
-  --vcpus 2 \
-  --disk path=${DISK_PATH},size=20,bus=virtio,boot.order=1 \
-  --os-variant almalinux9 \
-  --network network=default,model=virtio,mac=${GENERATED_MAC},boot.order=2 \
-  --graphics none \
-  --console pty,target_type=serial \
-  --machine q35 \
-  --watchdog none \
-  --cpu host-model \
-  --boot loader=${OVMF_CODE_PATH},\
+    --name ${qemu_kvm_hostname} \
+    --features acpi=on,apic=on \
+    --memory 2048 \
+    --vcpus 2 \
+    --disk path=${DISK_PATH},size=20,bus=virtio,boot.order=1 \
+    --os-variant almalinux9 \
+    --network network=default,model=virtio,mac=${GENERATED_MAC},boot.order=2 \
+    --graphics none \
+    --console pty,target_type=serial \
+    --machine q35 \
+    --watchdog none \
+    --cpu host-model \
+    --boot loader=${OVMF_CODE_PATH},\
 nvram.template=${OVMF_VARS_PATH},\
 nvram=${NVRAM_PATH},\
 menu=on; then

@@ -13,7 +13,7 @@ SSH_OPTS="-o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/d
 print_task "Authorizing SSH public key of infra server VM"
 get_user_host_ssh_pub_key=$(ssh ${SSH_OPTS} ${lab_infra_admin_username}@${lab_infra_server_hostname} "cat .ssh/kvm_lab_global_id_rsa.pub" | cut -d " " -f3)
 if ! grep -q "${get_user_host_ssh_pub_key}" ~/.ssh/authorized_keys; then
-	ssh ${SSH_OPTS} ${lab_infra_admin_username}@${lab_infra_server_hostname} "cat .ssh/kvm_lab_global_id_rsa.pub" >> ~/.ssh/authorized_keys
+    ssh ${SSH_OPTS} ${lab_infra_admin_username}@${lab_infra_server_hostname} "cat .ssh/kvm_lab_global_id_rsa.pub" >> ~/.ssh/authorized_keys
 fi
 print_task_done
 

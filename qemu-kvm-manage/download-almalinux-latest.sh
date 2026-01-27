@@ -17,10 +17,10 @@ sudo chown -R $USER:$(id -g) "$ISO_DIR"
 
 # Download ISO
 if [ -f "$ISO_DIR/$ISO_NAME" ]; then
-	print_info "ISO File $ISO_DIR/$ISO_NAME already exists!"
+    print_info "ISO File $ISO_DIR/$ISO_NAME already exists!"
 else
-	print_info "Please be patient until the $ISO_NAME gets downloaded..."
-	wget --continue --output-document="$ISO_DIR/$ISO_NAME" "$ISO_URL"
+    print_info "Please be patient until the $ISO_NAME gets downloaded..."
+    wget --continue --output-document="$ISO_DIR/$ISO_NAME" "$ISO_URL"
 fi
 
 print_success "ISO downloaded successfully!"
