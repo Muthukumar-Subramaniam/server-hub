@@ -9,21 +9,21 @@ source /server-hub/common-utils/color-functions.sh
 source /server-hub/ks-manage/distro-versions.conf
 
 if [[ -z "$mgmt_super_user" ]]; then
-	print_error "Critical: mgmt_super_user is not defined in /etc/environment."
-	print_error "Please ensure the environment is properly configured."
-	exit 1
+    print_error "Critical: mgmt_super_user is not defined in /etc/environment."
+    print_error "Please ensure the environment is properly configured."
+    exit 1
 fi
 
 if [[ "$USER" != "$mgmt_super_user" ]]; then
-	print_error "Access denied. Only infra management super user '${mgmt_super_user}' is authorized to run this tool."
-	print_error "Also if the user itself is ${mgmt_super_user}, Please do not elevate access again with sudo.\n"
-    	exit 1
+    print_error "Access denied. Only infra management super user '${mgmt_super_user}' is authorized to run this tool."
+    print_error "Also if the user itself is ${mgmt_super_user}, Please do not elevate access again with sudo.\n"
+    exit 1
 fi
 
 if [[ -z "${dnsbinder_server_ipv4_address}" ]]; then
-	print_error "Critical: dnsbinder_server_ipv4_address is not defined in /etc/environment."
-	print_error "DNS server IP address is required for dig queries."
-	exit 1
+    print_error "Critical: dnsbinder_server_ipv4_address is not defined in /etc/environment."
+    print_error "DNS server IP address is required for dig queries."
+    exit 1
 fi
 
 ipv4_domain="${dnsbinder_domain}"
@@ -49,10 +49,10 @@ ksmanager_hub_dir="/${lab_infra_server_hostname}/ksmanager-hub"
 ipxe_web_dir="/${lab_infra_server_hostname}/ipxe"
 shadow_password_super_mgmt_user=$(sudo awk -F: -v user="${mgmt_super_user}" '$1 == user {print $2}' /etc/shadow)
 if [ -d "/kvm-hub" ]; then
-	if [ -f "/kvm-hub/lab_environment_vars" ]; then
-		source /kvm-hub/lab_environment_vars
-		shadow_password_super_mgmt_user=$lab_admin_shadow_password
-	fi
+    if [ -f "/kvm-hub/lab_environment_vars" ]; then
+        source /kvm-hub/lab_environment_vars
+        shadow_password_super_mgmt_user=$lab_admin_shadow_password
+    fi
 fi
 subnets_to_allow_ssh_pub_access=""
 for i in $(seq ${dnsbinder_first24_subnet##*.} ${dnsbinder_last24_subnet##*.}); do
@@ -64,104 +64,104 @@ mkdir -p "${ksmanager_hub_dir}"
 mkdir -p "${ipxe_web_dir}"
 
 fn_check_and_create_host_record() {
-	while :
-	do
-		# shellcheck disable=SC2162
-		if [ -z "${1}" ]
-		then
-			print_info "Create kickstart host profiles for PXE boot."
-			print_info "Points to keep in mind while entering the hostname:"
-    		print_info "- Use only lowercase letters, numbers, and hyphens (-)."
-    		print_info "- Must not start or end with a hyphen."
-			read -r -p "Please enter the hostname for which kickstarts are required: " kickstart_hostname
-		else
-			kickstart_hostname="${1}"
-		fi
+    while :
+    do
+        # shellcheck disable=SC2162
+        if [ -z "${1}" ]
+        then
+            print_info "Create kickstart host profiles for PXE boot."
+            print_info "Points to keep in mind while entering the hostname:"
+            print_info "- Use only lowercase letters, numbers, and hyphens (-)."
+            print_info "- Must not start or end with a hyphen."
+            read -r -p "Please enter the hostname for which kickstarts are required: " kickstart_hostname
+        else
+            kickstart_hostname="${1}"
+        fi
 
-		# Validate and normalize hostname to FQDN
-		if [[ "${kickstart_hostname}" == *.${ipv4_domain} ]]; then
-			local stripped_hostname="${kickstart_hostname%.${ipv4_domain}}"
-			# Verify the stripped part doesn't contain dots (ensure it's just hostname.domain, not host.something.domain)
-			if [[ "${stripped_hostname}" == *.* ]]; then
-				print_error "Invalid hostname. Expected format: hostname.${ipv4_domain}"
-				exit 1
-			fi
-			# Validate the hostname part
-			if [[ ! "${stripped_hostname}" =~ ^[a-z0-9-]+$ || "${stripped_hostname}" =~ ^- || "${stripped_hostname}" =~ -$ ]]; then
-				print_error "Invalid hostname. Use only lowercase letters, numbers, and hyphens."
-				print_info "Hostname must not start or end with a hyphen."
-				exit 1
-			fi
-			# Keep as FQDN
-		elif [[ "${kickstart_hostname}" == *.* ]]; then
-			print_error "Invalid domain. Expected domain: ${ipv4_domain}"
-			exit 1
-		else
-			# Bare hostname provided - validate and convert to FQDN
-			if [[ ! "${kickstart_hostname}" =~ ^[a-z0-9-]+$ || "${kickstart_hostname}" =~ ^- || "${kickstart_hostname}" =~ -$ ]]; then
-				print_error "Invalid hostname. Use only lowercase letters, numbers, and hyphens."
-				print_info "Hostname must not start or end with a hyphen."
-				exit 1
-			fi
-			kickstart_hostname="${kickstart_hostname}.${ipv4_domain}"
-		fi
+        # Validate and normalize hostname to FQDN
+        if [[ "${kickstart_hostname}" == *.${ipv4_domain} ]]; then
+            local stripped_hostname="${kickstart_hostname%.${ipv4_domain}}"
+            # Verify the stripped part doesn't contain dots (ensure it's just hostname.domain, not host.something.domain)
+            if [[ "${stripped_hostname}" == *.* ]]; then
+                print_error "Invalid hostname. Expected format: hostname.${ipv4_domain}"
+                exit 1
+            fi
+            # Validate the hostname part
+            if [[ ! "${stripped_hostname}" =~ ^[a-z0-9-]+$ || "${stripped_hostname}" =~ ^- || "${stripped_hostname}" =~ -$ ]]; then
+                print_error "Invalid hostname. Use only lowercase letters, numbers, and hyphens."
+                print_info "Hostname must not start or end with a hyphen."
+                exit 1
+            fi
+            # Keep as FQDN
+        elif [[ "${kickstart_hostname}" == *.* ]]; then
+            print_error "Invalid domain. Expected domain: ${ipv4_domain}"
+            exit 1
+        else
+            # Bare hostname provided - validate and convert to FQDN
+            if [[ ! "${kickstart_hostname}" =~ ^[a-z0-9-]+$ || "${kickstart_hostname}" =~ ^- || "${kickstart_hostname}" =~ -$ ]]; then
+                print_error "Invalid hostname. Use only lowercase letters, numbers, and hyphens."
+                print_info "Hostname must not start or end with a hyphen."
+                exit 1
+            fi
+            kickstart_hostname="${kickstart_hostname}.${ipv4_domain}"
+        fi
 
-		break
-	done
+        break
+    done
 
-	# Extract short hostname for use with tools that need it
-	kickstart_short_hostname="${kickstart_hostname%%.*}"
+    # Extract short hostname for use with tools that need it
+    kickstart_short_hostname="${kickstart_hostname%%.*}"
 
-	if ! dig @"${dnsbinder_server_ipv4_address}" +short +time=1 +tries=1 A "${kickstart_hostname}" | grep -q '^[0-9]'
-	then
-		print_info "No DNS record found for \"${kickstart_hostname}\"."
-		
-		if $invoked_with_qemu_kvm; then
-			sudo "${dnsbinder_script}" -c "${kickstart_hostname}"
+    if ! dig @"${dnsbinder_server_ipv4_address}" +short +time=1 +tries=1 A "${kickstart_hostname}" | grep -q '^[0-9]'
+    then
+        print_info "No DNS record found for \"${kickstart_hostname}\"."
+        
+        if $invoked_with_qemu_kvm; then
+            sudo "${dnsbinder_script}" -c "${kickstart_hostname}"
 
-			if ! dig @"${dnsbinder_server_ipv4_address}" +short +time=1 +tries=1 A "${kickstart_hostname}" | grep -q '^[0-9]'; then
-				print_error "Failed to create DNS record for \"${kickstart_hostname}\"."
-				exit 1
-			fi
-		else
-			while :
-			do
-				read -r -p "Enter (y) to create a DNS record for \"${kickstart_hostname}\" or (n) to exit: " v_confirmation
+            if ! dig @"${dnsbinder_server_ipv4_address}" +short +time=1 +tries=1 A "${kickstart_hostname}" | grep -q '^[0-9]'; then
+                print_error "Failed to create DNS record for \"${kickstart_hostname}\"."
+                exit 1
+            fi
+        else
+            while :
+            do
+                read -r -p "Enter (y) to create a DNS record for \"${kickstart_hostname}\" or (n) to exit: " v_confirmation
 
-				if [[ "${v_confirmation}" == "y" ]]
-				then
-					sudo "${dnsbinder_script}" -c "${kickstart_hostname}"
+                if [[ "${v_confirmation}" == "y" ]]
+                then
+                    sudo "${dnsbinder_script}" -c "${kickstart_hostname}"
 
-					if ! dig @"${dnsbinder_server_ipv4_address}" +short +time=1 +tries=1 A "${kickstart_hostname}" | grep -q '^[0-9]'; then
-						print_error "Failed to create DNS record for \"${kickstart_hostname}\"."
-						exit 1
-					fi
-					break
+                    if ! dig @"${dnsbinder_server_ipv4_address}" +short +time=1 +tries=1 A "${kickstart_hostname}" | grep -q '^[0-9]'; then
+                        print_error "Failed to create DNS record for \"${kickstart_hostname}\"."
+                        exit 1
+                    fi
+                    break
 
-				elif [[ "${v_confirmation}" == "n" ]]
-				then
-					print_info "Operation cancelled by user."
-					exit
-				else
-					print_warning "Invalid input. Please enter 'y' or 'n'."
-					continue
-				fi
-			done
-		fi
-	else
-		print_info "DNS record found for \"${kickstart_hostname}\"."
-		local ipv4=$(dig @"${dnsbinder_server_ipv4_address}" +short A "${kickstart_hostname}" | head -1)
-		local ipv6=$(dig @"${dnsbinder_server_ipv4_address}" +short AAAA "${kickstart_hostname}" | head -1)
-		[[ -n "${ipv4}" ]] && print_info "${kickstart_hostname} has address ${ipv4}"
-		[[ -n "${ipv6}" ]] && print_info "${kickstart_hostname} has IPv6 address ${ipv6}"
-	fi
+                elif [[ "${v_confirmation}" == "n" ]]
+                then
+                    print_info "Operation cancelled by user."
+                    exit
+                else
+                    print_warning "Invalid input. Please enter 'y' or 'n'."
+                    continue
+                fi
+            done
+        fi
+    else
+        print_info "DNS record found for \"${kickstart_hostname}\"."
+        local ipv4=$(dig @"${dnsbinder_server_ipv4_address}" +short A "${kickstart_hostname}" | head -1)
+        local ipv6=$(dig @"${dnsbinder_server_ipv4_address}" +short AAAA "${kickstart_hostname}" | head -1)
+        [[ -n "${ipv4}" ]] && print_info "${kickstart_hostname} has address ${ipv4}"
+        [[ -n "${ipv6}" ]] && print_info "${kickstart_hostname} has IPv6 address ${ipv6}"
+    fi
 }
 
 golden_image_creation_not_requested=true
 
 for input_arguement in "$@"; do
     if [[ "$input_arguement" == "--create-golden-image" ]]; then
-	golden_image_creation_not_requested=false
+    golden_image_creation_not_requested=false
         break
     fi
 done
@@ -441,13 +441,13 @@ EOF
 fi
 
 if $golden_image_creation_not_requested; then
-	fn_check_and_create_host_record "${1}"
-	ipv4_address=$(dig @"${dnsbinder_server_ipv4_address}" +short +time=1 +tries=1 A "${kickstart_hostname}" | awk 'NR==1 {gsub(/[[:space:]]/, ""); print}')
-	
-	# Query DNS for IPv6 address (if dual-stack configured)
-	if [[ ! -z "${ipv6_gateway}" ]]; then
-		ipv6_address=$(dig @"${dnsbinder_server_ipv4_address}" +short +time=1 +tries=1 AAAA "${kickstart_hostname}" | awk 'NR==1 {gsub(/[[:space:]]/, ""); print}')
-	fi
+    fn_check_and_create_host_record "${1}"
+    ipv4_address=$(dig @"${dnsbinder_server_ipv4_address}" +short +time=1 +tries=1 A "${kickstart_hostname}" | awk 'NR==1 {gsub(/[[:space:]]/, ""); print}')
+    
+    # Query DNS for IPv6 address (if dual-stack configured)
+    if [[ ! -z "${ipv6_gateway}" ]]; then
+        ipv6_address=$(dig @"${dnsbinder_server_ipv4_address}" +short +time=1 +tries=1 AAAA "${kickstart_hostname}" | awk 'NR==1 {gsub(/[[:space:]]/, ""); print}')
+    fi
 fi
 
 # Function to validate MAC address
@@ -464,40 +464,40 @@ fn_validate_mac() {
 }
 
 fn_convert_mac_for_ipxe_cfg() {
-	# Convert MAC address to required format to append with ipxe.cfg file
-	ipxe_cfg_mac_address="${mac_address_of_host//:/-}"
-	ipxe_cfg_mac_address="${ipxe_cfg_mac_address,,}"
+    # Convert MAC address to required format to append with ipxe.cfg file
+    ipxe_cfg_mac_address="${mac_address_of_host//:/-}"
+    ipxe_cfg_mac_address="${ipxe_cfg_mac_address,,}"
 }
 
 fn_cache_the_mac() {
-	print_task "Caching MAC address..."
-	# Ensure the cache file exists
-	touch "${ksmanager_hub_dir}"/mac-address-cache
-	if sed -i "/${kickstart_hostname}/d" "${ksmanager_hub_dir}"/mac-address-cache && \
-	   echo "${kickstart_hostname} ${mac_address_of_host} ${ipv4_address} ${ipv6_address}" >> "${ksmanager_hub_dir}"/mac-address-cache; then
-		print_task_done
-	else
-		print_task_fail
-		print_error "Failed to cache MAC address."
-		exit 1
-	fi
+    print_task "Caching MAC address..."
+    # Ensure the cache file exists
+    touch "${ksmanager_hub_dir}"/mac-address-cache
+    if sed -i "/${kickstart_hostname}/d" "${ksmanager_hub_dir}"/mac-address-cache && \
+       echo "${kickstart_hostname} ${mac_address_of_host} ${ipv4_address} ${ipv6_address}" >> "${ksmanager_hub_dir}"/mac-address-cache; then
+        print_task_done
+    else
+        print_task_fail
+        print_error "Failed to cache MAC address."
+        exit 1
+    fi
 }
 
 # Loop until a valid MAC address is provided
 
 fn_get_mac_address() {
-	while :
-	do
-		echo -n "Enter the MAC address of the VM \"${kickstart_hostname}\": "
-		read mac_address_of_host
-    		# Call the function to validate the MAC address
-    		if fn_validate_mac "${mac_address_of_host}"
-    		then
-        		break
-    		else
-			print_error "Invalid MAC address provided. Please try again."
-    		fi
-	done
+    while :
+    do
+        echo -n "Enter the MAC address of the VM \"${kickstart_hostname}\": "
+        read mac_address_of_host
+            # Call the function to validate the MAC address
+            if fn_validate_mac "${mac_address_of_host}"
+            then
+                break
+            else
+            print_error "Invalid MAC address provided. Please try again."
+            fi
+    done
 }
 
 invoked_with_qemu_kvm=false
@@ -540,97 +540,97 @@ fn_check_and_create_mac_if_required() {
 
 # If MAC address was provided via --mac flag, use it directly
 if [[ -n "${mac_from_flag}" ]]; then
-	print_info "Using MAC address provided via --mac flag: ${mac_from_flag}"
-	mac_address_of_host="${mac_from_flag}"
-	# Validate the provided MAC address
-	if ! fn_validate_mac "${mac_address_of_host}"; then
-		print_error "Invalid MAC address provided via --mac flag: ${mac_address_of_host}"
-		exit 1
-	fi
-	fn_convert_mac_for_ipxe_cfg
-	fn_cache_the_mac
-	return
+    print_info "Using MAC address provided via --mac flag: ${mac_from_flag}"
+    mac_address_of_host="${mac_from_flag}"
+    # Validate the provided MAC address
+    if ! fn_validate_mac "${mac_address_of_host}"; then
+        print_error "Invalid MAC address provided via --mac flag: ${mac_address_of_host}"
+        exit 1
+    fi
+    fn_convert_mac_for_ipxe_cfg
+    fn_cache_the_mac
+    return
 fi
 
 print_info "Looking up MAC address for host \"${kickstart_hostname}\" from cache..."
 
 if [ ! -f "${ksmanager_hub_dir}"/mac-address-cache ]; then
-	touch  "${ksmanager_hub_dir}"/mac-address-cache
+    touch  "${ksmanager_hub_dir}"/mac-address-cache
 fi
 
 if grep ^"${kickstart_hostname} " "${ksmanager_hub_dir}"/mac-address-cache &>/dev/null
 then
-	mac_address_of_host=$(awk -v host="^${kickstart_hostname} " '$0 ~ host {print $2}' "${ksmanager_hub_dir}"/mac-address-cache)
+    mac_address_of_host=$(awk -v host="^${kickstart_hostname} " '$0 ~ host {print $2}' "${ksmanager_hub_dir}"/mac-address-cache)
 
-	print_info "MAC Address ${mac_address_of_host} found for ${kickstart_hostname} in cache."
-	while :
-	do
-		if $invoked_with_qemu_kvm; then
-			fn_convert_mac_for_ipxe_cfg
-			break
-		fi
-		
-		read -p "Has the MAC Address ${mac_address_of_host} been changed for ${kickstart_hostname} (y/N)? : " confirmation 
+    print_info "MAC Address ${mac_address_of_host} found for ${kickstart_hostname} in cache."
+    while :
+    do
+        if $invoked_with_qemu_kvm; then
+            fn_convert_mac_for_ipxe_cfg
+            break
+        fi
+        
+        read -p "Has the MAC Address ${mac_address_of_host} been changed for ${kickstart_hostname} (y/N)? : " confirmation 
 
-		if [[ "${confirmation}" =~ ^[Nn]$ ]] 
-		then
-			fn_convert_mac_for_ipxe_cfg
-			break
+        if [[ "${confirmation}" =~ ^[Nn]$ ]] 
+        then
+            fn_convert_mac_for_ipxe_cfg
+            break
 
-		elif [[ -z "${confirmation}" ]]
-		then
-			fn_convert_mac_for_ipxe_cfg
-			break
+        elif [[ -z "${confirmation}" ]]
+        then
+            fn_convert_mac_for_ipxe_cfg
+            break
 
-		elif [[ "${confirmation}" =~ ^[Yy]$ ]]
-		then
-			fn_get_mac_address
-			fn_convert_mac_for_ipxe_cfg
-			fn_cache_the_mac
-			break
-		else
-			print_warning "Invalid input."
-		fi
-	done
+        elif [[ "${confirmation}" =~ ^[Yy]$ ]]
+        then
+            fn_get_mac_address
+            fn_convert_mac_for_ipxe_cfg
+            fn_cache_the_mac
+            break
+        else
+            print_warning "Invalid input."
+        fi
+    done
 else
-	print_info "MAC address for \"${kickstart_hostname}\" not found in cache."
-	if $invoked_with_qemu_kvm; then
-		print_error "MAC address not found in cache and --mac flag not provided for QEMU/KVM mode."
-		print_error "QEMU/KVM scripts must provide MAC address via --mac flag."
-		exit 1
-	else
-		fn_get_mac_address
-		fn_convert_mac_for_ipxe_cfg
-		fn_cache_the_mac
-	fi
+    print_info "MAC address for \"${kickstart_hostname}\" not found in cache."
+    if $invoked_with_qemu_kvm; then
+        print_error "MAC address not found in cache and --mac flag not provided for QEMU/KVM mode."
+        print_error "QEMU/KVM scripts must provide MAC address via --mac flag."
+        exit 1
+    else
+        fn_get_mac_address
+        fn_convert_mac_for_ipxe_cfg
+        fn_cache_the_mac
+    fi
 fi
 }
 
 if $golden_image_creation_not_requested; then
-	fn_check_and_create_mac_if_required
+    fn_check_and_create_mac_if_required
 fi
 
 fn_get_version_number() {
-	local os_distribution="$1"
-	local version="${2:-latest}"
-	
-	if [[ "$version" == "latest" ]]; then
-		echo "${DISTRO_LATEST_VERSIONS[$os_distribution]}"
-	else
-		echo "${DISTRO_PREVIOUS_VERSIONS[$os_distribution]}"
-	fi
+    local os_distribution="$1"
+    local version="${2:-latest}"
+    
+    if [[ "$version" == "latest" ]]; then
+        echo "${DISTRO_LATEST_VERSIONS[$os_distribution]}"
+    else
+        echo "${DISTRO_PREVIOUS_VERSIONS[$os_distribution]}"
+    fi
 }
 
 fn_check_distro_availability() {
-	local os_distribution="${1}"
-	local version="${2:-latest}"
-	local mount_dir="/${lab_infra_server_hostname}/${os_distribution}-${version}"
-	
-	if mountpoint -q "${mount_dir}"; then
-		print_green '[Ready]'
-	else
-		print_yellow '[Not-Ready]'
-	fi
+    local os_distribution="${1}"
+    local version="${2:-latest}"
+    local mount_dir="/${lab_infra_server_hostname}/${os_distribution}-${version}"
+    
+    if mountpoint -q "${mount_dir}"; then
+        print_green '[Ready]'
+    else
+        print_yellow '[Not-Ready]'
+    fi
 }
 
 # Status will be computed dynamically in menu based on selected version
@@ -731,7 +731,7 @@ fn_select_os_distro() {
         6 )      os_distribution="ubuntu-lts" ;;
         7 )      os_distribution="opensuse-leap" ;;
         q | Q )  print_info "Operation cancelled by user."; exit 130 ;;
-	* ) print_error "Invalid option. Please try again."; fn_select_os_distro ;;
+    * ) print_error "Invalid option. Please try again."; fn_select_os_distro ;;
     esac
     
     print_info "OS distribution selected: ${os_distribution} (${version_type})"
@@ -743,100 +743,100 @@ fn_select_os_distro
 disk_type_for_the_vm="vda"
 
 fn_create_host_kickstart_dir() {
-	host_kickstart_dir="${ksmanager_hub_dir}/kickstarts/${kickstart_hostname}"
-	mkdir -p "${host_kickstart_dir}"
-	rm -rf "${host_kickstart_dir}"/*
+    host_kickstart_dir="${ksmanager_hub_dir}/kickstarts/${kickstart_hostname}"
+    mkdir -p "${host_kickstart_dir}"
+    rm -rf "${host_kickstart_dir}"/*
 }
 
 if $golden_image_creation_not_requested; then
-	if ! $invoked_with_golden_image; then
-		fn_create_host_kickstart_dir
-	fi
+    if ! $invoked_with_golden_image; then
+        fn_create_host_kickstart_dir
+    fi
 fi
 
 mount_dir="/${lab_infra_server_hostname}/${os_distribution}-${version_type}"
 
 while ! mountpoint -q "${mount_dir}"; do
-	print_warning "${os_distribution} is not yet prepared for PXE-boot environment."
-	print_info "Please use 'prepare-distro-for-ksmanager' tool to prepare ${os_distribution} for PXE-boot."
-	if $invoked_with_qemu_kvm; then
-		print_error "Cannot proceed with unprepared OS distribution in automation mode."
-		exit 1
-	fi
-	fn_select_os_distro
+    print_warning "${os_distribution} is not yet prepared for PXE-boot environment."
+    print_info "Please use 'prepare-distro-for-ksmanager' tool to prepare ${os_distribution} for PXE-boot."
+    if $invoked_with_qemu_kvm; then
+        print_error "Cannot proceed with unprepared OS distribution in automation mode."
+        exit 1
+    fi
+    fn_select_os_distro
 done
 
 if [[ "${os_distribution}" == "ubuntu-lts" ]]; then
-	os_name_and_version=$(awk -F'LTS' '{print $1 "LTS"}' "/${lab_infra_server_hostname}/${os_distribution}-${version_type}/.disk/info")
+    os_name_and_version=$(awk -F'LTS' '{print $1 "LTS"}' "/${lab_infra_server_hostname}/${os_distribution}-${version_type}/.disk/info")
 elif [[ "${os_distribution}" == "opensuse-leap" ]]; then
-	os_name_and_version=$(awk -F ' = ' '/^\[release\]/{f=1; next} /^\[/{f=0} f && /^(name|version)/ {gsub(/^[ \t]+/, "", $2); printf "%s ", $2} END{print ""}' "/${lab_infra_server_hostname}/${os_distribution}-${version_type}/.treeinfo")
-	# Extract just the version number (e.g., "15.6" from "openSUSE Leap 15.6")
-	opensuse_version_number=$(echo "$os_name_and_version" | grep -oP '\d+\.\d+')
+    os_name_and_version=$(awk -F ' = ' '/^\[release\]/{f=1; next} /^\[/{f=0} f && /^(name|version)/ {gsub(/^[ \t]+/, "", $2); printf "%s ", $2} END{print ""}' "/${lab_infra_server_hostname}/${os_distribution}-${version_type}/.treeinfo")
+    # Extract just the version number (e.g., "15.6" from "openSUSE Leap 15.6")
+    opensuse_version_number=$(echo "$os_name_and_version" | grep -oP '\d+\.\d+')
 else
-	redhat_based_distro_name="${os_distribution}"
-	if [[ "${os_distribution}" == "centos-stream" ]]; then
-		os_name_and_version=$(grep -i "centos" "/${lab_infra_server_hostname}/${os_distribution}-${version_type}/.discinfo")
-	elif [[ "${os_distribution}" == "oraclelinux" ]]; then
-		os_name_and_version=$(grep -i "oracle" "/${lab_infra_server_hostname}/${os_distribution}-${version_type}/.discinfo")
-	elif [[ "${os_distribution}" == "rhel" ]]; then
-		os_name_and_version=$(grep -i "Red Hat" "/${lab_infra_server_hostname}/${os_distribution}-${version_type}/.discinfo")
-	else
-		os_name_and_version=$(grep -i "${os_distribution}" "/${lab_infra_server_hostname}/${os_distribution}-${version_type}/.discinfo")
-	fi
+    redhat_based_distro_name="${os_distribution}"
+    if [[ "${os_distribution}" == "centos-stream" ]]; then
+        os_name_and_version=$(grep -i "centos" "/${lab_infra_server_hostname}/${os_distribution}-${version_type}/.discinfo")
+    elif [[ "${os_distribution}" == "oraclelinux" ]]; then
+        os_name_and_version=$(grep -i "oracle" "/${lab_infra_server_hostname}/${os_distribution}-${version_type}/.discinfo")
+    elif [[ "${os_distribution}" == "rhel" ]]; then
+        os_name_and_version=$(grep -i "Red Hat" "/${lab_infra_server_hostname}/${os_distribution}-${version_type}/.discinfo")
+    else
+        os_name_and_version=$(grep -i "${os_distribution}" "/${lab_infra_server_hostname}/${os_distribution}-${version_type}/.discinfo")
+    fi
 fi
 
 if ! $golden_image_creation_not_requested; then
-	fn_check_and_create_host_record "${os_distribution}-golden-image-${version_type}"
-	ipv4_address=$(dig @"${dnsbinder_server_ipv4_address}" +short +time=1 +tries=1 A "${kickstart_hostname}" | awk 'NR==1 {gsub(/[[:space:]]/, ""); print}')
-	
-	# Query DNS for IPv6 address (if dual-stack configured)
-	if [[ ! -z "${ipv6_gateway}" ]]; then
-		ipv6_address=$(dig @"${dnsbinder_server_ipv4_address}" +short +time=1 +tries=1 AAAA "${kickstart_hostname}" | awk 'NR==1 {gsub(/[[:space:]]/, ""); print}')
-	fi
-	
-	fn_check_and_create_mac_if_required
-	fn_create_host_kickstart_dir
+    fn_check_and_create_host_record "${os_distribution}-golden-image-${version_type}"
+    ipv4_address=$(dig @"${dnsbinder_server_ipv4_address}" +short +time=1 +tries=1 A "${kickstart_hostname}" | awk 'NR==1 {gsub(/[[:space:]]/, ""); print}')
+    
+    # Query DNS for IPv6 address (if dual-stack configured)
+    if [[ ! -z "${ipv6_gateway}" ]]; then
+        ipv6_address=$(dig @"${dnsbinder_server_ipv4_address}" +short +time=1 +tries=1 AAAA "${kickstart_hostname}" | awk 'NR==1 {gsub(/[[:space:]]/, ""); print}')
+    fi
+    
+    fn_check_and_create_mac_if_required
+    fn_create_host_kickstart_dir
 fi
 
 if ! $invoked_with_golden_image; then
-	if [[ "${os_distribution}" == "opensuse-leap" ]]; then
-		rsync -a -q "${ksmanager_main_dir}/ks-templates/${os_distribution}-${version_type}-autoinst.xml" "${host_kickstart_dir}/${os_distribution}-${version_type}-autoinst.xml" 
-	elif [[ "${os_distribution}" == "ubuntu-lts" ]]; then 
-		rsync -a -q --delete "${ksmanager_main_dir}/ks-templates/${os_distribution}-${version_type}-ks" "${host_kickstart_dir}"/
-	else
-		rsync -a -q "${ksmanager_main_dir}/ks-templates/redhat-based-${version_type}-ks.cfg" "${host_kickstart_dir}"/ 
-	fi
-	if ! $golden_image_creation_not_requested; then
-		rsync -a -q "${ksmanager_main_dir}/golden-boot-templates/golden-boot.service" "${host_kickstart_dir}"/ 
-		rsync -a -q "${ksmanager_main_dir}/golden-boot-templates/golden-boot.sh" "${host_kickstart_dir}"/ 
-	fi
+    if [[ "${os_distribution}" == "opensuse-leap" ]]; then
+        rsync -a -q "${ksmanager_main_dir}/ks-templates/${os_distribution}-${version_type}-autoinst.xml" "${host_kickstart_dir}/${os_distribution}-${version_type}-autoinst.xml" 
+    elif [[ "${os_distribution}" == "ubuntu-lts" ]]; then 
+        rsync -a -q --delete "${ksmanager_main_dir}/ks-templates/${os_distribution}-${version_type}-ks" "${host_kickstart_dir}"/
+    else
+        rsync -a -q "${ksmanager_main_dir}/ks-templates/redhat-based-${version_type}-ks.cfg" "${host_kickstart_dir}"/ 
+    fi
+    if ! $golden_image_creation_not_requested; then
+        rsync -a -q "${ksmanager_main_dir}/golden-boot-templates/golden-boot.service" "${host_kickstart_dir}"/ 
+        rsync -a -q "${ksmanager_main_dir}/golden-boot-templates/golden-boot.sh" "${host_kickstart_dir}"/ 
+    fi
 fi
 
 if ! $invoked_with_golden_image; then
 
-	print_task "Generating kickstart profile and iPXE configs..."
-	if rsync -a -q --delete "${ksmanager_main_dir}"/addons-for-kickstarts/ "${ksmanager_hub_dir}"/addons-for-kickstarts/ && \
-	   rsync -a -q /home/${mgmt_super_user}/.ssh/{authorized_keys,kvm_lab_global_id_rsa.pub,kvm_lab_global_id_rsa} "${ksmanager_hub_dir}"/addons-for-kickstarts/ && \
-	   chmod +r "${ksmanager_hub_dir}"/addons-for-kickstarts/{authorized_keys,kvm_lab_global_id_rsa.pub,kvm_lab_global_id_rsa} && \
-	   mkdir -p "${ksmanager_hub_dir}"/golden-boot-mac-configs; then
-		print_task_done
-	else
-		print_task_fail
-		print_error "Failed to generate kickstart profile."
-		exit 1
-	fi
+    print_task "Generating kickstart profile and iPXE configs..."
+    if rsync -a -q --delete "${ksmanager_main_dir}"/addons-for-kickstarts/ "${ksmanager_hub_dir}"/addons-for-kickstarts/ && \
+       rsync -a -q /home/${mgmt_super_user}/.ssh/{authorized_keys,kvm_lab_global_id_rsa.pub,kvm_lab_global_id_rsa} "${ksmanager_hub_dir}"/addons-for-kickstarts/ && \
+       chmod +r "${ksmanager_hub_dir}"/addons-for-kickstarts/{authorized_keys,kvm_lab_global_id_rsa.pub,kvm_lab_global_id_rsa} && \
+       mkdir -p "${ksmanager_hub_dir}"/golden-boot-mac-configs; then
+        print_task_done
+    else
+        print_task_fail
+        print_error "Failed to generate kickstart profile."
+        exit 1
+    fi
 fi
 
 if $invoked_with_golden_image; then
 
-	print_task "Generating golden boot network config..."
-	if rsync -a -q "${ksmanager_main_dir}"/golden-boot-templates/network-config-for-mac-address "${ksmanager_hub_dir}"/golden-boot-mac-configs/network-config-"${ipxe_cfg_mac_address}"; then
-		print_task_done
-	else
-		print_task_fail
-		print_error "Failed to generate network config."
-		exit 1
-	fi
+    print_task "Generating golden boot network config..."
+    if rsync -a -q "${ksmanager_main_dir}"/golden-boot-templates/network-config-for-mac-address "${ksmanager_hub_dir}"/golden-boot-mac-configs/network-config-"${ipxe_cfg_mac_address}"; then
+        print_task_done
+    else
+        print_task_fail
+        print_error "Failed to generate network config."
+        exit 1
+    fi
 fi
 
 # shellcheck disable=SC2044
@@ -845,84 +845,84 @@ escape_sed_replacement() {
 }
 
 fn_set_environment() {
-	local input_dir_or_file="${1}"
-	local working_file=
+    local input_dir_or_file="${1}"
+    local working_file=
 
-	fn_update_dynamic_parameters() {
+    fn_update_dynamic_parameters() {
 
-		local working_file="${1}"
+        local working_file="${1}"
 
-		sed -i "s|get_ipv4_network_cidr|${ipv4_network_cidr}|g" "${working_file}"
-		sed -i "s/get_ipv4_address/${ipv4_address}/g" "${working_file}"
-		sed -i "s/get_ipv4_netmask/${ipv4_netmask}/g" "${working_file}"
-		sed -i "s/get_ipv4_prefix/${ipv4_prefix}/g" "${working_file}"
-    	sed -i "s/get_ipv4_gateway/${ipv4_gateway}/g" "${working_file}"
-		sed -i "s/get_ipv4_nameserver/${ipv4_nameserver}/g" "${working_file}"
-		sed -i "s/get_ipv4_nfsserver/${ipv4_nfsserver}/g" "${working_file}"
-		sed -i "s/get_ipv4_domain/${ipv4_domain}/g" "${working_file}"
-		
-		# IPv6 replacements (if configured)
-		if [[ ! -z "${ipv6_address}" ]]; then
-			sed -i "s|get_ipv6_address|${ipv6_address}|g" "${working_file}"
-			sed -i "s/get_ipv6_gateway/${ipv6_gateway}/g" "${working_file}"
-			sed -i "s/get_ipv6_prefix/${ipv6_prefix}/g" "${working_file}"
-		fi
-		# Always replace IPv6 nameserver if configured
-		if [[ ! -z "${ipv6_nameserver}" ]]; then
-			sed -i "s/get_ipv6_nameserver/${ipv6_nameserver}/g" "${working_file}"
-		fi
-    	sed -i "s/get_hostname/${kickstart_short_hostname}/g" "${working_file}"
-		sed -i "s/get_lab_infra_server_hostname/${lab_infra_server_hostname}/g" "${working_file}"
-		sed -i "s/get_win_hostname/${win_hostname}/g" "${working_file}"
-		sed -i "s/get_rhel_activation_key/${rhel_activation_key}/g" "${working_file}"
-		sed -i "s/get_time_of_last_update/${time_of_last_update}/g" "${working_file}"
-		sed -i "s/get_mgmt_super_user/${mgmt_super_user}/g" "${working_file}"
-		sed -i "s/get_os_name_and_version/${os_name_and_version}/g" "${working_file}"
-		sed -i "s/get_disk_type_for_the_vm/${disk_type_for_the_vm}/g" "${working_file}"
-	 	sed -i "s/get_golden_image_creation_not_requested/$golden_image_creation_not_requested/g" "${working_file}"
-	 	sed -i "s/get_redhat_based_distro_name/$redhat_based_distro_name/g" "${working_file}"
-	 	sed -i "s/get_version_type/$version_type/g" "${working_file}"
-	 	sed -i "s/get_opensuse_version_number/$opensuse_version_number/g" "${working_file}"
-	 	sed -i "s/get_subnets_to_allow_ssh_pub_access/${subnets_to_allow_ssh_pub_access}/g" "${working_file}"
+        sed -i "s|get_ipv4_network_cidr|${ipv4_network_cidr}|g" "${working_file}"
+        sed -i "s/get_ipv4_address/${ipv4_address}/g" "${working_file}"
+        sed -i "s/get_ipv4_netmask/${ipv4_netmask}/g" "${working_file}"
+        sed -i "s/get_ipv4_prefix/${ipv4_prefix}/g" "${working_file}"
+        sed -i "s/get_ipv4_gateway/${ipv4_gateway}/g" "${working_file}"
+        sed -i "s/get_ipv4_nameserver/${ipv4_nameserver}/g" "${working_file}"
+        sed -i "s/get_ipv4_nfsserver/${ipv4_nfsserver}/g" "${working_file}"
+        sed -i "s/get_ipv4_domain/${ipv4_domain}/g" "${working_file}"
+        
+        # IPv6 replacements (if configured)
+        if [[ ! -z "${ipv6_address}" ]]; then
+            sed -i "s|get_ipv6_address|${ipv6_address}|g" "${working_file}"
+            sed -i "s/get_ipv6_gateway/${ipv6_gateway}/g" "${working_file}"
+            sed -i "s/get_ipv6_prefix/${ipv6_prefix}/g" "${working_file}"
+        fi
+        # Always replace IPv6 nameserver if configured
+        if [[ ! -z "${ipv6_nameserver}" ]]; then
+            sed -i "s/get_ipv6_nameserver/${ipv6_nameserver}/g" "${working_file}"
+        fi
+        sed -i "s/get_hostname/${kickstart_short_hostname}/g" "${working_file}"
+        sed -i "s/get_lab_infra_server_hostname/${lab_infra_server_hostname}/g" "${working_file}"
+        sed -i "s/get_win_hostname/${win_hostname}/g" "${working_file}"
+        sed -i "s/get_rhel_activation_key/${rhel_activation_key}/g" "${working_file}"
+        sed -i "s/get_time_of_last_update/${time_of_last_update}/g" "${working_file}"
+        sed -i "s/get_mgmt_super_user/${mgmt_super_user}/g" "${working_file}"
+        sed -i "s/get_os_name_and_version/${os_name_and_version}/g" "${working_file}"
+        sed -i "s/get_disk_type_for_the_vm/${disk_type_for_the_vm}/g" "${working_file}"
+        sed -i "s/get_golden_image_creation_not_requested/$golden_image_creation_not_requested/g" "${working_file}"
+        sed -i "s/get_redhat_based_distro_name/$redhat_based_distro_name/g" "${working_file}"
+        sed -i "s/get_version_type/$version_type/g" "${working_file}"
+        sed -i "s/get_opensuse_version_number/$opensuse_version_number/g" "${working_file}"
+        sed -i "s/get_subnets_to_allow_ssh_pub_access/${subnets_to_allow_ssh_pub_access}/g" "${working_file}"
 
-		awk -v val="$shadow_password_super_mgmt_user" '
-		{
-    			gsub(/get_shadow_password_super_mgmt_user/, val)
-		}
-		1
-		' "${working_file}" > "${working_file}"_tmp_ksmanager && mv "${working_file}"_tmp_ksmanager "${working_file}"
-	}
+        awk -v val="$shadow_password_super_mgmt_user" '
+        {
+                gsub(/get_shadow_password_super_mgmt_user/, val)
+        }
+        1
+        ' "${working_file}" > "${working_file}"_tmp_ksmanager && mv "${working_file}"_tmp_ksmanager "${working_file}"
+    }
 
-	if [ -d "${input_dir_or_file}" ]
-	then
-		while IFS= read -r -d '' working_file; do
-			fn_update_dynamic_parameters "${working_file}"
-		done < <(find "${input_dir_or_file}" -type f -print0)
+    if [ -d "${input_dir_or_file}" ]
+    then
+        while IFS= read -r -d '' working_file; do
+            fn_update_dynamic_parameters "${working_file}"
+        done < <(find "${input_dir_or_file}" -type f -print0)
 
-	elif [ -f "${input_dir_or_file}" ]
-	then
-		working_file="${input_dir_or_file}"
-		fn_update_dynamic_parameters "${working_file}"
-	fi
+    elif [ -f "${input_dir_or_file}" ]
+    then
+        working_file="${input_dir_or_file}"
+        fn_update_dynamic_parameters "${working_file}"
+    fi
 }
 
 if ! $invoked_with_golden_image; then
 
-	fn_set_environment "${host_kickstart_dir}"
-	mac_based_ipxe_cfg_file="${ipxe_web_dir}/${ipxe_cfg_mac_address}.ipxe"
+    fn_set_environment "${host_kickstart_dir}"
+    mac_based_ipxe_cfg_file="${ipxe_web_dir}/${ipxe_cfg_mac_address}.ipxe"
 
-	if [[ -z "${redhat_based_distro_name}" ]]; then
+    if [[ -z "${redhat_based_distro_name}" ]]; then
             rsync -a -q "${ksmanager_main_dir}/ipxe-templates/ipxe-template-${os_distribution}-auto-${version_type}.ipxe"  "${mac_based_ipxe_cfg_file}"
-	else
-	    rsync -a -q "${ksmanager_main_dir}/ipxe-templates/ipxe-template-redhat-based-auto-${version_type}.ipxe"  "${mac_based_ipxe_cfg_file}"
-	fi
+    else
+        rsync -a -q "${ksmanager_main_dir}/ipxe-templates/ipxe-template-redhat-based-auto-${version_type}.ipxe"  "${mac_based_ipxe_cfg_file}"
+    fi
 
-	fn_set_environment "${mac_based_ipxe_cfg_file}"
+    fn_set_environment "${mac_based_ipxe_cfg_file}"
 
 fi
 
 if $invoked_with_golden_image; then
-	fn_set_environment "${ksmanager_hub_dir}"/golden-boot-mac-configs/network-config-"${ipxe_cfg_mac_address}"
+    fn_set_environment "${ksmanager_hub_dir}"/golden-boot-mac-configs/network-config-"${ipxe_cfg_mac_address}"
 fi
 
 chown -R ${mgmt_super_user}:${mgmt_super_user}  "${ksmanager_hub_dir}"
@@ -1091,7 +1091,7 @@ EOF
 }
 
 if systemctl is-active --quiet kea-ctrl-agent; then
-	fn_update_kea_dhcp_reservations
+    fn_update_kea_dhcp_reservations
 fi
 
 config_summary="Configuration Summary:
@@ -1112,9 +1112,9 @@ config_summary="Configuration Summary:
 print_info "$config_summary"
 
 if ! $invoked_with_golden_image; then
-	print_info "Kickstart configs ready for '${kickstart_hostname}'."
+    print_info "Kickstart configs ready for '${kickstart_hostname}'."
 else
-	print_info "Golden boot configs ready for '${kickstart_hostname}'."
+    print_info "Golden boot configs ready for '${kickstart_hostname}'."
 fi
 
 exit
