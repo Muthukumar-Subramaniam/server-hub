@@ -715,7 +715,7 @@ deploy_lab_infra_server_host() {
     print_info "Waiting for $lab_bridge_interface_name to come UP..."
     local bridge_up_timeout_seconds=30
     local bridge_up_elapsed_seconds=0
-    while [[ "$(</sys/class/net/$lab_bridge_interface_name/operstate 2>/dev/null)" != "up" ]]; do
+    while ! ip link show "$lab_bridge_interface_name" 2>/dev/null | grep -q 'state UP'; do
         if [ $bridge_up_elapsed_seconds -ge $bridge_up_timeout_seconds ]; then
             print_error "Timeout waiting for $lab_bridge_interface_name to come up"
             exit 1
