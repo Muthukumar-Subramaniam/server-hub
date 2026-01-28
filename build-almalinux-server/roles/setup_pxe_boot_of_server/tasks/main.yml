@@ -118,12 +118,24 @@
     dest: /usr/sbin/dnsbinder
     state: link
 
+- name: Set execute permissions on ksmanager.sh
+  become: true
+  file:
+    path: /server-hub/ks-manage/ksmanager.sh
+    mode: '0755'
+
 - name: Create command sym-link ksmanager
   become: true
   file:
     src: /server-hub/ks-manage/ksmanager.sh
     dest: /usr/local/bin/ksmanager
     state: link
+
+- name: Set execute permissions on prepare-distro-for-ksmanager.sh
+  become: true
+  file:
+    path: /server-hub/ks-manage/prepare-distro-for-ksmanager.sh
+    mode: '0755'
 
 - name: Create command sym-link prepare-distro-for-ksmanager
   become: true
