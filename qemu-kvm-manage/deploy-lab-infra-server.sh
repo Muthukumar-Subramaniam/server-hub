@@ -899,11 +899,24 @@ Lab Infra Server Deployment Mode Selection
 Choose where to deploy your lab infra server:
 
     [vm]   → Deploy inside a dedicated KVM virtual machine
-                Note: Allows more customization and isolation for future setups.
+                ✓ Recommended for most users
+                ✓ Provides isolation and easier management
+                ✓ Can be easily removed or recreated
+                ✓ Does not modify your host system
+                ℹ Requires: ~2GB RAM, 2 vCPUs for lab infra server VM
 
     [host] → Deploy directly on the KVM host itself
-                Note: May have certain restrictions due to shared resources
-                    or conflicts with existing host services.
+                ✓ Lower resource overhead (no separate VM)
+                ✓ Good for systems with limited RAM/CPU
+                ✓ Suitable for WSL environments (may need tweaks)
+                ⚠ ONLY use if you completely own this machine
+                ⚠ NOT for shared, managed, or production systems
+                ⚠ Modifies your host system directly
+                ⚠ Installs packages: bind, kea, nginx, tftp-server, etc.
+                ⚠ Configures system services directly on your machine
+                ⚠ May conflict with existing services (DNS, DHCP, Web)
+                ⚠ Requires understanding of network service management
+                ⚠ More difficult to undo or clean up
 -------------------------------------------------------------"
 
 while true; do
@@ -915,6 +928,42 @@ while true; do
             break
             ;;
         host)
+            print_yellow "═══════════════════════════════════════════════════════════════════
+⚠  WARNING: HOST MODE DEPLOYMENT
+═══════════════════════════════════════════════════════════════════"
+            print_warning "You have chosen to deploy directly on your KVM host machine."
+            echo
+            print_info "Host mode is suitable for:
+  ✓ Systems with limited RAM/CPU resources
+  ✓ Machines you completely own (personal/dedicated systems)
+  ✓ WSL environments (may require additional tweaks)
+  ✓ Scenarios where VM overhead needs to be avoided"
+            echo
+            print_red "⚠  CRITICAL: Use HOST mode ONLY if you completely own this machine!
+   • Do NOT use on shared systems
+   • Do NOT use on managed/enterprise systems
+   • Do NOT use on production systems
+   • Do NOT use if you don't have full admin control"
+            echo
+            print_warning "This will:
+  • Install and configure DNS (BIND) service
+  • Install and configure DHCP (Kea) service
+  • Install and configure Web (Nginx) service
+  • Install and configure TFTP service
+  • Modify system network configuration
+  • Change system-level service configurations
+  • Potentially conflict with any existing services"
+            echo
+            print_warning "This option modifies your host system and is harder to reverse than VM mode.
+If you have sufficient resources, consider using VM mode for safer deployment."
+            echo
+            read -rp "Type 'CONFIRM' to proceed with HOST mode deployment or 'NO' to cancel: " host_confirm
+            
+            if [[ "$host_confirm" != "CONFIRM" ]]; then
+                print_info "Host deployment cancelled. Please choose 'vm' for safer deployment."
+                continue
+            fi
+            
             print_info "Confirmed: Lab Infra Server Deployment Mode set to 'Host'."
             deploy_lab_infra_server_host
             break
