@@ -538,7 +538,13 @@ deploy_lab_infra_server_vm() {
     print_task "Mounting ISO ${ISO_DIR}/${ISO_NAME} for VM installation"
 
     sudo mkdir -p /mnt/iso-for-${lab_infra_server_hostname}
-    sudo mount -o loop "${ISO_DIR}/${ISO_NAME}" /mnt/iso-for-${lab_infra_server_hostname} &>/dev/null
+    
+    # Check if ISO is already mounted
+    if mountpoint -q /mnt/iso-for-${lab_infra_server_hostname}; then
+        print_warning "ISO already mounted at /mnt/iso-for-${lab_infra_server_hostname}, skipping mount..." nskip
+    else
+        sudo mount -o loop "${ISO_DIR}/${ISO_NAME}" /mnt/iso-for-${lab_infra_server_hostname} &>/dev/null
+    fi
 
     print_task_done
 
