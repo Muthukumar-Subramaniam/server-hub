@@ -13,12 +13,30 @@ if [[ "$EUID" -eq 0 ]]; then
 fi
 
 # Check if we're inside a QEMU guest
-if sudo dmidecode -s system-manufacturer | grep -qi 'QEMU'; then
-    print_error "This script cannot be executed inside a QEMU guest VM."
-    print_info "This script must be run on the host system managing QEMU/KVM virtual machines."
-    print_info "Current environment is a QEMU guest, which is not supported."
-    exit 1
+if command -v dmidecode &>/dev/null; then
+    if sudo dmidecode -s system-manufacturer | grep -qi 'QEMU'; then
+        print_error "This script cannot be executed inside a QEMU guest VM."
+        print_info "This script must be run on the host system managing QEMU/KVM virtual machines."
+        print_info "Current environment is a QEMU guest, which is not supported."
+        exit 1
+    fi
 fi
+
+print_warning "This script will configure QEMU/KVM virtualization environment on this system."
+print_info "The following actions will be performed:
+  - Grant passwordless sudo privileges to user '$USER'
+  - Install QEMU/KVM hypervisor and virtualization packages
+  - Install and configure libvirtd daemon service
+  - Create /kvm-hub directory for VM storage and management
+  - Set up custom labbr0 bridge network with dual-stack (IPv4/IPv6) support
+  - Install custom VM management tools (qlabvmctl, qlabstart, qlabhealth, qlabdnsbinder)"
+echo ""
+read -p "Are you sure you want to continue? (yes/no): " confirm
+if [[ "$confirm" != "yes" ]]; then
+    print_info "Setup cancelled by user."
+    exit 0
+fi
+echo ""
 
 print_task "Enabling passwordless sudo for $USER"
 cat <<EOF | sudo tee "/etc/sudoers.d/$USER" &>/dev/null
