@@ -57,9 +57,40 @@ EOF
 cat > "${temp_dir_to_create_wrappers}/qlabdnsbinder" << 'EOF'
 #!/bin/bash
 SSH_OPTIONS="-o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null"
-# Forward qlabdnsbinder command to workstation
-ssh ${SSH_OPTIONS} -t __LAB_INFRA_USERNAME__@__LAB_INFRA_GATEWAY__ "qlabdnsbinder $@"
-exit
+
+# Check if this is a file-based operation (-cf or -df)
+if [[ "$1" == "-cf" ]] || [[ "$1" == "-df" ]]; then
+    file_based_option="$1"
+    file_path="$2"
+    
+    # Validate that file exists locally
+    if [[ ! -f "$file_path" ]]; then
+        echo "Error: File not found: $file_path" >&2
+        exit 1
+    fi
+    
+    # Generate unique temp filename on gateway
+    remote_temp_file="/tmp/dnsbinder-bulk-$(date +%s)-$$.txt"
+    
+    # Transfer file to gateway
+    if ! scp ${SSH_OPTIONS} "$file_path" "__LAB_INFRA_USERNAME__@__LAB_INFRA_GATEWAY__:${remote_temp_file}" >/dev/null 2>&1; then
+        echo "Error: Failed to transfer file to gateway" >&2
+        exit 1
+    fi
+    
+    # Execute qlabdnsbinder with remote temp file
+    ssh ${SSH_OPTIONS} -t __LAB_INFRA_USERNAME__@__LAB_INFRA_GATEWAY__ "qlabdnsbinder ${file_based_option} '${remote_temp_file}'"
+    exit_code=$?
+    
+    # Cleanup remote temp file
+    ssh ${SSH_OPTIONS} __LAB_INFRA_USERNAME__@__LAB_INFRA_GATEWAY__ "rm -f ${remote_temp_file}" >/dev/null 2>&1
+    
+    exit $exit_code
+else
+    # Regular options - forward as-is (properly escape arguments)
+    ssh ${SSH_OPTIONS} -t __LAB_INFRA_USERNAME__@__LAB_INFRA_GATEWAY__ "qlabdnsbinder $(printf '%q ' "$@")"
+    exit
+fi
 EOF
 
 # Replace placeholders with actual values

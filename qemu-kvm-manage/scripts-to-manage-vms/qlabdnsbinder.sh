@@ -42,8 +42,43 @@ if $lab_infra_server_mode_is_host; then
     sudo dnsbinder "$@"
     exit_code=$?
 else
-    ssh -o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -t "${lab_infra_admin_username}@${lab_infra_server_hostname}" "sudo dnsbinder $(printf '%q ' "$@")"
-    exit_code=$?
+    # Check if this is a file-based operation (-cf or -df)
+    file_based_option=""
+    file_path=""
+    
+    if [[ "$1" == "-cf" ]] || [[ "$1" == "-df" ]]; then
+        file_based_option="$1"
+        file_path="$2"
+        
+        # Validate that file exists locally
+        if [[ ! -f "$file_path" ]]; then
+            print_error "File not found: $file_path"
+            exit 1
+        fi
+        
+        # Generate unique temp filename on remote server
+        remote_temp_file="/tmp/dnsbinder-bulk-$(date +%s)-$$.txt"
+        
+        print_task "Transferring file to lab infra server..."
+        if scp -o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "$file_path" "${lab_infra_admin_username}@${lab_infra_server_hostname}:${remote_temp_file}" >/dev/null 2>&1; then
+            print_task_done
+        else
+            print_task_fail
+            print_error "Failed to transfer file to lab infra server"
+            exit 1
+        fi
+        
+        # Execute dnsbinder with remote temp file
+        ssh -o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -t "${lab_infra_admin_username}@${lab_infra_server_hostname}" "sudo dnsbinder ${file_based_option} '${remote_temp_file}'"
+        exit_code=$?
+        
+        # Cleanup remote temp file
+        ssh -o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "${lab_infra_admin_username}@${lab_infra_server_hostname}" "rm -f ${remote_temp_file}" >/dev/null 2>&1
+    else
+        # Regular options - forward as-is
+        ssh -o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null -t "${lab_infra_admin_username}@${lab_infra_server_hostname}" "sudo dnsbinder $(printf '%q ' "$@")"
+        exit_code=$?
+    fi
 fi
 
 exit $exit_code
