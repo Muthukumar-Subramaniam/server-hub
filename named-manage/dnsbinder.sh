@@ -871,6 +871,10 @@ fn_reload_named_dns_service() {
         print_task_fail
     fi
 
+    local max_retries=10
+    local sleep_seconds=0.5
+    sleep "${sleep_seconds}"
+
     # For delete operations (no validation needed), show success after reload
     if [[ "${v_action_requested}" == "delete" ]]
     then
@@ -886,9 +890,8 @@ fn_reload_named_dns_service() {
     then
         print_task "Validating CNAME record..."
         
-        # Retry mechanism: wait up to 2 seconds for DNS to propagate
+        # Retry mechanism: wait up to 5 seconds for DNS to propagate
         local retry_count=0
-        local max_retries=4
         local query_success=false
         
         while [[ ${retry_count} -lt ${max_retries} ]]; do
@@ -896,7 +899,7 @@ fn_reload_named_dns_service() {
                 query_success=true
                 break
             fi
-            sleep 0.5
+            sleep "${sleep_seconds}"
             ((retry_count++))
         done
         
@@ -917,9 +920,8 @@ fn_reload_named_dns_service() {
 
         print_task "Validating forward look up..."
 
-        # Retry mechanism: wait up to 2 seconds for DNS to propagate
+        # Retry mechanism: wait up to 5 seconds for DNS to propagate
         local retry_count=0
-        local max_retries=4
         local query_success=false
         
         if  [[ "${v_action_requested}" == "rename" ]]
@@ -929,7 +931,7 @@ fn_reload_named_dns_service() {
                     query_success=true
                     break
                 fi
-                sleep 0.5
+                sleep "${sleep_seconds}"
                 ((retry_count++))
             done
             
@@ -942,7 +944,7 @@ fn_reload_named_dns_service() {
                         query_success=true
                         break
                     fi
-                    sleep 0.5
+                    sleep "${sleep_seconds}"
                     ((retry_count++))
                 done
             fi
@@ -952,7 +954,7 @@ fn_reload_named_dns_service() {
                     query_success=true
                     break
                 fi
-                sleep 0.5
+                sleep "${sleep_seconds}"
                 ((retry_count++))
             done
             
@@ -965,7 +967,7 @@ fn_reload_named_dns_service() {
                         query_success=true
                         break
                     fi
-                    sleep 0.5
+                    sleep "${sleep_seconds}"
                     ((retry_count++))
                 done
             fi
@@ -979,17 +981,16 @@ fn_reload_named_dns_service() {
 
         print_task "Validating reverse look up..."
 
-        # Retry mechanism for reverse lookup (max 2 seconds)
-        retry_count=0
-        max_retries=4
-        query_success=false
+        # Retry mechanism for reverse lookup (max 5 seconds)
+        local retry_count=0
+        local query_success=false
         
         while [[ ${retry_count} -lt ${max_retries} ]]; do
             if dig @"${dnsbinder_server_ipv4_address}" +short +time=1 +tries=1 -x ${v_current_ip_of_host_record} | grep -q '.'; then
                 query_success=true
                 break
             fi
-            sleep 0.5
+            sleep "${sleep_seconds}"
             ((retry_count++))
         done
         

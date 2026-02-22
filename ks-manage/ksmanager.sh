@@ -63,6 +63,23 @@ subnets_to_allow_ssh_pub_access="${subnets_to_allow_ssh_pub_access# }"
 mkdir -p "${ksmanager_hub_dir}"
 mkdir -p "${ipxe_web_dir}"
 
+fn_wait_for_dns_a_record() {
+    local hostname="$1"
+    local max_retries=10
+    local sleep_seconds=0.5
+    local retry_count=0
+
+    while [[ ${retry_count} -lt ${max_retries} ]]; do
+        if dig @"${dnsbinder_server_ipv4_address}" +short +time=1 +tries=1 A "${hostname}" | grep -q '^[0-9]'; then
+            return 0
+        fi
+        sleep "${sleep_seconds}"
+        ((retry_count++))
+    done
+
+    return 1
+}
+
 fn_check_and_create_host_record() {
     while :
     do
@@ -112,14 +129,14 @@ fn_check_and_create_host_record() {
     # Extract short hostname for use with tools that need it
     kickstart_short_hostname="${kickstart_hostname%%.*}"
 
-    if ! dig @"${dnsbinder_server_ipv4_address}" +short +time=1 +tries=1 A "${kickstart_hostname}" | grep -q '^[0-9]'
+    if ! fn_wait_for_dns_a_record "${kickstart_hostname}"
     then
         print_info "No DNS record found for \"${kickstart_hostname}\"."
         
         if $invoked_with_qemu_kvm; then
             sudo "${dnsbinder_script}" -c "${kickstart_hostname}"
 
-            if ! dig @"${dnsbinder_server_ipv4_address}" +short +time=1 +tries=1 A "${kickstart_hostname}" | grep -q '^[0-9]'; then
+            if ! fn_wait_for_dns_a_record "${kickstart_hostname}"; then
                 print_error "Failed to create DNS record for \"${kickstart_hostname}\"."
                 exit 1
             fi
@@ -132,7 +149,7 @@ fn_check_and_create_host_record() {
                 then
                     sudo "${dnsbinder_script}" -c "${kickstart_hostname}"
 
-                    if ! dig @"${dnsbinder_server_ipv4_address}" +short +time=1 +tries=1 A "${kickstart_hostname}" | grep -q '^[0-9]'; then
+                    if ! fn_wait_for_dns_a_record "${kickstart_hostname}"; then
                         print_error "Failed to create DNS record for \"${kickstart_hostname}\"."
                         exit 1
                     fi
