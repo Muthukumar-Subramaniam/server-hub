@@ -116,7 +116,7 @@ else
     done
     
     if [[ ${#target_vms[@]} -eq 0 ]]; then
-        print_warn "No running VMs accessible via SSH found"
+        print_warning "No running VMs accessible via SSH found"
         exit 0
     fi
 fi

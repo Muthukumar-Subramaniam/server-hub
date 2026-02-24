@@ -17,10 +17,12 @@ else
         echo -e "\nError: Failed to install python packages\n"
         exit 1
     }
-    pip3 install packaging || exit 1
+    pip3 install --user packaging || exit 1
     pip3 install --user ansible || exit 1
-    pip3 install argcomplete || exit 1
-    activate-global-python-argcomplete || true
+    pip3 install --user argcomplete || exit 1
+    if command -v activate-global-python-argcomplete &>/dev/null; then
+        activate-global-python-argcomplete --user || true
+    fi
     echo "## Completed Ansible Installation ##"
 fi
 

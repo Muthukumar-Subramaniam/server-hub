@@ -734,9 +734,12 @@ deploy_lab_infra_server_host() {
     print_info "$lab_bridge_interface_name is UP and running!"
 
     # ====== Assign IP addresses (dual-stack) ======
-    print_info "Configuring IPv4 ${lab_infra_server_ipv4_address}/${lab_infra_server_ipv4_netmask} on $lab_bridge_interface_name..."
-    # Add the IPv4 address with netmask
-    if sudo ip addr add "${lab_infra_server_ipv4_address}/${lab_infra_server_ipv4_netmask}" dev "$lab_bridge_interface_name" 2>/dev/null; then
+    local lab_infra_server_ipv4_cidr_prefix
+    lab_infra_server_ipv4_cidr_prefix=$(awk -F. '{for(i=1;i<=4;i++){n=$i+0; while(n){c+=n%2; n=int(n/2)}}} END{print c+0}' <<< "${lab_infra_server_ipv4_netmask}")
+
+    print_info "Configuring IPv4 ${lab_infra_server_ipv4_address}/${lab_infra_server_ipv4_cidr_prefix} on $lab_bridge_interface_name..."
+    # Add the IPv4 address with CIDR prefix
+    if sudo ip addr add "${lab_infra_server_ipv4_address}/${lab_infra_server_ipv4_cidr_prefix}" dev "$lab_bridge_interface_name" 2>/dev/null; then
         print_success "IPv4 address assigned successfully"
     else
         print_info "IPv4 address may already be assigned"
@@ -784,7 +787,9 @@ deploy_lab_infra_server_host() {
         pip3 install --user argcomplete
 
         # Enable global shell completion
-        activate-global-python-argcomplete
+        if command -v activate-global-python-argcomplete &>/dev/null; then
+            activate-global-python-argcomplete --user || true
+        fi
 
         print_success "Ansible installation completed successfully."
     fi

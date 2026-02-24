@@ -657,7 +657,11 @@ print(ptr)
     else
         print_task "Updating systemd-resolvd to point the local dns server and domain..."
         if command -v resolvectl &>/dev/null; then
-                resolvectl dns labbr0 "$v_primary_ip"
+                if [[ ! -z "${v_ipv6_address}" ]]; then
+                    resolvectl dns labbr0 "$v_primary_ip" "$v_ipv6_address"
+                else
+                    resolvectl dns labbr0 "$v_primary_ip"
+                fi
                 resolvectl domain labbr0 "$v_given_domain"
         fi
         print_task_done

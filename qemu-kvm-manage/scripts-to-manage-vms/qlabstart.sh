@@ -83,8 +83,11 @@ when_lab_infra_server_is_host() {
     print_task_done
     
     # ====== STEP 5: Assign IP addresses (dual-stack) ======
-    print_task "Configuring IPv4 ${lab_infra_server_ipv4_address}/${lab_infra_server_ipv4_netmask} on $lab_bridge_interface_name..."
-    if sudo ip addr add "${lab_infra_server_ipv4_address}/${lab_infra_server_ipv4_netmask}" dev "$lab_bridge_interface_name" 2>/dev/null; then
+    local lab_infra_server_ipv4_cidr_prefix
+    lab_infra_server_ipv4_cidr_prefix=$(awk -F. '{for(i=1;i<=4;i++){n=$i+0; while(n){c+=n%2; n=int(n/2)}}} END{print c+0}' <<< "${lab_infra_server_ipv4_netmask}")
+
+    print_task "Configuring IPv4 ${lab_infra_server_ipv4_address}/${lab_infra_server_ipv4_cidr_prefix} on $lab_bridge_interface_name..."
+    if sudo ip addr add "${lab_infra_server_ipv4_address}/${lab_infra_server_ipv4_cidr_prefix}" dev "$lab_bridge_interface_name" 2>/dev/null; then
         print_task_done
     else
         print_task_done

@@ -17,8 +17,13 @@ fi
 
 print_task "Enabling DNS of lab infra with resolvectl"
 
-if grep -q "${lab_infra_server_ipv4_address}" <<< "$(resolvectl)"; then
-    print_task_done
+current_dns_servers="$(resolvectl dns labbr0 2>/dev/null || true)"
+current_dns_domains="$(resolvectl domain labbr0 2>/dev/null || true)"
+
+if grep -qw "${lab_infra_server_ipv4_address}" <<< "${current_dns_servers}" && \
+   grep -qw "${lab_infra_server_ipv6_address}" <<< "${current_dns_servers}" && \
+   grep -qw "~${lab_infra_domain_name}" <<< "${current_dns_domains}"; then
+   print_task_done
 else
     if ip link show labbr0 &>/dev/null; then
        if error_msg=$(sudo resolvectl dns labbr0 "${lab_infra_server_ipv4_address}" "${lab_infra_server_ipv6_address}" 2>&1) && \
