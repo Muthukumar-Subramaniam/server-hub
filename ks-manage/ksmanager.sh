@@ -1115,9 +1115,28 @@ fn_set_environment() {
     local working_file=
 
     fn_replace_token_in_file() {
-        local replacement_escaped=
-        replacement_escaped=$(escape_sed_replacement "$3")
-        sed -i "s/$2/${replacement_escaped}/g" "$1"
+        local target_file="$1"
+        local token="$2"
+        local replacement="$3"
+        local tmp_file="${target_file}.tmp_replace.$$"
+
+        # Use awk-based replacement to avoid sed delimiter/escaping pitfalls
+        # with runtime values such as CIDR blocks (e.g., 10.10.20.0/22).
+        if awk -v token="${token}" -v replacement="${replacement}" '
+            BEGIN {
+                gsub(/\\/, "\\\\", replacement)
+                gsub(/&/, "\\&", replacement)
+            }
+            {
+                gsub(token, replacement)
+                print
+            }
+        ' "${target_file}" > "${tmp_file}"; then
+            mv "${tmp_file}" "${target_file}"
+        else
+            rm -f "${tmp_file}"
+            return 1
+        fi
     }
 
     fn_update_dynamic_parameters() {
