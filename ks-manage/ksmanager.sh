@@ -63,6 +63,205 @@ subnets_to_allow_ssh_pub_access="${subnets_to_allow_ssh_pub_access# }"
 mkdir -p "${ksmanager_hub_dir}"
 mkdir -p "${ipxe_web_dir}"
 
+mac_cache_file="${ksmanager_hub_dir}/mac-address-cache"
+mac_cache_lock_dir="${ksmanager_hub_dir}/.mac-address-cache.lock"
+host_lock_root_dir="${ksmanager_hub_dir}/.host-locks"
+shared_artifacts_lock_dir="${ksmanager_hub_dir}/.shared-artifacts.lock"
+current_host_lock_dir=""
+current_host_name=""
+mac_lock_acquired=false
+host_lock_acquired=false
+shared_lock_acquired=false
+
+mkdir -p "${host_lock_root_dir}"
+
+fn_acquire_mac_cache_lock() {
+    local retries=200
+    local existing_pid=""
+
+    while ! mkdir "${mac_cache_lock_dir}" 2>/dev/null; do
+        if [ -f "${mac_cache_lock_dir}/pid" ]; then
+            existing_pid=$(cat "${mac_cache_lock_dir}/pid" 2>/dev/null)
+            if [ -n "${existing_pid}" ] && ! kill -0 "${existing_pid}" 2>/dev/null; then
+                rm -f "${mac_cache_lock_dir}/pid"
+                rmdir "${mac_cache_lock_dir}" 2>/dev/null || true
+                continue
+            fi
+        fi
+
+        sleep 0.05
+        retries=$((retries - 1))
+        if [ "${retries}" -le 0 ]; then
+            print_error "Unable to acquire mac-address-cache lock. Please retry."
+            return 1
+        fi
+    done
+
+    printf '%s\n' "$$" > "${mac_cache_lock_dir}/pid"
+    mac_lock_acquired=true
+}
+
+fn_release_mac_cache_lock() {
+    local lock_pid=""
+
+    if ! $mac_lock_acquired; then
+        return
+    fi
+
+    if [ -f "${mac_cache_lock_dir}/pid" ]; then
+        lock_pid=$(cat "${mac_cache_lock_dir}/pid" 2>/dev/null)
+    fi
+
+    if [ "${lock_pid}" = "$$" ]; then
+        rm -f "${mac_cache_lock_dir}/pid"
+        rmdir "${mac_cache_lock_dir}" 2>/dev/null || true
+    fi
+
+    mac_lock_acquired=false
+}
+
+fn_copy_mac_cache_snapshot_locked() {
+    local snapshot_file="$1"
+    local snapshot_ok=false
+
+    if ! fn_acquire_mac_cache_lock; then
+        return 1
+    fi
+
+    if [ -f "${mac_cache_file}" ]; then
+        if cp "${mac_cache_file}" "${snapshot_file}"; then
+            snapshot_ok=true
+        fi
+    else
+        if : > "${snapshot_file}"; then
+            snapshot_ok=true
+        fi
+    fi
+
+    fn_release_mac_cache_lock
+
+    if ! $snapshot_ok; then
+        return 1
+    fi
+}
+
+fn_acquire_host_lock() {
+    local host_name="$1"
+    local safe_host_name=""
+    local retries=400
+    local existing_pid=""
+
+    safe_host_name=$(printf '%s' "${host_name}" | tr -c 'a-zA-Z0-9_.-' '_')
+    current_host_lock_dir="${host_lock_root_dir}/${safe_host_name}.lock"
+    current_host_name="${host_name}"
+
+    while ! mkdir "${current_host_lock_dir}" 2>/dev/null; do
+        if [ -f "${current_host_lock_dir}/pid" ]; then
+            existing_pid=$(cat "${current_host_lock_dir}/pid" 2>/dev/null)
+            if [ -n "${existing_pid}" ] && ! kill -0 "${existing_pid}" 2>/dev/null; then
+                rm -f "${current_host_lock_dir}/pid"
+                rmdir "${current_host_lock_dir}" 2>/dev/null || true
+                continue
+            fi
+        fi
+
+        sleep 0.05
+        retries=$((retries - 1))
+        if [ "${retries}" -le 0 ]; then
+            print_error "Unable to acquire host lock for '${host_name}'. Please retry."
+            current_host_lock_dir=""
+            return 1
+        fi
+    done
+
+    printf '%s\n' "$$" > "${current_host_lock_dir}/pid"
+    host_lock_acquired=true
+}
+
+fn_release_host_lock() {
+    local lock_pid=""
+
+    if ! $host_lock_acquired; then
+        return
+    fi
+
+    if [ -f "${current_host_lock_dir}/pid" ]; then
+        lock_pid=$(cat "${current_host_lock_dir}/pid" 2>/dev/null)
+    fi
+
+    if [ -n "${current_host_lock_dir}" ] && [ -d "${current_host_lock_dir}" ] && [ "${lock_pid}" = "$$" ]; then
+        rm -f "${current_host_lock_dir}/pid"
+        rmdir "${current_host_lock_dir}" 2>/dev/null || true
+    fi
+
+    current_host_lock_dir=""
+    current_host_name=""
+    host_lock_acquired=false
+}
+
+fn_acquire_shared_artifacts_lock() {
+    local retries=400
+    local existing_pid=""
+
+    while ! mkdir "${shared_artifacts_lock_dir}" 2>/dev/null; do
+        if [ -f "${shared_artifacts_lock_dir}/pid" ]; then
+            existing_pid=$(cat "${shared_artifacts_lock_dir}/pid" 2>/dev/null)
+            if [ -n "${existing_pid}" ] && ! kill -0 "${existing_pid}" 2>/dev/null; then
+                rm -f "${shared_artifacts_lock_dir}/pid"
+                rmdir "${shared_artifacts_lock_dir}" 2>/dev/null || true
+                continue
+            fi
+        fi
+
+        sleep 0.05
+        retries=$((retries - 1))
+        if [ "${retries}" -le 0 ]; then
+            print_error "Unable to acquire shared artifact lock. Please retry."
+            return 1
+        fi
+    done
+
+    printf '%s\n' "$$" > "${shared_artifacts_lock_dir}/pid"
+    shared_lock_acquired=true
+}
+
+fn_release_shared_artifacts_lock() {
+    local lock_pid=""
+
+    if ! $shared_lock_acquired; then
+        return
+    fi
+
+    if [ -f "${shared_artifacts_lock_dir}/pid" ]; then
+        lock_pid=$(cat "${shared_artifacts_lock_dir}/pid" 2>/dev/null)
+    fi
+
+    if [ -d "${shared_artifacts_lock_dir}" ] && [ "${lock_pid}" = "$$" ]; then
+        rm -f "${shared_artifacts_lock_dir}/pid"
+        rmdir "${shared_artifacts_lock_dir}" 2>/dev/null || true
+    fi
+
+    shared_lock_acquired=false
+}
+
+fn_release_all_locks() {
+    fn_release_mac_cache_lock
+    fn_release_shared_artifacts_lock
+    fn_release_host_lock
+}
+
+trap 'fn_release_all_locks; trap - INT; kill -s INT $$' INT
+trap 'fn_release_all_locks; trap - TERM; kill -s TERM $$' TERM
+trap 'fn_release_all_locks; trap - HUP; kill -s HUP $$' HUP
+trap 'fn_release_all_locks; trap - QUIT; kill -s QUIT $$' QUIT
+
+fn_chown_if_exists() {
+    local target_path="$1"
+    if [ -e "${target_path}" ]; then
+        chown -R "${mgmt_super_user}:${mgmt_super_user}" "${target_path}"
+    fi
+}
+
 fn_wait_for_dns_a_record() {
     local hostname="$1"
     local max_retries=10
@@ -232,21 +431,32 @@ if $remove_host_requested; then
     
     print_info "Removing host '${cleanup_hostname}' from all ksmanager databases..."
     
-    # Get MAC address and IP before removal
-    if [ -f "${ksmanager_hub_dir}/mac-address-cache" ]; then
-        cached_info=$(awk -v host="^${cleanup_hostname} " '$0 ~ host {print $2" "$3" "$4}' "${ksmanager_hub_dir}/mac-address-cache" 2>/dev/null)
+    if ! fn_acquire_host_lock "${cleanup_hostname}"; then
+        exit 1
+    fi
+
+    # 1. Snapshot and remove cache row atomically under lock
+    if [ -f "${mac_cache_file}" ]; then
+        if ! fn_acquire_mac_cache_lock; then
+            fn_release_host_lock
+            exit 1
+        fi
+
+        cached_info=$(awk -v host="${cleanup_hostname}" '$1 == host {print $2" "$3" "$4; exit}' "${mac_cache_file}" 2>/dev/null)
         read -r cached_mac cached_ip cached_ipv6 <<< "$cached_info"
-        
+
         if [[ -n "$cached_mac" ]]; then
             ipxe_cfg_mac="${cached_mac//:/-}"
-            ipxe_cfg_mac="${ipxe_cfg_mac,,}"
+            ipxe_cfg_mac=$(printf '%s' "${ipxe_cfg_mac}" | tr '[:upper:]' '[:lower:]')
+            awk -v host="${cleanup_hostname}" '$1 != host' "${mac_cache_file}" > "${mac_cache_file}.tmp.$$" && \
+                mv "${mac_cache_file}.tmp.$$" "${mac_cache_file}"
+            rm -f "${mac_cache_file}.tmp.$$"
+            print_info "Removed from MAC address cache"
+        else
+            print_info "No MAC address cache entry found"
         fi
-    fi
-    
-    # 1. Remove from MAC address cache
-    if [ -f "${ksmanager_hub_dir}/mac-address-cache" ] && grep -q "^${cleanup_hostname} " "${ksmanager_hub_dir}/mac-address-cache" 2>/dev/null; then
-        sed -i "/^${cleanup_hostname} /d" "${ksmanager_hub_dir}/mac-address-cache"
-        print_info "Removed from MAC address cache"
+
+        fn_release_mac_cache_lock
     else
         print_info "No MAC address cache entry found"
     fi
@@ -354,8 +564,15 @@ if $remove_host_requested; then
         kea_config_temp_dir="${ksmanager_hub_dir}/kea_dhcp_temp_configs_with_reservation"
         kea_dhcp4_tmp_config="${kea_config_temp_dir}/kea-dhcp4.conf_${kea_temp_config_timestamp}"
         kea_dhcp6_tmp_config="${kea_config_temp_dir}/kea-dhcp6.conf_${kea_temp_config_timestamp}"
+        kea_cache_snapshot="${kea_config_temp_dir}/mac-address-cache.snapshot.$$"
         
         mkdir -p "$kea_config_temp_dir"
+
+        if ! fn_copy_mac_cache_snapshot_locked "${kea_cache_snapshot}"; then
+            print_error "Could not snapshot MAC cache for KEA rebuild. Aborting KEA reservation refresh."
+            fn_release_host_lock
+            exit 1
+        fi
         
         # Rebuild DHCPv4 reservations
         kea_dhcp4_existing_config=$(sudo cat "$kea_dhcp4_config_file")
@@ -367,7 +584,7 @@ if $remove_host_requested; then
               \"hw-address\": \"$kea_hw_address\",
               \"ip-address\": \"$kea_ip_address\"
             },"
-        done < "$kea_cache_file"
+        done < "$kea_cache_snapshot"
         
         kea_dhcp4_reservations_json="[${kea_dhcp4_reservations_json%,}]"
         
@@ -395,7 +612,7 @@ EOF
                   \"ip-addresses\": [ \"${kea_ipv6_address}\" ]
                 },"
             fi
-        done < "$kea_cache_file"
+        done < "$kea_cache_snapshot"
         
         kea_dhcp6_reservations_json="[${kea_dhcp6_reservations_json%,}]"
         
@@ -422,6 +639,8 @@ EOF
             -u "$kea_api_auth" \
             -d @"$kea_dhcp6_tmp_config" \
             "$kea_api_url" &>/dev/null
+
+        rm -f "${kea_cache_snapshot}"
         
         print_info "Removed KEA DHCP reservations (IPv4 and IPv6)"
     fi
@@ -453,6 +672,7 @@ EOF
         print_info "No DNS record found"
     fi
     
+    fn_release_host_lock
     print_success "Host '${cleanup_hostname}' has been removed from all ksmanager databases."
     exit 0
 fi
@@ -483,17 +703,27 @@ fn_validate_mac() {
 fn_convert_mac_for_ipxe_cfg() {
     # Convert MAC address to required format to append with ipxe.cfg file
     ipxe_cfg_mac_address="${mac_address_of_host//:/-}"
-    ipxe_cfg_mac_address="${ipxe_cfg_mac_address,,}"
+    ipxe_cfg_mac_address=$(printf '%s' "${ipxe_cfg_mac_address}" | tr '[:upper:]' '[:lower:]')
 }
 
 fn_cache_the_mac() {
     print_task "Caching MAC address..."
-    # Ensure the cache file exists
-    touch "${ksmanager_hub_dir}"/mac-address-cache
-    if sed -i "/${kickstart_hostname}/d" "${ksmanager_hub_dir}"/mac-address-cache && \
-       echo "${kickstart_hostname} ${mac_address_of_host} ${ipv4_address} ${ipv6_address}" >> "${ksmanager_hub_dir}"/mac-address-cache; then
+    local temp_cache_file="${mac_cache_file}.tmp.$$"
+
+    if ! fn_acquire_mac_cache_lock; then
+        print_task_fail
+        exit 1
+    fi
+
+    touch "${mac_cache_file}"
+    if awk -v host="${kickstart_hostname}" '$1 != host' "${mac_cache_file}" > "${temp_cache_file}" && \
+       printf '%s %s %s %s\n' "${kickstart_hostname}" "${mac_address_of_host}" "${ipv4_address}" "${ipv6_address}" >> "${temp_cache_file}" && \
+       mv "${temp_cache_file}" "${mac_cache_file}"; then
+        fn_release_mac_cache_lock
         print_task_done
     else
+        rm -f "${temp_cache_file}"
+        fn_release_mac_cache_lock
         print_task_fail
         print_error "Failed to cache MAC address."
         exit 1
@@ -571,13 +801,13 @@ fi
 
 print_info "Looking up MAC address for host \"${kickstart_hostname}\" from cache..."
 
-if [ ! -f "${ksmanager_hub_dir}"/mac-address-cache ]; then
-    touch  "${ksmanager_hub_dir}"/mac-address-cache
+if [ ! -f "${mac_cache_file}" ]; then
+    touch  "${mac_cache_file}"
 fi
 
-if grep ^"${kickstart_hostname} " "${ksmanager_hub_dir}"/mac-address-cache &>/dev/null
+if awk -v host="${kickstart_hostname}" '$1 == host {found=1} END{exit !found}' "${mac_cache_file}"
 then
-    mac_address_of_host=$(awk -v host="^${kickstart_hostname} " '$0 ~ host {print $2}' "${ksmanager_hub_dir}"/mac-address-cache)
+    mac_address_of_host=$(awk -v host="${kickstart_hostname}" '$1 == host {print $2; exit}' "${mac_cache_file}")
 
     print_info "MAC Address ${mac_address_of_host} found for ${kickstart_hostname} in cache."
     while :
@@ -766,9 +996,7 @@ fn_create_host_kickstart_dir() {
 }
 
 if $golden_image_creation_not_requested; then
-    if ! $invoked_with_golden_image; then
-        fn_create_host_kickstart_dir
-    fi
+    :
 fi
 
 mount_dir="/${lab_infra_server_hostname}/${os_distribution}-${version_type}"
@@ -788,7 +1016,7 @@ if [[ "${os_distribution}" == "ubuntu-lts" ]]; then
 elif [[ "${os_distribution}" == "opensuse-leap" ]]; then
     os_name_and_version=$(awk -F ' = ' '/^\[release\]/{f=1; next} /^\[/{f=0} f && /^(name|version)/ {gsub(/^[ \t]+/, "", $2); printf "%s ", $2} END{print ""}' "/${lab_infra_server_hostname}/${os_distribution}-${version_type}/.treeinfo")
     # Extract just the version number (e.g., "15.6" from "openSUSE Leap 15.6")
-    opensuse_version_number=$(echo "$os_name_and_version" | grep -oP '\d+\.\d+')
+    opensuse_version_number=$(printf '%s\n' "$os_name_and_version" | sed -n 's/.*\([0-9][0-9]*\.[0-9][0-9]*\).*/\1/p' | head -n 1)
 else
     redhat_based_distro_name="${os_distribution}"
     if [[ "${os_distribution}" == "centos-stream" ]]; then
@@ -812,6 +1040,13 @@ if ! $golden_image_creation_not_requested; then
     fi
     
     fn_check_and_create_mac_if_required
+fi
+
+if ! fn_acquire_host_lock "${kickstart_hostname}"; then
+    exit 1
+fi
+
+if ! $golden_image_creation_not_requested || ! $invoked_with_golden_image; then
     fn_create_host_kickstart_dir
 fi
 
@@ -832,14 +1067,21 @@ fi
 if ! $invoked_with_golden_image; then
 
     print_task "Generating kickstart profile and iPXE configs..."
+    if ! fn_acquire_shared_artifacts_lock; then
+        fn_release_host_lock
+        exit 1
+    fi
+
     if rsync -a -q --delete "${ksmanager_main_dir}"/addons-for-kickstarts/ "${ksmanager_hub_dir}"/addons-for-kickstarts/ && \
-       rsync -a -q /home/${mgmt_super_user}/.ssh/{authorized_keys,kvm_lab_global_id_rsa.pub,kvm_lab_global_id_rsa} "${ksmanager_hub_dir}"/addons-for-kickstarts/ && \
-       chmod +r "${ksmanager_hub_dir}"/addons-for-kickstarts/{authorized_keys,kvm_lab_global_id_rsa.pub,kvm_lab_global_id_rsa} && \
-       mkdir -p "${ksmanager_hub_dir}"/golden-boot-mac-configs; then
+        rsync -a -q /home/${mgmt_super_user}/.ssh/{authorized_keys,kvm_lab_global_id_rsa.pub,kvm_lab_global_id_rsa} "${ksmanager_hub_dir}"/addons-for-kickstarts/ && \
+        chmod +r "${ksmanager_hub_dir}"/addons-for-kickstarts/{authorized_keys,kvm_lab_global_id_rsa.pub,kvm_lab_global_id_rsa} && \
+        mkdir -p "${ksmanager_hub_dir}"/golden-boot-mac-configs; then
         print_task_done
     else
+        fn_release_shared_artifacts_lock
         print_task_fail
         print_error "Failed to generate kickstart profile."
+        fn_release_host_lock
         exit 1
     fi
 fi
@@ -847,11 +1089,18 @@ fi
 if $invoked_with_golden_image; then
 
     print_task "Generating golden boot network config..."
+    if ! fn_acquire_shared_artifacts_lock; then
+        fn_release_host_lock
+        exit 1
+    fi
+
     if rsync -a -q "${ksmanager_main_dir}"/golden-boot-templates/network-config-for-mac-address "${ksmanager_hub_dir}"/golden-boot-mac-configs/network-config-"${ipxe_cfg_mac_address}"; then
         print_task_done
     else
+        fn_release_shared_artifacts_lock
         print_task_fail
         print_error "Failed to generate network config."
+        fn_release_host_lock
         exit 1
     fi
 fi
@@ -865,42 +1114,48 @@ fn_set_environment() {
     local input_dir_or_file="${1}"
     local working_file=
 
+    fn_replace_token_in_file() {
+        local replacement_escaped=
+        replacement_escaped=$(escape_sed_replacement "$3")
+        sed -i "s/$2/${replacement_escaped}/g" "$1"
+    }
+
     fn_update_dynamic_parameters() {
 
         local working_file="${1}"
 
-        sed -i "s|get_ipv4_network_cidr|${ipv4_network_cidr}|g" "${working_file}"
-        sed -i "s/get_ipv4_address/${ipv4_address}/g" "${working_file}"
-        sed -i "s/get_ipv4_netmask/${ipv4_netmask}/g" "${working_file}"
-        sed -i "s/get_ipv4_prefix/${ipv4_prefix}/g" "${working_file}"
-        sed -i "s/get_ipv4_gateway/${ipv4_gateway}/g" "${working_file}"
-        sed -i "s/get_ipv4_nameserver/${ipv4_nameserver}/g" "${working_file}"
-        sed -i "s/get_ipv4_nfsserver/${ipv4_nfsserver}/g" "${working_file}"
-        sed -i "s/get_ipv4_domain/${ipv4_domain}/g" "${working_file}"
+        fn_replace_token_in_file "${working_file}" "get_ipv4_network_cidr" "${ipv4_network_cidr}"
+        fn_replace_token_in_file "${working_file}" "get_ipv4_address" "${ipv4_address}"
+        fn_replace_token_in_file "${working_file}" "get_ipv4_netmask" "${ipv4_netmask}"
+        fn_replace_token_in_file "${working_file}" "get_ipv4_prefix" "${ipv4_prefix}"
+        fn_replace_token_in_file "${working_file}" "get_ipv4_gateway" "${ipv4_gateway}"
+        fn_replace_token_in_file "${working_file}" "get_ipv4_nameserver" "${ipv4_nameserver}"
+        fn_replace_token_in_file "${working_file}" "get_ipv4_nfsserver" "${ipv4_nfsserver}"
+        fn_replace_token_in_file "${working_file}" "get_ipv4_domain" "${ipv4_domain}"
         
         # IPv6 replacements (if configured)
         if [[ ! -z "${ipv6_address}" ]]; then
-            sed -i "s|get_ipv6_address|${ipv6_address}|g" "${working_file}"
-            sed -i "s/get_ipv6_gateway/${ipv6_gateway}/g" "${working_file}"
-            sed -i "s/get_ipv6_prefix/${ipv6_prefix}/g" "${working_file}"
+            fn_replace_token_in_file "${working_file}" "get_ipv6_address" "${ipv6_address}"
+            fn_replace_token_in_file "${working_file}" "get_ipv6_gateway" "${ipv6_gateway}"
+            fn_replace_token_in_file "${working_file}" "get_ipv6_prefix" "${ipv6_prefix}"
         fi
         # Always replace IPv6 nameserver if configured
         if [[ ! -z "${ipv6_nameserver}" ]]; then
-            sed -i "s/get_ipv6_nameserver/${ipv6_nameserver}/g" "${working_file}"
+            fn_replace_token_in_file "${working_file}" "get_ipv6_nameserver" "${ipv6_nameserver}"
         fi
-        sed -i "s/get_hostname/${kickstart_short_hostname}/g" "${working_file}"
-        sed -i "s/get_lab_infra_server_hostname/${lab_infra_server_hostname}/g" "${working_file}"
-        sed -i "s/get_win_hostname/${win_hostname}/g" "${working_file}"
-        sed -i "s/get_rhel_activation_key/${rhel_activation_key}/g" "${working_file}"
-        sed -i "s/get_time_of_last_update/${time_of_last_update}/g" "${working_file}"
-        sed -i "s/get_mgmt_super_user/${mgmt_super_user}/g" "${working_file}"
-        sed -i "s/get_os_name_and_version/${os_name_and_version}/g" "${working_file}"
-        sed -i "s/get_disk_type_for_the_vm/${disk_type_for_the_vm}/g" "${working_file}"
-        sed -i "s/get_golden_image_creation_not_requested/$golden_image_creation_not_requested/g" "${working_file}"
-        sed -i "s/get_redhat_based_distro_name/$redhat_based_distro_name/g" "${working_file}"
-        sed -i "s/get_version_type/$version_type/g" "${working_file}"
-        sed -i "s/get_opensuse_version_number/$opensuse_version_number/g" "${working_file}"
-        sed -i "s/get_subnets_to_allow_ssh_pub_access/${subnets_to_allow_ssh_pub_access}/g" "${working_file}"
+        fn_replace_token_in_file "${working_file}" "get_hostname" "${kickstart_short_hostname}"
+        fn_replace_token_in_file "${working_file}" "get_lab_infra_server_hostname" "${lab_infra_server_hostname}"
+        fn_replace_token_in_file "${working_file}" "get_win_hostname" "${win_hostname}"
+        fn_replace_token_in_file "${working_file}" "get_rhel_activation_key" "${rhel_activation_key}"
+        fn_replace_token_in_file "${working_file}" "get_time_of_last_update" "${time_of_last_update}"
+        fn_replace_token_in_file "${working_file}" "get_mgmt_super_user" "${mgmt_super_user}"
+        fn_replace_token_in_file "${working_file}" "get_os_name_and_version" "${os_name_and_version}"
+        fn_replace_token_in_file "${working_file}" "get_disk_type_for_the_vm" "${disk_type_for_the_vm}"
+        fn_replace_token_in_file "${working_file}" "get_golden_image_creation_not_requested" "${golden_image_creation_not_requested}"
+        fn_replace_token_in_file "${working_file}" "get_redhat_based_distro_name" "${redhat_based_distro_name}"
+        fn_replace_token_in_file "${working_file}" "get_version_type" "${version_type}"
+        fn_replace_token_in_file "${working_file}" "get_opensuse_version_number" "${opensuse_version_number}"
+        fn_replace_token_in_file "${working_file}" "get_subnets_to_allow_ssh_pub_access" "${subnets_to_allow_ssh_pub_access}"
 
         awk -v val="$shadow_password_super_mgmt_user" '
         {
@@ -942,7 +1197,15 @@ if $invoked_with_golden_image; then
     fn_set_environment "${ksmanager_hub_dir}"/golden-boot-mac-configs/network-config-"${ipxe_cfg_mac_address}"
 fi
 
-chown -R ${mgmt_super_user}:${mgmt_super_user}  "${ksmanager_hub_dir}"
+fn_chown_if_exists "${mac_cache_file}"
+fn_chown_if_exists "${host_kickstart_dir}"
+fn_chown_if_exists "${ksmanager_hub_dir}/addons-for-kickstarts"
+fn_chown_if_exists "${ksmanager_hub_dir}/golden-boot-mac-configs"
+fn_chown_if_exists "${ipxe_web_dir}/${ipxe_cfg_mac_address}.ipxe"
+
+if $shared_lock_acquired; then
+    fn_release_shared_artifacts_lock
+fi
 
 fn_update_kea_dhcp_reservations() {
   print_task "Updating KEA DHCP reservations..."
@@ -958,10 +1221,39 @@ fn_update_kea_dhcp_reservations() {
 
   mkdir -p "$kea_config_temp_dir"
 
-  current_ip_with_mac=$(grep ^"${kickstart_hostname} " "${kea_cache_file}" | cut -d " " -f 3 )
-  if [[ "${current_ip_with_mac}" != "${ipv4_address}" ]]; then
-    sed -i "/^${kickstart_hostname} / s/${current_ip_with_mac}/${ipv4_address}/" "${kea_cache_file}"
-  fi
+    local kea_cache_snapshot="${kea_config_temp_dir}/mac-address-cache.snapshot.$$"
+
+    if ! fn_acquire_mac_cache_lock; then
+        print_task_fail
+        exit 1
+    fi
+
+    current_ip_with_mac=$(awk -v host="${kickstart_hostname}" '$1 == host {print $3; exit}' "${kea_cache_file}")
+    if [[ -n "${current_ip_with_mac}" && "${current_ip_with_mac}" != "${ipv4_address}" ]]; then
+        awk -v host="${kickstart_hostname}" -v new_ip="${ipv4_address}" '
+            $1 == host {$3 = new_ip}
+            {print}
+        ' "${kea_cache_file}" > "${kea_cache_file}.tmp.$$" && mv "${kea_cache_file}.tmp.$$" "${kea_cache_file}"
+        rm -f "${kea_cache_file}.tmp.$$"
+    fi
+
+    if [ -f "${kea_cache_file}" ]; then
+        if ! cp "${kea_cache_file}" "${kea_cache_snapshot}"; then
+            fn_release_mac_cache_lock
+            print_task_fail
+            print_error "Failed to create KEA cache snapshot."
+            exit 1
+        fi
+    else
+        if ! : > "${kea_cache_snapshot}"; then
+            fn_release_mac_cache_lock
+            print_task_fail
+            print_error "Failed to create KEA cache snapshot."
+            exit 1
+        fi
+    fi
+
+    fn_release_mac_cache_lock
 
   # ===== DHCPv4 Reservations =====
   # Read existing Kea DHCPv4 config
@@ -976,7 +1268,7 @@ fn_update_kea_dhcp_reservations() {
       \"hw-address\": \"$kea_hw_address\",
       \"ip-address\": \"$kea_ip_address\"
     },"
-  done < "$kea_cache_file"
+    done < "$kea_cache_snapshot"
 
   kea_dhcp4_reservations_json="[${kea_dhcp4_reservations_json%,}]"
 
@@ -1008,7 +1300,7 @@ EOF
       \"hw-address\": \"$kea_hw_address\",
       \"ip-addresses\": [ \"${kea_ipv6_address}\" ]
     },"
-  done < "$kea_cache_file"
+    done < "$kea_cache_snapshot"
 
   kea_dhcp6_reservations_json="[${kea_dhcp6_reservations_json%,}]"
 
@@ -1099,8 +1391,10 @@ EOF
     -u "$kea_api_auth" \
     -d @"$kea_dhcp6_tmp_config" \
     "$kea_api_url" &>/dev/null; then
+        rm -f "${kea_cache_snapshot}"
     print_task_done
   else
+        rm -f "${kea_cache_snapshot}"
     print_task_fail
     print_error "Failed to update KEA DHCPv6 reservations."
     exit 1
@@ -1133,5 +1427,7 @@ if ! $invoked_with_golden_image; then
 else
     print_info "Golden boot configs ready for '${kickstart_hostname}'."
 fi
+
+fn_release_host_lock
 
 exit
