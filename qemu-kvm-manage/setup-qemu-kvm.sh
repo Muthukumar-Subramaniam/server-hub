@@ -81,27 +81,18 @@ sudo chown -R "$USER":"$(id -g)" /kvm-hub || {
 }
 print_task_done
 
-print_info "Cloning virt-manager git repo to /kvm-hub/virt-manager..."
-if [[ ! -d /kvm-hub/virt-manager/.git ]]; then
-    mkdir -p /kvm-hub/virt-manager || {
-        print_error "Failed to create /kvm-hub/virt-manager directory."
-        exit 1
-    }
-    git clone https://github.com/virt-manager/virt-manager.git /kvm-hub/virt-manager || {
-        print_error "Failed to clone virt-manager repository."
-        exit 1
-    }
-else
-    print_info "virt-manager already cloned, skipping."
+VENDORED_VIRT_MANAGER_DIR="/server-hub/vendor/virt-manager"
+if [[ ! -d "${VENDORED_VIRT_MANAGER_DIR}/virtinst" || ! -f "${VENDORED_VIRT_MANAGER_DIR}/virt-install" ]]; then
+    print_error "Vendored virt-manager files not found at ${VENDORED_VIRT_MANAGER_DIR}."
+    print_info "Expected: ${VENDORED_VIRT_MANAGER_DIR}/virtinst and ${VENDORED_VIRT_MANAGER_DIR}/virt-install"
+    exit 1
 fi
 
-print_task "Creating a wrapper binary for virt-install from /kvm-hub/virt-manager"
-cat <<EOF | sudo tee /usr/local/bin/virt-install &>/dev/null
-#!/bin/bash
-PYTHONPATH=/kvm-hub/virt-manager exec python3 /kvm-hub/virt-manager/virt-install "\$@"
-EOF
-sudo chmod +x /usr/local/bin/virt-install
+print_task "Ensuring vendored virt-manager entrypoints are executable"
+sudo chmod +x "${VENDORED_VIRT_MANAGER_DIR}/virt-install"
 print_task_done
+
+print_info "Using direct vendored invocation for virt-install (no /usr/local/bin wrappers)."
 
 virsh_network_name="default"
 virsh_network_definition="/server-hub/qemu-kvm-manage/labbr0.xml"

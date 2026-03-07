@@ -2,7 +2,9 @@
 DISK_PATH="${DISK_PATH:-/kvm-hub/vms/${qemu_kvm_hostname}/${qemu_kvm_hostname}.qcow2}"
 NVRAM_PATH="${NVRAM_PATH:-/kvm-hub/vms/${qemu_kvm_hostname}/${qemu_kvm_hostname}_VARS.fd}"
 
-virt_install_error=$(sudo /usr/local/bin/virt-install \
+VENDORED_VIRT_MANAGER_DIR="/server-hub/vendor/virt-manager"
+
+virt_install_error=$(sudo PYTHONPATH="${VENDORED_VIRT_MANAGER_DIR}" python3 "${VENDORED_VIRT_MANAGER_DIR}/virt-install" \
   --name ${qemu_kvm_hostname} \
   --features acpi=on,apic=on \
   --memory 2048 \

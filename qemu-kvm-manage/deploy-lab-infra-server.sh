@@ -116,9 +116,11 @@ Continuing may overwrite existing SSH keys or configuration."
 prepare_lab_infra_config() {
     print_info "Preparing general Lab Infra configuration..."
     print_info "Common configuration steps go here..."
+    local vendored_virt_manager_dir="/server-hub/vendor/virt-manager"
+
     # Pre-flight environment checks
-    if ! command -v virt-install &>/dev/null; then
-        print_error "'virt-install' command not found!"
+    if [[ ! -d "${vendored_virt_manager_dir}/virtinst" || ! -f "${vendored_virt_manager_dir}/virt-install" ]]; then
+        print_error "Vendored virt-manager files not found at ${vendored_virt_manager_dir}!"
         print_info "Please install and set up QEMU/KVM first."
         print_info "Run the script \033[1msetup-qemu-kvm.sh\033[0m to configure your environment."
         exit 1
@@ -588,7 +590,7 @@ deploy_lab_infra_server_vm() {
     print_info "Buckle up! We are about to view the Infra Server VM (${lab_infra_server_hostname}) deployment from console!"
     source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/select-ovmf.sh
 
-    sudo /usr/local/bin/virt-install \
+    sudo PYTHONPATH="/server-hub/vendor/virt-manager" python3 "/server-hub/vendor/virt-manager/virt-install" \
         --name "${lab_infra_server_hostname}" \
         --features acpi=on,apic=on \
         --memory 2048 \

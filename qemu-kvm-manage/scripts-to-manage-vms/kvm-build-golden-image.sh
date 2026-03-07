@@ -146,9 +146,10 @@ print_info "Starting installation of VM \"${qemu_kvm_hostname}\" to create golde
 # Set custom paths for golden image creation
 DISK_PATH="${golden_image_path}"
 NVRAM_PATH="/kvm-hub/golden-images-disk-store/${qemu_kvm_hostname}_VARS.fd"
+VENDORED_VIRT_MANAGER_DIR="/server-hub/vendor/virt-manager"
 
 # Run virt-install with console attachment (don't use shared function to avoid complexity)
-if ! sudo /usr/local/bin/virt-install \
+if ! sudo PYTHONPATH="${VENDORED_VIRT_MANAGER_DIR}" python3 "${VENDORED_VIRT_MANAGER_DIR}/virt-install" \
     --name ${qemu_kvm_hostname} \
     --features acpi=on,apic=on \
     --memory 2048 \
