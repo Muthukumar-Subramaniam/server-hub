@@ -25,6 +25,62 @@ dnsbinder_network=$(if [ -f /etc/named.conf ];then awk '/dnsbinder-network/ {pri
 var_zone_dir='/var/named/dnsbinder-managed-zone-files'
 v_fw_zone="${var_zone_dir}/${v_domain_name}-forward.db"
 
+#--- File Locking Mechanism (mkdir-based spinlock with PID tracking) ---#
+
+dnsbinder_lock_dir="/var/named/.dnsbinder-zone.lock"
+zone_lock_acquired=false
+
+fn_acquire_zone_lock() {
+    local retries=400
+    local existing_pid=""
+
+    while ! mkdir "${dnsbinder_lock_dir}" 2>/dev/null; do
+        if [ -f "${dnsbinder_lock_dir}/pid" ]; then
+            existing_pid=$(cat "${dnsbinder_lock_dir}/pid" 2>/dev/null)
+            if [ -n "${existing_pid}" ] && ! kill -0 "${existing_pid}" 2>/dev/null; then
+                rm -f "${dnsbinder_lock_dir}/pid"
+                rmdir "${dnsbinder_lock_dir}" 2>/dev/null || true
+                continue
+            fi
+        fi
+
+        sleep 0.05
+        retries=$((retries - 1))
+        if [ "${retries}" -le 0 ]; then
+            print_error "Unable to acquire dnsbinder zone lock. Another instance may be running. Please retry."
+            return 1
+        fi
+    done
+
+    printf '%s\n' "$$" > "${dnsbinder_lock_dir}/pid"
+    zone_lock_acquired=true
+}
+
+fn_release_zone_lock() {
+    local lock_pid=""
+    if ! $zone_lock_acquired; then return; fi
+    if [ -f "${dnsbinder_lock_dir}/pid" ]; then
+        lock_pid=$(cat "${dnsbinder_lock_dir}/pid" 2>/dev/null)
+    fi
+    if [ -d "${dnsbinder_lock_dir}" ] && [ "${lock_pid}" = "$$" ]; then
+        rm -f "${dnsbinder_lock_dir}/pid"
+        rmdir "${dnsbinder_lock_dir}" 2>/dev/null || true
+    fi
+    zone_lock_acquired=false
+}
+
+fn_release_all_locks() {
+    fn_release_zone_lock
+}
+
+trap 'fn_release_all_locks' EXIT
+trap 'fn_release_all_locks; trap - INT; kill -s INT $$' INT
+trap 'fn_release_all_locks; trap - TERM; kill -s TERM $$' TERM
+trap 'fn_release_all_locks; trap - HUP; kill -s HUP $$' HUP
+trap 'fn_release_all_locks; trap - QUIT; kill -s QUIT $$' QUIT
+
+#--- End of File Locking Mechanism ---#
+
 fn_check_existence_of_domain() {
     if [ -z "${v_domain_name}" ]
     then
@@ -726,7 +782,7 @@ fn_get_host_record() {
             v_input_host_record="${v_input_host_record%.${v_domain_name}.}"  
             v_input_host_record="${v_input_host_record%.${v_domain_name}}"
 
-            if [[ "${#v_input_host_record}" -le 63 ]] && [[ "${v_input_host_record}" =~ ^[[:alnum:]]([-[:alnum:]]*[[:alnum:]])$ ]]
+            if [[ "${#v_input_host_record}" -le 63 ]] && [[ "${v_input_host_record}" =~ ^[[:alnum:]]([[:alnum:]-]*[[:alnum:]])?$ ]]
                 then
                 if [[ "${v_action_requested}" != "rename" ]]
                 then
@@ -753,7 +809,7 @@ fn_get_host_record() {
         v_host_record="${v_host_record%.${v_domain_name}.}"  
         v_host_record="${v_host_record%.${v_domain_name}}"
 
-        if [[ ! ${v_host_record} =~ ^[[:alnum:]]([-[:alnum:]]*[[:alnum:]])$ ]] || [[ ! "${#v_host_record}" -le 63 ]]
+        if [[ ! "${v_host_record}" =~ ^[[:alnum:]]([[:alnum:]-]*[[:alnum:]])?$ ]] || [[ ! "${#v_host_record}" -le 63 ]]
         then
             if ${v_if_autorun_false}
             then
@@ -782,7 +838,7 @@ fn_get_host_record() {
                 v_rename_record="${v_rename_record%.${v_domain_name}.}"  
                 v_rename_record="${v_rename_record%.${v_domain_name}}"
 
-                if [[ ! ${v_rename_record} =~ ^[[:alnum:]]([-[:alnum:]]*[[:alnum:]])$ ]] || [[ ! "${#v_rename_record}" -le 63 ]]
+                if [[ ! "${v_rename_record}" =~ ^[[:alnum:]]([[:alnum:]-]*[[:alnum:]])?$ ]] || [[ ! "${#v_rename_record}" -le 63 ]]
                 then
                     fn_instruct_on_valid_host_record
                 fi
@@ -1048,7 +1104,7 @@ fn_set_ptr_zone() {
 
     for i in "${!arr_subnets[@]}"
     do
-        if [[ "${v_current_ip_of_host_record}" =~ ${arr_subnets[i]} ]]
+        if [[ "${v_current_ip_of_host_record}" == ${arr_subnets[i]}.* ]]
         then
             if ${v_if_autorun_false}; then
                 if [[ ! -z "${dnsbinder_ipv6_ula_subnet}" ]] && [[ ! -z "${v_current_ipv6_of_host_record}" ]]; then
@@ -1076,21 +1132,14 @@ fn_get_ipv4_address() {
             # Check if each octet is in the range 0-255
             for octet in ${BASH_REMATCH[@]:1}; do
                 if (( octet < 0 || octet > 255 )); then
-                    print_error "Invalid input provided for IPv4 Address ! "
-                    fn_get_ipv4_address
+                    return 1
                 fi
             done
+            return 0
         else
-            print_error "Invalid input provided for IPv4 Address ! "
-            fn_get_ipv4_address
+            return 1
         fi
     }
-
-    if [[ -z "${ipv4_provided}" ]]; then
-        read -p "Provide the required IPv4 Address ( within ${dnsbinder_network} ) : " ipv4_provided
-    fi
-
-    fn_validate_ipv4_address "${ipv4_provided}"
 
     # Convert IP to decimal
     fn_convert_ip_to_decimal() {
@@ -1104,8 +1153,7 @@ fn_get_ipv4_address() {
         local dnsbinder_network="${2}"
 
         # Split network into base IP and prefix length
-        IFS='/'
-        read -r network_base network_mask <<< "${dnsbinder_network}"
+        IFS='/' read -r network_base network_mask <<< "${dnsbinder_network}"
 
         # Convert IPs to decimal
         decimal_value_of_ipv4=$(fn_convert_ip_to_decimal "${ipv4_provided}")
@@ -1126,11 +1174,22 @@ fn_get_ipv4_address() {
 
     while :
     do
+        if [[ -z "${ipv4_provided}" ]]; then
+            read -p "Provide the required IPv4 Address ( within ${dnsbinder_network} ) : " ipv4_provided
+        fi
+
+        if ! fn_validate_ipv4_address "${ipv4_provided}"; then
+            print_error "Invalid input provided for IPv4 Address ! "
+            ipv4_provided=""
+            continue
+        fi
+
         if fn_check_whether_ip_in_range "${ipv4_provided}" "${dnsbinder_network}"; then
             break
         else
             print_error "Provided IPv4 address doesn't reside within the network ${dnsbinder_network} ! "
-            fn_get_ipv4_address
+            ipv4_provided=""
+            continue
         fi
     done
 }
@@ -1144,12 +1203,17 @@ fn_create_host_record() {
         v_if_autorun_false=false    
     fi
 
+    if ${v_if_autorun_false}; then
+        if ! fn_acquire_zone_lock; then return 1; fi
+    fi
+
     fn_get_host_record "${1}" "create"
 
     v_exit_status_fn_get_host_record=${?}
 
     if [[ ${v_exit_status_fn_get_host_record} -ne 0 ]]
     then
+        ${v_if_autorun_false} && fn_release_zone_lock
         return ${v_exit_status_fn_get_host_record}
     fi
 
@@ -1249,7 +1313,7 @@ fn_create_host_record() {
                     v_host_part_of_current_ip="${host_part_of_ipv4_provided}"
                     v_current_ip_of_host_record="${subnet_part_of_ipv4_provided}.${v_host_part_of_current_ip}"
                     v_ptr_zone="${v_current_ptr_zone_file}"
-                    if [[ ! -z "${v_list_of_ips_in_zone[@]}" ]]
+                    if [[ ${#v_list_of_ips_in_zone[@]} -gt 0 ]]
                     then
                         v_count_less=0
                         for ptr_ip in "${v_list_of_ips_in_zone[@]}"
@@ -1292,6 +1356,7 @@ fn_create_host_record() {
                     if [[ "${count_houseful_ptr_zones}" -eq "${v_total_ptr_zones}" ]]
                     then
                         ${v_if_autorun_false} && print_error "No more IP addresses are available in the ${dnsbinder_network} network of ${v_domain_name} domain ! "
+                        ${v_if_autorun_false} && fn_release_zone_lock
                         return 255
                     else
                         continue
@@ -1302,6 +1367,7 @@ fn_create_host_record() {
                 if [[ "${count_houseful_ptr_zones}" -eq "${v_total_ptr_zones}" ]]
                 then
                     ${v_if_autorun_false} && print_error "No more IP addresses are available in the ${dnsbinder_network} network of ${v_domain_name} domain ! "
+                    ${v_if_autorun_false} && fn_release_zone_lock
                     return 255
                 else
                     continue
@@ -1329,15 +1395,17 @@ fn_create_host_record() {
         local found_insertion_point=false
         
         # Try to find v_previous_ip first
-        if grep -q "${v_previous_ip}$" "${v_fw_zone}"; then
-            sed -i "/${v_previous_ip}$/a \\${v_add_host_record}" "${v_fw_zone}"
+        local v_previous_ip_escaped="${v_previous_ip//./\\.}"
+        if grep -q "${v_previous_ip_escaped}$" "${v_fw_zone}"; then
+            sed -i "/${v_previous_ip_escaped}$/a \\${v_add_host_record}" "${v_fw_zone}"
             found_insertion_point=true
         else
             # Search backwards for an existing A record in the same /24 subnet
             for ((search_octet=last_octet-1; search_octet>=0; search_octet--)); do
                 search_ip="${s1}.${s2}.${s3}.${search_octet}"
-                if grep -q "${search_ip}$" "${v_fw_zone}"; then
-                    sed -i "/${search_ip}$/a \\${v_add_host_record}" "${v_fw_zone}"
+                local search_ip_escaped="${search_ip//./\\.}"
+                if grep -q "${search_ip_escaped}$" "${v_fw_zone}"; then
+                    sed -i "/${search_ip_escaped}$/a \\${v_add_host_record}" "${v_fw_zone}"
                     found_insertion_point=true
                     break
                 fi
@@ -1518,6 +1586,8 @@ print(insert_after)
     then
         fn_reload_named_dns_service
     fi
+
+    ${v_if_autorun_false} && fn_release_zone_lock
 }
 
 
@@ -1530,19 +1600,24 @@ fn_delete_host_record() {
         v_if_autorun_false=false    
     fi
 
+    if ${v_if_autorun_false}; then
+        if ! fn_acquire_zone_lock; then return 1; fi
+    fi
+
     fn_get_host_record "${1}" "delete"
 
     v_exit_status_fn_get_host_record=${?}
 
     if [[ ${v_exit_status_fn_get_host_record} -ne 0 ]]
     then
+        ${v_if_autorun_false} && fn_release_zone_lock
         return ${v_exit_status_fn_get_host_record}
     fi
 
     v_capture_host_record=$(grep "^${v_host_record} .*IN A " "${v_fw_zone}" ) 
     v_current_ip_of_host_record=$(awk -v host="^${v_host_record} " '$0 ~ host && /IN A / {gsub(/[[:space:]]/,"",$NF); print $NF}' "${v_fw_zone}")
     v_current_ipv6_of_host_record=$(awk -v host="^${v_host_record} " '$0 ~ host && /IN AAAA/ {gsub(/[[:space:]]/,"",$NF); print $NF}' "${v_fw_zone}")
-    v_capture_ptr_prefix=$(awk -F. '{ print $4 }' <<< ${v_current_ip_of_host_record} )
+    v_capture_ptr_prefix=$(awk -F. '{ print $4 }' <<< "${v_current_ip_of_host_record}")
 
     fn_set_ptr_zone
     v_input_delete_confirmation="${2}"
@@ -1561,16 +1636,15 @@ fn_delete_host_record() {
             ${v_if_autorun_false} && print_task "Deleting host record ${v_host_record}.${v_domain_name}..."
 
             sed -i "/^${v_capture_ptr_prefix} /d" "${v_ptr_zone}"
-            sed -i "/^${v_capture_host_record}/d" "${v_fw_zone}"
+            sed -i "/^$(printf '%s' "${v_capture_host_record}" | sed 's/[.[\*^$()+?{|\\]/\\&/g')/d" "${v_fw_zone}"
             
             # Also delete AAAA record if it exists (IPv6 dual-stack)
-            if sed -i "/^${v_host_record} .*IN AAAA/d" "${v_fw_zone}"; then
-                # If AAAA record existed, also delete IPv6 PTR record
-                v_ipv6_zone_file="${var_zone_dir}/${v_domain_name}-ipv6-reverse.db"
-                if [[ -f "${v_ipv6_zone_file}" ]]; then
-                    # Delete any PTR record pointing to this host
-                    sed -i "/IN PTR ${v_host_record}\.${v_domain_name}\./d" "${v_ipv6_zone_file}"
-                fi
+            sed -i "/^${v_host_record} .*IN AAAA/d" "${v_fw_zone}"
+            # Also delete IPv6 PTR record
+            v_ipv6_zone_file="${var_zone_dir}/${v_domain_name}-ipv6-reverse.db"
+            if [[ -f "${v_ipv6_zone_file}" ]]; then
+                # Delete any PTR record pointing to this host
+                sed -i "/IN PTR ${v_host_record}\.${v_domain_name}\./d" "${v_ipv6_zone_file}"
             fi
 
             ${v_if_autorun_false} && print_task_done
@@ -1582,11 +1656,13 @@ fn_delete_host_record() {
                 fn_reload_named_dns_service
             fi
 
+            ${v_if_autorun_false} && fn_release_zone_lock
             break
 
         elif [[ ${v_confirmation} == "n" ]]
         then
             print_warning "Cancelled without any changes ! "
+            ${v_if_autorun_false} && fn_release_zone_lock
             break
 
         else
@@ -1606,22 +1682,25 @@ fn_rename_host_record() {
         v_if_autorun_false=false    
     fi
 
+    if ! fn_acquire_zone_lock; then return 1; fi
+
     fn_get_host_record "${1}" "rename" "${2}"
 
     v_exit_status_fn_get_host_record=${?}
 
     if [[ ${v_exit_status_fn_get_host_record} -ne 0 ]]
     then
+        fn_release_zone_lock
         return ${v_exit_status_fn_get_host_record}
     fi
 
-    v_host_record_exist=$(grep "^$v_host_record .*IN A " $v_fw_zone)
-    v_current_ip_of_host_record=$(awk -v host="^$v_host_record " '$0 ~ host && /IN A / {gsub(/[[:space:]]/,"",$NF); print $NF}' "$v_fw_zone")
+    v_host_record_exist=$(grep "^${v_host_record} .*IN A " "${v_fw_zone}")
+    v_current_ip_of_host_record=$(awk -v host="^${v_host_record} " '$0 ~ host && /IN A / {gsub(/[[:space:]]/,"",$NF); print $NF}' "${v_fw_zone}")
 
     fn_set_ptr_zone
 
     v_host_record_rename=$(printf "%-*s" 63 "${v_rename_record}")
-    v_host_record_rename=$(echo "$v_host_record_rename IN A ${v_current_ip_of_host_record}")
+    v_host_record_rename="${v_host_record_rename} IN A ${v_current_ip_of_host_record}"
 
     v_input_rename_confirmation="${3}"
     
@@ -1638,11 +1717,14 @@ fn_rename_host_record() {
         then
             print_task "Renaming host record ${v_host_record}.${v_domain_name} to ${v_rename_record}.${v_domain_name}..."
 
-            sed -i "s/${v_host_record_exist}/${v_host_record_rename}/g" ${v_fw_zone}
-            sed -i "s/${v_host_record}.${v_domain_name}./${v_rename_record}.${v_domain_name}./g" ${v_ptr_zone}
+            v_host_record_exist_escaped=$(printf '%s' "${v_host_record_exist}" | sed 's/[.[\*^$()+?{|\\]/\\&/g')
+            v_host_record_rename_escaped=$(printf '%s' "${v_host_record_rename}" | sed 's/[&/\\]/\\&/g')
+            sed -i "s/${v_host_record_exist_escaped}/${v_host_record_rename_escaped}/g" "${v_fw_zone}"
+            sed -i "s/${v_host_record}\.${v_domain_name}\./${v_rename_record}.${v_domain_name}./g" "${v_ptr_zone}"
             
             # Also rename AAAA record if it exists (IPv6 dual-stack)
-            sed -i "s/^${v_host_record} \(.*\)IN AAAA/${v_rename_record} \1IN AAAA/g" ${v_fw_zone}
+            v_rename_record_adjusted_space=$(printf "%-*s" 63 "${v_rename_record}")
+            sed -i "s/^${v_host_record} \(.*IN AAAA\)/${v_rename_record_adjusted_space} \1/g" "${v_fw_zone}"
             
             # Also rename IPv6 PTR record if it exists
             v_ipv6_zone_file="${var_zone_dir}/${v_domain_name}-ipv6-reverse.db"
@@ -1659,11 +1741,13 @@ fn_rename_host_record() {
                 fn_reload_named_dns_service
             fi
 
+            fn_release_zone_lock
             break
 
         elif [[ $v_confirmation == "n" ]]
         then
             print_warning "Cancelled without any changes ! "
+            fn_release_zone_lock
             break
 
         else
@@ -1676,7 +1760,7 @@ fn_rename_host_record() {
 
 fn_handle_multiple_host_record() {      
 
-    touch /tmp/dnsbinder_fn_handle_multiple_host_record.lock
+    if ! fn_acquire_zone_lock; then return 1; fi
 
     v_host_list_file="${1}"
     v_action_required="${2}"
@@ -1704,22 +1788,22 @@ fn_handle_multiple_host_record() {
         read -e v_host_list_file
     fi
     
-    if [[ ! -f ${v_host_list_file} ]];then print_error "File \"${v_host_list_file}\" doesn't exist!\n";exit;fi 
+    if [[ ! -f "${v_host_list_file}" ]];then print_error "File \"${v_host_list_file}\" doesn't exist!\n";fn_release_zone_lock;exit;fi 
     
-    if [[ ! -s ${v_host_list_file} ]];then print_error "File \"${v_host_list_file}\" is emty!\n";exit;fi
+    if [[ ! -s "${v_host_list_file}" ]];then print_error "File \"${v_host_list_file}\" is empty!\n";fn_release_zone_lock;exit;fi
     
-    sed -i '/^[[:space:]]*$/d' ${v_host_list_file}
+    sed -i '/^[[:space:]]*$/d' "${v_host_list_file}"
     
-    sed -i 's/.${v_domain_name}.//g' ${v_host_list_file}
+    sed -i "s/\.${v_domain_name}\.//g" "${v_host_list_file}"
     
-    sed -i 's/.${v_domain_name}//g' ${v_host_list_file}
+    sed -i "s/\.${v_domain_name}//g" "${v_host_list_file}"
     
     
     while :
     do
         print_info "Records to be ${v_action_required^}d : "
     
-        cat ${v_host_list_file}
+        cat "${v_host_list_file}"
     
         echo
         print_notify "Provide your confirmation to ${v_action_required} the above host records (y/n) : " "nskip"
@@ -1733,6 +1817,7 @@ fn_handle_multiple_host_record() {
         elif [[ ${v_confirmation} == "n" ]]
         then
             print_error "Cancelled without any changes !!"
+            fn_release_zone_lock
             exit
         else
             print_error "Select either (y/n) only !"
@@ -1750,7 +1835,7 @@ fn_handle_multiple_host_record() {
     v_count_ip_exhausted=0
     v_count_other_failures=0
     
-    v_pre_execution_serial_fw_zone=$(grep ';Serial' ${v_fw_zone} | cut -d ";" -f 1 | tr -d '[:space:]')
+    v_pre_execution_serial_fw_zone=$(grep ';Serial' "${v_fw_zone}" | cut -d ";" -f 1 | tr -d '[:space:]')
     
     v_total_host_records=$(wc -l < "${v_host_list_file}")
     
@@ -1773,7 +1858,7 @@ fn_handle_multiple_host_record() {
         
         print_task "Attempting to ${v_action_required} the host record ${v_host_record}.${v_domain_name} . . . " "nskip"
     
-        v_serial_fw_zone_pre_execution=$(grep ';Serial' ${v_fw_zone} | cut -d ";" -f 1 | tr -d '[:space:]')
+        v_serial_fw_zone_pre_execution=$(grep ';Serial' "${v_fw_zone}" | cut -d ";" -f 1 | tr -d '[:space:]')
     
         if [[ ${v_action_required} == "create" ]]
                 then
@@ -1786,7 +1871,7 @@ fn_handle_multiple_host_record() {
             var_exit_status=${?}
         fi
     
-        v_serial_fw_zone_post_execution=$(grep ';Serial' ${v_fw_zone} | cut -d ";" -f 1 | tr -d '[:space:]')
+        v_serial_fw_zone_post_execution=$(grep ';Serial' "${v_fw_zone}" | cut -d ";" -f 1 | tr -d '[:space:]')
     
             v_fqdn="${v_host_record}.${v_domain_name}"
     
@@ -1851,7 +1936,7 @@ fn_handle_multiple_host_record() {
         let v_count_failed++
         let v_count_ip_exhausted++
     else
-        v_serial_fw_zone_post_execution=$(grep ';Serial' ${v_fw_zone} | cut -d ";" -f 1 | tr -d '[:space:]')
+        v_serial_fw_zone_post_execution=$(grep ';Serial' "${v_fw_zone}" | cut -d ";" -f 1 | tr -d '[:space:]')
 
         if [[ "${v_serial_fw_zone_pre_execution}" -ne "${v_serial_fw_zone_post_execution}" ]]
         then
@@ -1874,7 +1959,7 @@ fn_handle_multiple_host_record() {
     # Clear the progress display before showing final summary
     clear
 
-    v_post_execution_serial_fw_zone=$(grep ';Serial' ${v_fw_zone} | cut -d ";" -f 1 | tr -d '[:space:]')
+    v_post_execution_serial_fw_zone=$(grep ';Serial' "${v_fw_zone}" | cut -d ";" -f 1 | tr -d '[:space:]')
     
     if [[ "${v_pre_execution_serial_fw_zone}" -ne "${v_post_execution_serial_fw_zone}" ]]
     then
@@ -1938,7 +2023,7 @@ fn_handle_multiple_host_record() {
     
     rm -f "${v_tmp_file_dnsbinder}"
 
-    rm -f /tmp/dnsbinder_fn_handle_multiple_host_record.lock
+    fn_release_zone_lock
 }
 
 fn_get_cname_record() {
@@ -1962,7 +2047,7 @@ fn_get_cname_record() {
             v_input_cname="${v_input_cname%.${v_domain_name}.}"  
             v_input_cname="${v_input_cname%.${v_domain_name}}"
 
-            if [[ ! "${#v_input_cname}" -le 63 ]] || [[ ! "${v_input_cname}" =~ ^[[:alnum:]]([-[:alnum:]]*[[:alnum:]])$ ]]
+            if [[ ! "${#v_input_cname}" -le 63 ]] || [[ ! "${v_input_cname}" =~ ^[[:alnum:]]([[:alnum:]-]*[[:alnum:]])?$ ]]
                 then
                 fn_instruct_on_valid_host_record
             fi
@@ -1982,7 +2067,7 @@ fn_get_cname_record() {
             v_input_hostname="${v_input_hostname%.${v_domain_name}.}"  
             v_input_hostname="${v_input_hostname%.${v_domain_name}}"
 
-            if [[ ! "${#v_input_hostname}" -le 63 ]] || [[ ! "${v_input_hostname}" =~ ^[[:alnum:]]([-[:alnum:]]*[[:alnum:]])$ ]]
+            if [[ ! "${#v_input_hostname}" -le 63 ]] || [[ ! "${v_input_hostname}" =~ ^[[:alnum:]]([[:alnum:]-]*[[:alnum:]])?$ ]]
                 then
                 fn_instruct_on_valid_host_record
             fi
@@ -2029,13 +2114,15 @@ fn_create_cname_record() {
     v_input_cname="${1}"
     v_input_hostname="${2}"
     
+    if ! fn_acquire_zone_lock; then return 1; fi
+
     fn_get_cname_record "create"
 
     print_task "Creating CNAME record \"${v_input_cname}.${v_domain_name}\" for the host record \"${v_input_hostname}.${v_domain_name}\"..."
 
     v_cname_adjusted_space=$(printf "%-*s" 63 "${v_input_cname}")
 
-    v_cname_record=$(echo "${v_cname_adjusted_space} IN CNAME ${v_input_hostname}.${v_domain_name}.")
+    v_cname_record="${v_cname_adjusted_space} IN CNAME ${v_input_hostname}.${v_domain_name}."
 
     sed -i "/^;CNAME-Records/a \\${v_cname_record}" "${v_fw_zone}"
 
@@ -2044,17 +2131,21 @@ fn_create_cname_record() {
     fn_update_serial_number_of_zones "forward-zone-only"
 
     fn_reload_named_dns_service "true"
+
+    fn_release_zone_lock
 }
 
 fn_delete_cname_record() {
     v_input_cname="${1}"
     v_input_delete_confirmation="${2}"
 
+    if ! fn_acquire_zone_lock; then return 1; fi
+
     fn_get_cname_record "delete"
 
     while :
     do
-        local cname_target=$(dig @"${dnsbinder_server_ipv4_address}" +short CNAME ${v_input_cname}.${v_domain_name} | head -1 | sed 's/\.$//')
+        local cname_target=$(dig @"${dnsbinder_server_ipv4_address}" +short CNAME "${v_input_cname}.${v_domain_name}" | head -1 | sed 's/\.$//')
         print_warning "CNAME Record to be deleted : ${v_input_cname}.${v_domain_name} is an alias for ${cname_target}"
         if [[ ! ${v_input_delete_confirmation} == "-y" ]]
         then
@@ -2069,6 +2160,7 @@ fn_delete_cname_record() {
                 ;;
             n|N|"no")
                 print_warning "Aborted ! No changes done! "
+                fn_release_zone_lock
                 exit
                 ;;
             "")
@@ -2091,6 +2183,8 @@ fn_delete_cname_record() {
     fn_update_serial_number_of_zones "forward-zone-only"
 
     fn_reload_named_dns_service "true"
+
+    fn_release_zone_lock
 }
 
 v_domain_if_present=$(if [ ! -z "${v_domain_name}" ];then echo -n "${v_domain_name}";else echo '[dnsbinder-not-yet-configured]';fi)
