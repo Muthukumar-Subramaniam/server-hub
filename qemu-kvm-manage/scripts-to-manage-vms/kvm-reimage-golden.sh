@@ -67,6 +67,7 @@ CMDLINE_VERSION_TYPE="$VERSION_TYPE"
 CURRENT_VM=0
 FAILED_VMS=()
 SUCCESSFUL_VMS=()
+SKIPPED_VMS=()
 
 for qemu_kvm_hostname in "${HOSTNAMES[@]}"; do
     # Reset OS_DISTRO and VERSION_TYPE to command-line values for each VM
@@ -101,7 +102,10 @@ for qemu_kvm_hostname in "${HOSTNAMES[@]}"; do
     
     # Confirm reimage operation
     source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/confirm-reimage-operation.sh
-    confirm_reimage_operation "$qemu_kvm_hostname" "golden image"
+    if ! confirm_reimage_operation "$qemu_kvm_hostname" "golden image"; then
+        SKIPPED_VMS+=("$qemu_kvm_hostname")
+        continue
+    fi
 
     # Check if golden image exists for specified distro
     if [[ -n "$OS_DISTRO" ]]; then
@@ -279,7 +283,7 @@ done
 
 # Summary for multiple VMs
 source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/show-vm-operation-summary.sh
-if ! show_vm_operation_summary "${TOTAL_VMS}" "SUCCESSFUL_VMS" "FAILED_VMS" "reimaging via golden image disk" "Reimaging via golden image disk takes ~1 minute per VM."; then
+if ! show_vm_operation_summary "${TOTAL_VMS}" "SUCCESSFUL_VMS" "FAILED_VMS" "reimaging via golden image disk" "Reimaging via golden image disk takes ~1 minute per VM." "SKIPPED_VMS"; then
     exit 1
 fi
 

@@ -64,6 +64,7 @@ mkdir -p "${ksmanager_hub_dir}"
 mkdir -p "${ipxe_web_dir}"
 
 mac_cache_file="${ksmanager_hub_dir}/mac-address-cache"
+hosts_json_file="${ksmanager_hub_dir}/hosts.json"
 mac_cache_lock_dir="${ksmanager_hub_dir}/.mac-address-cache.lock"
 host_lock_root_dir="${ksmanager_hub_dir}/.host-locks"
 shared_artifacts_lock_dir="${ksmanager_hub_dir}/.shared-artifacts.lock"
@@ -373,6 +374,19 @@ fn_check_and_create_host_record() {
     fi
 }
 
+fn_remove_hosts_json_entry() {
+    local remove_hostname="$1"
+    local temp_hosts_json="${hosts_json_file}.tmp.$$"
+
+    if [[ -f "$hosts_json_file" ]]; then
+        jq --arg hostname "$remove_hostname" \
+            '[.[] | select(.hostname != $hostname)]' \
+            "$hosts_json_file" > "$temp_hosts_json" && \
+            mv "$temp_hosts_json" "$hosts_json_file"
+        rm -f "$temp_hosts_json"
+    fi
+}
+
 golden_image_creation_not_requested=true
 
 for input_arguement in "$@"; do
@@ -455,6 +469,8 @@ if $remove_host_requested; then
         else
             print_info "No MAC address cache entry found"
         fi
+
+        fn_remove_hosts_json_entry "${cleanup_hostname}"
 
         fn_release_mac_cache_lock
     else
@@ -1440,6 +1456,93 @@ config_summary="Configuration Summary:
   ✓ Requested OS     : ${os_name_and_version}"
 
 print_info "$config_summary"
+
+# Determine provision method from invocation flags
+provision_method="pxe"
+if ! $golden_image_creation_not_requested; then
+    provision_method="create-golden-image"
+elif $invoked_with_golden_image; then
+    provision_method="golden-image"
+fi
+
+# Build JSON record with all 20 fields
+provision_json=$(jq -n \
+    --arg hostname "$kickstart_hostname" \
+    --arg mac_address "$mac_address_of_host" \
+    --arg os "${os_name_and_version:-}" \
+    --arg os_distribution "${os_distribution:-}" \
+    --arg version_type "${version_type:-}" \
+    --arg provision_method "$provision_method" \
+    --arg disk_type "${disk_type_for_the_vm:-}" \
+    --arg ipv4_address "$ipv4_address" \
+    --arg ipv4_prefix "$ipv4_prefix" \
+    --arg ipv4_netmask "$ipv4_netmask" \
+    --arg ipv4_gateway "$ipv4_gateway" \
+    --arg ipv4_nameserver "$ipv4_nameserver" \
+    --arg ipv4_network_cidr "$ipv4_network_cidr" \
+    --arg ipv4_domain "$ipv4_domain" \
+    --arg ipv6_address "$ipv6_address" \
+    --arg ipv6_prefix "$ipv6_prefix" \
+    --arg ipv6_gateway "$ipv6_gateway" \
+    --arg ipv6_nameserver "$ipv6_nameserver" \
+    --arg lab_infra_server "$lab_infra_server_hostname" \
+    --arg provisioned_at "$(date -u +"%Y-%m-%dT%H:%M:%SZ")" \
+    '{
+        hostname: $hostname,
+        mac_address: $mac_address,
+        os: $os,
+        os_distribution: $os_distribution,
+        version_type: $version_type,
+        provision_method: $provision_method,
+        disk_type: $disk_type,
+        ipv4_address: $ipv4_address,
+        ipv4_prefix: $ipv4_prefix,
+        ipv4_netmask: $ipv4_netmask,
+        ipv4_gateway: $ipv4_gateway,
+        ipv4_nameserver: $ipv4_nameserver,
+        ipv4_network_cidr: $ipv4_network_cidr,
+        ipv4_domain: $ipv4_domain,
+        ipv6_address: $ipv6_address,
+        ipv6_prefix: $ipv6_prefix,
+        ipv6_gateway: $ipv6_gateway,
+        ipv6_nameserver: $ipv6_nameserver,
+        lab_infra_server: $lab_infra_server,
+        provisioned_at: $provisioned_at
+    }')
+
+# Write per-host provision-result.json sidecar
+# Ensure the kickstart directory exists (golden-image path skips fn_create_host_kickstart_dir)
+if [[ -z "${host_kickstart_dir:-}" ]]; then
+    host_kickstart_dir="${ksmanager_hub_dir}/kickstarts/${kickstart_hostname}"
+fi
+mkdir -p "${host_kickstart_dir}"
+
+if [[ -d "${host_kickstart_dir}" ]] && [[ -n "$provision_json" ]]; then
+    provision_result_tmp="${host_kickstart_dir}/provision-result.json.tmp.$$"
+    printf '%s\n' "$provision_json" > "$provision_result_tmp" && \
+        mv "$provision_result_tmp" "${host_kickstart_dir}/provision-result.json"
+    rm -f "$provision_result_tmp"
+    fn_chown_if_exists "${host_kickstart_dir}/provision-result.json"
+fi
+
+# Update central hosts.json registry
+if [[ -n "$provision_json" ]]; then
+    if fn_acquire_mac_cache_lock; then
+        hosts_json_tmp="${hosts_json_file}.tmp.$$"
+        if [[ -f "$hosts_json_file" ]]; then
+            jq --arg hostname "$kickstart_hostname" --argjson new_entry "$provision_json" \
+                '[.[] | select(.hostname != $hostname)] + [$new_entry]' \
+                "$hosts_json_file" > "$hosts_json_tmp" && \
+                mv "$hosts_json_tmp" "$hosts_json_file"
+        else
+            printf '[%s]\n' "$provision_json" > "$hosts_json_tmp" && \
+                mv "$hosts_json_tmp" "$hosts_json_file"
+        fi
+        rm -f "$hosts_json_tmp"
+        fn_chown_if_exists "$hosts_json_file"
+        fn_release_mac_cache_lock
+    fi
+fi
 
 if ! $invoked_with_golden_image; then
     print_info "Kickstart configs ready for '${kickstart_hostname}'."

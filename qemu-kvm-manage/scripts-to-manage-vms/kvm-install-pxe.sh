@@ -53,10 +53,6 @@ FAILED_VMS=()
 SUCCESSFUL_VMS=()
 
 for qemu_kvm_hostname in "${HOSTNAMES[@]}"; do
-    # Reset OS_DISTRO and VERSION_TYPE to command-line values for each VM
-    OS_DISTRO="$CMDLINE_OS_DISTRO"
-    VERSION_TYPE="$CMDLINE_VERSION_TYPE"
-    
     source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/show-multi-vm-progress.sh
     show_multi_vm_progress "$qemu_kvm_hostname"
 
@@ -82,8 +78,8 @@ for qemu_kvm_hostname in "${HOSTNAMES[@]}"; do
     # Run ksmanager and extract VM details
     source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/run-ksmanager.sh
     ksmanager_opts="--qemu-kvm --mac ${GENERATED_MAC}"
-    [[ -n "$OS_DISTRO" ]] && ksmanager_opts="$ksmanager_opts --distro $OS_DISTRO"
-    [[ -n "$VERSION_TYPE" ]] && ksmanager_opts="$ksmanager_opts --version $VERSION_TYPE"
+    [[ -n "$CMDLINE_OS_DISTRO" ]] && ksmanager_opts="$ksmanager_opts --distro $CMDLINE_OS_DISTRO"
+    [[ -n "$CMDLINE_VERSION_TYPE" ]] && ksmanager_opts="$ksmanager_opts --version $CMDLINE_VERSION_TYPE"
     cleanup_on_cancel=true  # Cleanup DNS/MAC if user cancels during install
     if ! run_ksmanager "${qemu_kvm_hostname}" "$ksmanager_opts" "$cleanup_on_cancel"; then
         FAILED_VMS+=("$qemu_kvm_hostname")

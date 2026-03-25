@@ -106,10 +106,16 @@ EOF
 exit 0
 EOF
 
-	cat > "${MOCK_BIN}/jq" <<'EOF'
+	# Use real jq if available (needed for JSON writes in ksmanager)
+	if command -v jq &>/dev/null; then
+		ln -sf "$(command -v jq)" "${MOCK_BIN}/jq"
+	else
+		cat > "${MOCK_BIN}/jq" <<'EOF'
 #!/usr/bin/env bash
 cat
 EOF
+		chmod +x "${MOCK_BIN}/jq"
+	fi
 
 	cat > "${MOCK_BIN}/rsync" <<'EOF'
 #!/usr/bin/env bash
@@ -177,7 +183,7 @@ for ((i=0; i<src_count; i++)); do
 done
 EOF
 
-	chmod +x "${MOCK_BIN}"/*
+	chmod +x "${MOCK_BIN}"/* 2>/dev/null || true
 }
 
 setup_sandbox() {
@@ -351,9 +357,66 @@ echo "[INFO] Setting up sandbox under ${TEST_ROOT}"
 make_mock_bin
 setup_sandbox
 
+test_json_provision_result() {
+	local host="node4.example.test"
+	local mac="aa:bb:cc:dd:ee:05"
+
+	run_ksmanager "${host}" --distro almalinux --version latest --mac "${mac}" --qemu-kvm >"${TEST_ROOT}/ksmanager_test_json.log" 2>&1
+	local rc=$?
+	assert_eq "json-test create exits 0" "${rc}" "0"
+
+	# Phase 1: Per-host provision-result.json
+	assert_true "provision-result.json exists" test -f "${KSMANAGER_HUB_DIR}/kickstarts/${host}/provision-result.json"
+
+	if command -v jq &>/dev/null && [ -f "${KSMANAGER_HUB_DIR}/kickstarts/${host}/provision-result.json" ]; then
+		local json_hostname
+		json_hostname=$(jq -r '.hostname' "${KSMANAGER_HUB_DIR}/kickstarts/${host}/provision-result.json")
+		assert_eq "provision-result hostname matches" "${json_hostname}" "${host}"
+
+		local json_mac
+		json_mac=$(jq -r '.mac_address' "${KSMANAGER_HUB_DIR}/kickstarts/${host}/provision-result.json")
+		assert_eq "provision-result mac_address matches" "${json_mac}" "${mac}"
+
+		local json_ipv4
+		json_ipv4=$(jq -r '.ipv4_address' "${KSMANAGER_HUB_DIR}/kickstarts/${host}/provision-result.json")
+		assert_true "provision-result has ipv4_address" test -n "${json_ipv4}"
+
+		local json_method
+		json_method=$(jq -r '.provision_method' "${KSMANAGER_HUB_DIR}/kickstarts/${host}/provision-result.json")
+		assert_eq "provision-result method is pxe" "${json_method}" "pxe"
+
+		local json_fields
+		json_fields=$(jq 'length' "${KSMANAGER_HUB_DIR}/kickstarts/${host}/provision-result.json")
+		assert_eq "provision-result has 20 fields" "${json_fields}" "20"
+	fi
+
+	# Phase 2: Central hosts.json
+	assert_true "hosts.json exists" test -f "${KSMANAGER_HUB_DIR}/hosts.json"
+
+	if command -v jq &>/dev/null && [ -f "${KSMANAGER_HUB_DIR}/hosts.json" ]; then
+		local hosts_count
+		hosts_count=$(jq --arg h "${host}" '[.[] | select(.hostname == $h)] | length' "${KSMANAGER_HUB_DIR}/hosts.json")
+		assert_eq "hosts.json has one entry for host" "${hosts_count}" "1"
+	fi
+
+	# Test --remove-host cleans up JSON artifacts
+	run_ksmanager "${host}" --remove-host >"${TEST_ROOT}/ksmanager_test_json_rm.log" 2>&1
+	local rm_rc=$?
+	assert_eq "json-test remove exits 0" "${rm_rc}" "0"
+
+	assert_true "provision-result.json removed" test ! -f "${KSMANAGER_HUB_DIR}/kickstarts/${host}/provision-result.json"
+
+	if command -v jq &>/dev/null && [ -f "${KSMANAGER_HUB_DIR}/hosts.json" ]; then
+		local hosts_count_after
+		hosts_count_after=$(jq --arg h "${host}" '[.[] | select(.hostname == $h)] | length' "${KSMANAGER_HUB_DIR}/hosts.json")
+		assert_eq "hosts.json entry removed" "${hosts_count_after}" "0"
+	fi
+}
+
 test_create_host_noninteractive
 test_parallel_same_host_single_cache_row
 test_parallel_remove_host_safe
+test_json_provision_result
 
 echo "[INFO] PASS=${PASS_COUNT} FAIL=${FAIL_COUNT}"
 if [[ ${FAIL_COUNT} -ne 0 ]]; then

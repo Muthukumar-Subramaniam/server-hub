@@ -51,10 +51,15 @@ Examples:
 source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/parse-vm-command-args.sh
 parse_vm_command_args "$@"
 
+# Save command-line distro and version if specified
+CMDLINE_OS_DISTRO="$OS_DISTRO"
+CMDLINE_VERSION_TYPE="$VERSION_TYPE"
+
 # Main reimage loop
 CURRENT_VM=0
 FAILED_VMS=()
 SUCCESSFUL_VMS=()
+SKIPPED_VMS=()
 
 for qemu_kvm_hostname in "${HOSTNAMES[@]}"; do
     source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/show-multi-vm-progress.sh
@@ -85,7 +90,10 @@ for qemu_kvm_hostname in "${HOSTNAMES[@]}"; do
     
     # Confirm reimage operation
     source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/confirm-reimage-operation.sh
-    confirm_reimage_operation "$qemu_kvm_hostname" "PXE boot"
+    if ! confirm_reimage_operation "$qemu_kvm_hostname" "PXE boot"; then
+        SKIPPED_VMS+=("$qemu_kvm_hostname")
+        continue
+    fi
 
     # Handle MAC address based on operation type
     if [[ "$CLEAN_INSTALL" == "yes" ]]; then
@@ -116,8 +124,8 @@ for qemu_kvm_hostname in "${HOSTNAMES[@]}"; do
     # Run ksmanager and extract VM details
     source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/run-ksmanager.sh
     ksmanager_opts="--qemu-kvm --mac ${GENERATED_MAC}"
-    [[ -n "$OS_DISTRO" ]] && ksmanager_opts="$ksmanager_opts --distro $OS_DISTRO"
-    [[ -n "$VERSION_TYPE" ]] && ksmanager_opts="$ksmanager_opts --version $VERSION_TYPE"
+    [[ -n "$CMDLINE_OS_DISTRO" ]] && ksmanager_opts="$ksmanager_opts --distro $CMDLINE_OS_DISTRO"
+    [[ -n "$CMDLINE_VERSION_TYPE" ]] && ksmanager_opts="$ksmanager_opts --version $CMDLINE_VERSION_TYPE"
     if ! run_ksmanager "${qemu_kvm_hostname}" "$ksmanager_opts"; then
         FAILED_VMS+=("$qemu_kvm_hostname")
         continue
@@ -207,6 +215,6 @@ done
 
 # Summary for multiple VMs
 source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/show-vm-operation-summary.sh
-if ! show_vm_operation_summary "${TOTAL_VMS}" "SUCCESSFUL_VMS" "FAILED_VMS" "reimaging via PXE boot" "Reimaging via PXE boot takes a few minutes per VM."; then
+if ! show_vm_operation_summary "${TOTAL_VMS}" "SUCCESSFUL_VMS" "FAILED_VMS" "reimaging via PXE boot" "Reimaging via PXE boot takes a few minutes per VM." "SKIPPED_VMS"; then
     exit 1
 fi

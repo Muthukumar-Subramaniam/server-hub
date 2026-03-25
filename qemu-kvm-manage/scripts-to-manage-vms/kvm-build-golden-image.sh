@@ -135,7 +135,12 @@ if [ -f "${golden_image_path}" ]; then
             fi
             ;;
         * )
-            print_info "Keeping existing golden image \"${qemu_kvm_hostname}\". Exiting..."
+            print_info "Keeping existing golden image \"${qemu_kvm_hostname}\". Cleaning up ksmanager databases..."
+            if $lab_infra_server_mode_is_host; then
+                ksmanager "$qemu_kvm_hostname" --remove-host || true
+            else
+                ssh -o LogLevel=QUIET -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null "${lab_infra_admin_username}@${lab_infra_server_hostname}" "ksmanager $qemu_kvm_hostname --remove-host" || true
+            fi
             exit 0
             ;;
     esac
