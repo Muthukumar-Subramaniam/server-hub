@@ -24,12 +24,12 @@ is_mac_unique() {
 # Function to collect all MAC addresses currently in use across all VMs
 collect_used_macs() {
     USED_MACS=()
-    while IFS= read -r vm; do
-        [[ -z "$vm" ]] && continue
-        while IFS= read -r mac; do
-            [[ -n "$mac" && "$mac" != "-" ]] && USED_MACS+=("$mac")
-        done < <(sudo virsh domiflist "$vm" 2>/dev/null | awk 'NR>2 && NF>=5 {print $5}')
-    done < <(sudo virsh list --all --name)
+    # Extract all MAC addresses in a single grep across libvirt VM definitions,
+    # avoiding the slow per-VM 'virsh domiflist' loop.
+    local mac
+    while IFS= read -r mac; do
+        [[ -n "$mac" ]] && USED_MACS+=("$mac")
+    done < <(sudo grep -roh "52:54:00:[0-9a-f:]\{8\}" /etc/libvirt/qemu/ 2>/dev/null | sort -u)
 }
 
 # Main function to generate a unique MAC address for a VM
