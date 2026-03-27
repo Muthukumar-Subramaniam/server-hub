@@ -20,7 +20,7 @@ print_success() {
 
 print_warning() {
     local flag="-e"; [[ "${2:-}" == "nskip" ]] && flag="-ne"
-    echo $flag "${MAKE_IT_MAGENTA}[WARN] ${1}${RESET_COLOR}"
+    echo $flag "${MAKE_IT_YELLOW}[WARN] ${1}${RESET_COLOR}"
 }
 
 print_notify() {
@@ -30,7 +30,7 @@ print_notify() {
 
 print_info() {
     local flag="-e"; [[ "${2:-}" == "nskip" ]] && flag="-ne"
-    echo $flag "${MAKE_IT_CYAN}[INFO] ${1}${RESET_COLOR}"
+    echo $flag "${MAKE_IT_MAGENTA}[INFO] ${1}${RESET_COLOR}"
 }
 
 # Task-level operations (always use nskip to allow same-line completion)
