@@ -168,7 +168,6 @@ for qemu_kvm_hostname in "${HOSTNAMES[@]}"; do
         fi
         
         # Install VM with default specs using default-vm-install function
-        print_info "Starting VM installation of \"$qemu_kvm_hostname\" with default specs via PXE boot..."
         source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/select-ovmf.sh
         source /server-hub/qemu-kvm-manage/scripts-to-manage-vms/functions/start-vm-installation.sh
         if ! start_vm_installation "$qemu_kvm_hostname" "PXE boot with default specs"; then
