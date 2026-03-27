@@ -1032,7 +1032,7 @@ if [[ "${os_distribution}" == "ubuntu-lts" ]]; then
 elif [[ "${os_distribution}" == "opensuse-leap" ]]; then
     os_name_and_version=$(awk -F ' = ' '/^\[release\]/{f=1; next} /^\[/{f=0} f && /^(name|version)/ {gsub(/^[ \t]+/, "", $2); printf "%s ", $2} END{print ""}' "/${lab_infra_server_hostname}/${os_distribution}-${version_type}/.treeinfo")
     # Extract just the version number (e.g., "15.6" from "openSUSE Leap 15.6")
-    opensuse_version_number=$(printf '%s\n' "$os_name_and_version" | sed -n 's/.*\([0-9][0-9]*\.[0-9][0-9]*\).*/\1/p' | head -n 1)
+    opensuse_version_number=$(printf '%s\n' "$os_name_and_version" | grep -oP '[0-9]+\.[0-9]+' | head -n 1)
 else
     redhat_based_distro_name="${os_distribution}"
     if [[ "${os_distribution}" == "centos-stream" ]]; then
