@@ -206,8 +206,8 @@ prepare_lab_infra_config() {
         break
     done
 
-    # Generate a random salt for the lab admin password
-    lab_admin_password_salt=$(openssl rand -base64 6)
+    # Generate a random salt using only portable crypt-safe characters [a-zA-Z0-9./]
+    lab_admin_password_salt=$(openssl rand -hex 8 | head -c 16)
 
     # Generate SHA-512 shadow-compatible hash
     lab_admin_shadow_password=$(openssl passwd -6 -salt "$lab_admin_password_salt" "$lab_admin_password_plain")
