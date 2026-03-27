@@ -21,6 +21,7 @@
       - tftp
       - nginx
       - nginx-mod-stream
+      - openssl
       - tmux
       - rsync
       - sysstat

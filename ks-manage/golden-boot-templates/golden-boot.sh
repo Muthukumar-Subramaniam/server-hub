@@ -374,6 +374,34 @@ log "Creating system installation timestamp in /etc/bigbang"
 date '+%Y-%m-%d %H:%M:%S %Z' > /etc/bigbang
 log "Installation timestamp: $(cat /etc/bigbang)"
 
+log "Downloading self-signed SSL certificate from lab infrastructure server"
+case "${DISTRO_FAMILY}" in
+	redhat)
+		if curl -fsSL "http://get_lab_infra_server_hostname/ksmanager-hub/addons-for-kickstarts/ca-certs/get_lab_infra_server_hostname-nginx-selfsigned.crt" -o /etc/pki/ca-trust/source/anchors/get_lab_infra_server_hostname-nginx-selfsigned.crt; then
+			update-ca-trust
+			log "SSL certificate installed and CA trust updated (RedHat)"
+		else
+			log "WARNING: Failed to download SSL certificate, continuing anyway"
+		fi
+		;;
+	debian)
+		if curl -fsSL "http://get_lab_infra_server_hostname/ksmanager-hub/addons-for-kickstarts/ca-certs/get_lab_infra_server_hostname-nginx-selfsigned.crt" -o /usr/local/share/ca-certificates/get_lab_infra_server_hostname-nginx-selfsigned.crt; then
+			update-ca-certificates
+			log "SSL certificate installed and CA certificates updated (Debian/Ubuntu)"
+		else
+			log "WARNING: Failed to download SSL certificate, continuing anyway"
+		fi
+		;;
+	opensuse)
+		if curl -fsSL "http://get_lab_infra_server_hostname/ksmanager-hub/addons-for-kickstarts/ca-certs/get_lab_infra_server_hostname-nginx-selfsigned.crt" -o /etc/pki/trust/anchors/get_lab_infra_server_hostname-nginx-selfsigned.crt; then
+			update-ca-certificates
+			log "SSL certificate installed and CA certificates updated (OpenSUSE)"
+		else
+			log "WARNING: Failed to download SSL certificate, continuing anyway"
+		fi
+		;;
+esac
+
 log "Running lab rootfs extender"
 if ! curl -fsSL "http://get_lab_infra_server_hostname/server-hub/common-utils/lab-rootfs-extender" | bash -s -- localhost; then
 	log "WARNING: Lab rootfs extender failed, continuing anyway"

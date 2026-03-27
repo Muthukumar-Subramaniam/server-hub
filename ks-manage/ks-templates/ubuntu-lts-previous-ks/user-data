@@ -47,6 +47,7 @@ autoinstall:
       - var_PS1_variable_root=$(curl -s -L http://get_lab_infra_server_hostname/ksmanager-hub/addons-for-kickstarts/PS1-env-variable-root-user)
       - echo "${var_PS1_variable_root}" >> /root/.bashrc
       - echo "get_mgmt_super_user ALL=(ALL) NOPASSWD:ALL" >/etc/sudoers.d/get_mgmt_super_user
+      - wget -P /usr/local/share/ca-certificates/ http://get_lab_infra_server_hostname/ksmanager-hub/addons-for-kickstarts/ca-certs/get_lab_infra_server_hostname-nginx-selfsigned.crt && update-ca-certificates || true
       - mkdir -p /home/get_mgmt_super_user/.ssh /root/.ssh
       - chmod 0700 /home/get_mgmt_super_user/.ssh /root/.ssh
       - curl -fsSL http://get_lab_infra_server_hostname/ksmanager-hub/addons-for-kickstarts/authorized_keys -o /home/get_mgmt_super_user/.ssh/authorized_keys && cp -p /home/get_mgmt_super_user/.ssh/authorized_keys /root/.ssh/authorized_keys
