@@ -13,16 +13,8 @@ if command -v ansible &>/dev/null; then
     echo -e "\nAnsible is already installed, Proceeding further . . .\n"
 else
     echo -e "\nInstalling Ansible . . . \n"
-    sudo dnf install python3-pip python3-cryptography -y || {
-        echo -e "\nError: Failed to install python packages\n"
-        exit 1
-    }
-    pip3 install --user packaging || exit 1
-    pip3 install --user ansible || exit 1
-    pip3 install --user argcomplete || exit 1
-    if command -v activate-global-python-argcomplete &>/dev/null; then
-        activate-global-python-argcomplete --user || true
-    fi
+    pip3 install --user ansible-core || exit 1
+    ansible-galaxy collection install -r /server-hub/build-almalinux-server/requirements.yml || exit 1
     echo "## Completed Ansible Installation ##"
 fi
 

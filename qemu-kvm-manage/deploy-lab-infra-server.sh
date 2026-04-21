@@ -764,7 +764,7 @@ deploy_lab_infra_server_host() {
         bash-completion vim git bind-utils bind wget tar net-tools cifs-utils zip
         tftp-server tftp kea kea-hooks radvd nginx nginx-mod-stream openssl tmux
         rsync sysstat tcpdump traceroute nc samba-client lsof nfs-utils
-        nmap tuned tree yum-utils
+        nmap tuned tree yum-utils python3-pip python3-cryptography
     )
 
     # Install packages, skipping already installed ones
@@ -780,18 +780,8 @@ deploy_lab_infra_server_host() {
     else
         print_info "Installing Ansible on the host..."
 
-        # Install Python dependencies
-        sudo dnf install python3-pip python3-cryptography -y
-
-        # Install Ansible and related packages
-        pip3 install --user packaging
-        pip3 install --user ansible
-        pip3 install --user argcomplete
-
-        # Enable global shell completion
-        if command -v activate-global-python-argcomplete &>/dev/null; then
-            activate-global-python-argcomplete --user || true
-        fi
+        pip3 install --user ansible-core
+        ansible-galaxy collection install -r /server-hub/build-almalinux-server/requirements.yml
 
         print_success "Ansible installation completed successfully."
     fi
