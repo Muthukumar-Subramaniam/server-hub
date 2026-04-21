@@ -14,9 +14,10 @@ if command -v ansible &>/dev/null; then
 else
     echo -e "\nInstalling Ansible . . . \n"
     pip3 install --user ansible-core || exit 1
-    ansible-galaxy collection install -r /server-hub/build-almalinux-server/requirements.yml || exit 1
     echo "## Completed Ansible Installation ##"
 fi
+
+ansible-galaxy collection install -r /server-hub/build-almalinux-server/requirements.yml || exit 1
 
 echo -e "\nAdd password-less sudo access for $USER . . . \n"
 mgmt_super_user="$USER"

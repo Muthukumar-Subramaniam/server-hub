@@ -781,10 +781,11 @@ deploy_lab_infra_server_host() {
         print_info "Installing Ansible on the host..."
 
         pip3 install --user ansible-core
-        ansible-galaxy collection install -r /server-hub/build-almalinux-server/requirements.yml
 
         print_success "Ansible installation completed successfully."
     fi
+
+    ansible-galaxy collection install -r /server-hub/build-almalinux-server/requirements.yml
 
     # ---------------------------
     # Lab Infra DNS configuration
