@@ -543,12 +543,12 @@ deploy_lab_infra_server_vm() {
     
     # Check if ISO is already mounted
     if mountpoint -q /mnt/iso-for-${lab_infra_server_hostname}; then
-        print_warning "ISO already mounted at /mnt/iso-for-${lab_infra_server_hostname}, skipping mount..." nskip
+        print_task_skip
+        print_warning "ISO already mounted at /mnt/iso-for-${lab_infra_server_hostname}, skipping mount..."
     else
         sudo mount -o loop "${ISO_DIR}/${ISO_NAME}" /mnt/iso-for-${lab_infra_server_hostname} &>/dev/null
+        print_task_done
     fi
-
-    print_task_done
 
     # -----------------------------
     # Kickstart file preparation
@@ -558,7 +558,6 @@ deploy_lab_infra_server_vm() {
     KS_FILE="${VM_DIR}/${lab_infra_server_hostname}_ks.cfg"
 
     cp -f almalinux-template-ks.cfg "${KS_FILE}" 
-    sudo chown "$USER:qemu" "${KS_FILE}"
 
     sed -i "s/get_ipv4_address/${lab_infra_server_ipv4_address}/g" "${KS_FILE}"
     sed -i "s/get_ipv4_netmask/${lab_infra_server_ipv4_netmask}/g" "${KS_FILE}"
@@ -579,6 +578,18 @@ deploy_lab_infra_server_vm() {
 
     awk -v val="$lab_infra_ssh_private_key" '{ gsub(/get_ssh_private_key_of_qemu_host_machine/, val) } 1' \
             "${KS_FILE}" > "${KS_FILE}"_tmp_ksmanager && mv "${KS_FILE}"_tmp_ksmanager "${KS_FILE}" || { print_error "Failed to update SSH private key in kickstart"; exit 1; }
+
+    # Set correct group ownership so QEMU/libvirt can read the kickstart file
+    # Must be done after all sed/awk modifications since awk temp-file rewrites reset ownership
+    if getent group libvirt-qemu &>/dev/null; then
+        QEMU_GROUP="libvirt-qemu"
+    elif getent group qemu &>/dev/null; then
+        QEMU_GROUP="qemu"
+    else
+        print_error "Neither 'qemu' nor 'libvirt-qemu' group found. Is QEMU/KVM installed correctly?"
+        exit 1
+    fi
+    sudo chown "$USER:$QEMU_GROUP" "${KS_FILE}"
 
     print_success "Kickstart file prepared at ${KS_FILE}"
     # -------------------------
